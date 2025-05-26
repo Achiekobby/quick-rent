@@ -1,0 +1,758 @@
+import { useState, useEffect, useRef } from "react";
+import { motion as Motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import {
+  Search,
+  MapPin,
+  Filter,
+  ChevronDown,
+  Grid,
+  List,
+  ChevronLeft,
+  ChevronRight,
+  Sliders,
+  Heart,
+  Map,
+  X,
+} from "lucide-react";
+import PropertyCard from "../../components/Utilities/PropertyCard";
+import popularProperties from "../../data/PopularProperties";
+import Colors from "../../utils/Colors";
+import GuestLayout from "../../Layouts/GuestLayout";
+
+// Mock categories for the filter tabs
+const propertyCategories = [
+  { id: 1, name: "All", icon: "🏠" },
+  { id: 2, name: "Apartments", icon: "🏢" },
+  { id: 3, name: "Houses", icon: "🏡" },
+  { id: 4, name: "Single Rooms", icon: "🛏️" },
+  { id: 5, name: "Studios", icon: "🪟" },
+  { id: 6, name: "Luxury", icon: "✨" },
+  { id: 7, name: "New", icon: "🆕" },
+  { id: 8, name: "Beachfront", icon: "🏖️" },
+  { id: 9, name: "Countryside", icon: "🌳" },
+];
+
+const allProperties = [
+  ...popularProperties,
+  ...popularProperties.map((p) => ({ ...p, id: p.id + 100 })),
+  ...popularProperties.map((p) => ({ ...p, id: p.id + 200 })),
+  ...popularProperties.map((p) => ({ ...p, id: p.id + 300 })),
+];
+
+const AllProperties = () => {
+  const [selectedCategory, setSelectedCategory] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isNavSticky, setIsNavSticky] = useState(false);
+  const [showSideFilters, setShowSideFilters] = useState(false);
+  const [selectedBedroom, setSelectedBedroom] = useState("Any");
+  const [selectedBathroom, setSelectedBathroom] = useState("Any");
+  const [selectedPropertyTypes, setSelectedPropertyTypes] = useState([]);
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
+  const [isMobileView, setIsMobileView] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const navRef = useRef(null);
+  const navHeight = useRef(0);
+  const topRef = useRef(null);
+  const shouldReduceMotion = useReducedMotion();
+
+  const itemsPerPage = 12;
+  const totalPages = Math.ceil(allProperties.length / itemsPerPage);
+
+  // Get current properties
+  const indexOfLastProperty = currentPage * itemsPerPage;
+  const indexOfFirstProperty = indexOfLastProperty - itemsPerPage;
+  const currentProperties = allProperties.slice(
+    indexOfFirstProperty,
+    indexOfLastProperty
+  );
+
+  // Change page and scroll to top
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: topRef.current.offsetTop - navHeight.current - 10, behavior: 'smooth' });
+  };
+  
+  const nextPage = () => {
+    const newPage = Math.min(currentPage + 1, totalPages);
+    setCurrentPage(newPage);
+    if (newPage !== currentPage) {
+      window.scrollTo({ top: topRef.current.offsetTop - navHeight.current - 10, behavior: 'smooth' });
+    }
+  };
+  
+  const prevPage = () => {
+    const newPage = Math.max(currentPage - 1, 1);
+    setCurrentPage(newPage);
+    if (newPage !== currentPage) {
+      window.scrollTo({ top: topRef.current.offsetTop - navHeight.current - 10, behavior: 'smooth' });
+    }
+  };
+
+  // Filter properties by category and search query
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchQuery]);
+
+  useEffect(() => {
+    const topNavbar = document.querySelector("nav");
+    if (topNavbar) {
+      navHeight.current = topNavbar.offsetHeight;
+    }
+
+    const handleScroll = () => {
+      if (navRef.current) {
+        const navPosition = navRef.current.getBoundingClientRect().top;
+        setIsNavSticky(navPosition <= navHeight.current);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        showSideFilters &&
+        !e.target.closest(".side-filter-panel") &&
+        !e.target.closest(".filter-toggle-btn")
+      ) {
+        setShowSideFilters(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showSideFilters]);
+
+  // Toggle property type selection
+  const togglePropertyType = (type) => {
+    setSelectedPropertyTypes(prev => 
+      prev.includes(type) 
+        ? prev.filter(item => item !== type)
+        : [...prev, type]
+    );
+  };
+
+  // Toggle amenity selection
+  const toggleAmenity = (amenity) => {
+    setSelectedAmenities(prev => 
+      prev.includes(amenity) 
+        ? prev.filter(item => item !== amenity)
+        : [...prev, amenity]
+    );
+  };
+
+  // Check if mobile view
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
+
+  const fadeInVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: {
+        duration: 0.4,
+        ease: "easeOut"
+      }
+    },
+    exit: { 
+      opacity: 0,
+      transition: {
+        duration: 0.3,
+        ease: "easeIn"
+      }
+    }
+  };
+  
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+        delayChildren: 0.1
+      }
+    }
+  };
+  
+  const staggerItem = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  return (
+    <GuestLayout>
+      <div className="min-h-screen bg-white" ref={topRef}>
+        {/* Hero Section with Search */}
+        <Motion.section
+          className="relative bg-neutral-50 pt-6 md:pt-8 pb-4 md:pb-6 border-b border-neutral-200"
+          initial="hidden"
+          animate="visible"
+          variants={fadeInVariants}
+        >
+          <div className="container mx-auto px-3 sm:px-6 lg:px-8">
+            {/* Search Bar */}
+            <div className="relative max-w-2xl mx-auto">
+              <Motion.div 
+                className="flex items-center bg-white rounded-full shadow-md border border-neutral-200 overflow-hidden"
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.1, duration: 0.4 }}
+              >
+                <div className="flex-grow px-3 md:px-4 py-2 md:py-3 flex items-center">
+                  <Search size={isMobileView ? 16 : 18} className="text-neutral-400 mr-2" />
+                  <input
+                    type="text"
+                    placeholder={isMobileView ? "Search properties..." : "Search by location, property type, or features..."}
+                    className="w-full outline-none text-neutral-800 text-sm md:text-base"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Motion.button
+                  className="h-full px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white flex items-center justify-center rounded-r-full shadow-sm"
+                  whileHover={{ scale: 1.05, backgroundColor: Colors.accent.darkOrange }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Search size={isMobileView ? 16 : 20} className="text-white" />
+                </Motion.button>
+              </Motion.div>
+            </div>
+          </div>
+        </Motion.section>
+
+        <div
+          ref={navRef}
+          style={{
+            top: isNavSticky ? `${navHeight.current}px` : "0",
+          }}
+          className={`border-b border-neutral-200 sticky bg-white z-40 ${
+            isNavSticky ? "shadow-md" : "shadow-sm"
+          } transition-all duration-300`}
+        >
+          <div className="container mx-auto px-3 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between py-2 md:py-3">
+              <AnimatePresence>
+                {isNavSticky && !isMobileView && (
+                  <Motion.div 
+                    className="flex-grow max-w-md mr-4"
+                    initial={{ opacity: 0, width: 0, x: -20 }}
+                    animate={{ opacity: 1, width: "auto", x: 0 }}
+                    exit={{ opacity: 0, width: 0, x: -20 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                  >
+                    <div className="flex items-center bg-white rounded-full shadow-sm border border-neutral-200 overflow-hidden">
+                      <div className="flex-grow px-3 py-2 flex items-center">
+                        <Search size={14} className="text-neutral-400 mr-2" />
+                        <input
+                          type="text"
+                          placeholder="Quick search..."
+                          className="w-full outline-none text-neutral-800 text-sm"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                      </div>
+                      <Motion.button
+                        className="h-full px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white flex items-center justify-center rounded-r-full shadow-sm"
+                        whileHover={{ scale: 1.05, backgroundColor: Colors.accent.darkOrange }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Search size={16} className="text-white" />
+                      </Motion.button>
+                    </div>
+                  </Motion.div>
+                )}
+              </AnimatePresence>
+              
+              {isMobileView && isNavSticky && (
+                <Motion.button
+                  className="p-2 rounded-full border border-neutral-200 mr-2"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowMobileSearch(!showMobileSearch)}
+                >
+                  <Search size={18} className="text-neutral-600" />
+                </Motion.button>
+              )}
+              
+              <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-grow">
+                {propertyCategories.map((category, index) => (
+                  <Motion.button
+                    key={category.id}
+                    className={`flex cursor-pointer flex-col items-center px-2 md:px-4 py-1 md:py-2 rounded-lg whitespace-nowrap text-xs md:text-sm ${
+                      selectedCategory === category.id
+                        ? "bg-neutral-100 font-medium"
+                        : "hover:bg-neutral-50"
+                    }`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ 
+                      delay: shouldReduceMotion ? 0 : index * 0.03,
+                      duration: 0.4
+                    }}
+                    whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+                    whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
+                    onClick={() => setSelectedCategory(category.id)}
+                  >
+                    <span className="text-lg md:text-xl mb-0.5 md:mb-1">{category.icon}</span>
+                    <span>{category.name}</span>
+                  </Motion.button>
+                ))}
+              </div>
+              <AnimatePresence>
+                <Motion.button
+                  className="filter-toggle-btn cursor-pointer ml-2 md:ml-3 p-2 bg-white rounded-full shadow-md border border-neutral-200 flex items-center justify-center"
+                  style={{
+                    backgroundColor: showSideFilters
+                      ? Colors.accent.orange
+                      : "white",
+                    color: showSideFilters ? "white" : Colors.accent.orange,
+                  }}
+                  whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+                  whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
+                  onClick={() => setShowSideFilters(!showSideFilters)}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Sliders size={isMobileView ? 16 : 18} />
+                </Motion.button>
+              </AnimatePresence>
+            </div>
+            
+            <AnimatePresence>
+              {showMobileSearch && isMobileView && (
+                <Motion.div 
+                  className="py-2 pb-3"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="flex items-center bg-white rounded-full shadow-sm border border-neutral-200 overflow-hidden">
+                    <div className="flex-grow px-3 py-2 flex items-center">
+                      <Search size={14} className="text-neutral-400 mr-2" />
+                      <input
+                        type="text"
+                        placeholder="Quick search..."
+                        className="w-full outline-none text-neutral-800 text-sm"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <button
+                      className="h-full px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white flex items-center justify-center rounded-r-full shadow-sm"
+                    >
+                      <Search size={16} className="text-white" />
+                    </button>
+                  </div>
+                </Motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Sliding Side Filter Panel */}
+        <AnimatePresence>
+          {showSideFilters && (
+            <Motion.div
+              className="fixed left-0 top-0 h-screen w-full z-60 bg-black/50 bg-opacity-20 flex"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Motion.div
+                className="side-filter-panel bg-white h-full w-full max-w-xs md:max-w-md overflow-y-auto shadow-xl"
+                initial={{ x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "-100%" }}
+                transition={{ 
+                  type: "spring", 
+                  damping: 30, 
+                  stiffness: 300,
+                  mass: 1
+                }}
+              >
+                <div className="sticky top-0 bg-white z-10 px-4 md:px-6 py-3 md:py-4 border-b border-neutral-200 flex justify-between items-center">
+                  <h2 className="text-lg md:text-xl font-bold">Filters</h2>
+                  <Motion.button
+                    className="p-2 rounded-full hover:bg-neutral-100"
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowSideFilters(false)}
+                  >
+                    <X size={isMobileView ? 18 : 20} />
+                  </Motion.button>
+                </div>
+
+                <div className="p-4 md:p-6 space-y-5 md:space-y-6">
+                  {/* Price Range */}
+                  <div>
+                    <h3 className="text-base md:text-lg font-medium mb-2 md:mb-3">Price Range</h3>
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">
+                          ₵
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Min"
+                          className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm md:text-base"
+                        />
+                      </div>
+                      <span>to</span>
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">
+                          ₵
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="Max"
+                          className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm md:text-base"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Property Type */}
+                  <div>
+                    <h3 className="text-base md:text-lg font-medium mb-2 md:mb-3">Property Type</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        "Apartment",
+                        "House",
+                        "Single Room",
+                        "Studio",
+                        "Townhouse",
+                        "Villa",
+                      ].map((type) => (
+                        <Motion.div
+                          key={type}
+                          className={`flex items-center gap-2 border ${
+                            selectedPropertyTypes.includes(type)
+                              ? "border-accent-orange bg-orange-50"
+                              : "border-neutral-300"
+                          } rounded-lg p-3 cursor-pointer hover:bg-neutral-50`}
+                          style={
+                            selectedPropertyTypes.includes(type)
+                              ? { borderColor: Colors.accent.orange }
+                              : {}
+                          }
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => togglePropertyType(type)}
+                        >
+                          <div 
+                            className="h-4 w-4 rounded border flex items-center justify-center"
+                            style={{ 
+                              backgroundColor: selectedPropertyTypes.includes(type) ? Colors.accent.orange : 'white',
+                              borderColor: selectedPropertyTypes.includes(type) ? Colors.accent.orange : '#d1d5db'
+                            }}
+                          >
+                            {selectedPropertyTypes.includes(type) && (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="white">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="text-sm cursor-pointer flex-1">
+                            {type}
+                          </span>
+                        </Motion.div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bedrooms */}
+                  <div>
+                    <h3 className="text-base md:text-lg font-medium mb-2 md:mb-3">Bedrooms</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {["Any", "Studio", "1", "2", "3", "4+"].map((bed) => (
+                        <Motion.button
+                          key={bed}
+                          className={`px-4 py-2 border rounded-full text-sm ${
+                            selectedBedroom === bed
+                              ? "bg-accent-orange text-white border-accent-orange"
+                              : "border-neutral-300 hover:bg-neutral-50"
+                          }`}
+                          style={
+                            selectedBedroom === bed
+                              ? { backgroundColor: Colors.accent.orange, borderColor: Colors.accent.orange }
+                              : {}
+                          }
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setSelectedBedroom(bed)}
+                        >
+                          {bed}
+                        </Motion.button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bathrooms */}
+                  <div>
+                    <h3 className="text-base md:text-lg font-medium mb-2 md:mb-3">Bathrooms</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {["Any", "1", "2", "3+"].map((bath) => (
+                        <Motion.button
+                          key={bath}
+                          className={`px-4 py-2 border rounded-full text-sm ${
+                            selectedBathroom === bath
+                              ? "bg-accent-orange text-white border-accent-orange"
+                              : "border-neutral-300 hover:bg-neutral-50"
+                          }`}
+                          style={
+                            selectedBathroom === bath
+                              ? { backgroundColor: Colors.accent.orange, borderColor: Colors.accent.orange }
+                              : {}
+                          }
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setSelectedBathroom(bath)}
+                        >
+                          {bath}
+                        </Motion.button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Amenities */}
+                  <div>
+                    <h3 className="text-base md:text-lg font-medium mb-2 md:mb-3">Amenities</h3>
+                    <div className="grid grid-cols-1 gap-2">
+                      {[
+                        "Air Conditioning",
+                        "Furnished",
+                        "Parking",
+                        "Pet Friendly",
+                        "Swimming Pool",
+                        "Gym",
+                        "Security",
+                      ].map((amenity) => (
+                        <Motion.div
+                          key={amenity}
+                          className={`flex items-center gap-2 p-2 cursor-pointer hover:bg-neutral-50 rounded-lg ${
+                            selectedAmenities.includes(amenity) ? "bg-orange-50" : ""
+                          }`}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => toggleAmenity(amenity)}
+                        >
+                          <div 
+                            className="h-4 w-4 rounded border flex items-center justify-center"
+                            style={{ 
+                              backgroundColor: selectedAmenities.includes(amenity) ? Colors.accent.orange : 'white',
+                              borderColor: selectedAmenities.includes(amenity) ? Colors.accent.orange : '#d1d5db'
+                            }}
+                          >
+                            {selectedAmenities.includes(amenity) && (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="white">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="text-sm cursor-pointer flex-1">
+                            {amenity}
+                          </span>
+                        </Motion.div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="sticky bottom-0 bg-white border-t border-neutral-200 p-3 md:p-4 flex gap-3">
+                  <Motion.button
+                    className="flex-1 py-2 md:py-3 border border-neutral-300 rounded-lg text-neutral-700 font-medium text-sm md:text-base"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setSelectedBedroom("Any");
+                      setSelectedBathroom("Any");
+                      setSelectedPropertyTypes([]);
+                      setSelectedAmenities([]);
+                      setShowSideFilters(false);
+                    }}
+                  >
+                    Reset
+                  </Motion.button>
+                  <Motion.button
+                    className="flex-1 py-2 md:py-3 rounded-lg text-white font-medium text-sm md:text-base"
+                    style={{ backgroundColor: Colors.accent.orange }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowSideFilters(false)}
+                  >
+                    Apply Filters
+                  </Motion.button>
+                </div>
+              </Motion.div>
+            </Motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Property Listings */}
+        <Motion.section 
+          className="py-5 md:py-8"
+          initial="hidden"
+          animate="visible"
+          variants={fadeInVariants}
+        >
+          <div className="container mx-auto px-3 sm:px-6 lg:px-8">
+            <Motion.div 
+              className="mb-4 md:mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-0"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+            >
+              <p className="text-sm md:text-base text-neutral-600">
+                Showing{" "}
+                <span className="font-medium">
+                  {indexOfFirstProperty + 1}-
+                  {Math.min(indexOfLastProperty, allProperties.length)}
+                </span>{" "}
+                of <span className="font-medium">{allProperties.length}</span>{" "}
+                properties
+              </p>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs md:text-sm text-neutral-600">Sort by:</span>
+                <div className="relative">
+                  <select className="appearance-none bg-white border border-neutral-300 rounded-lg py-1 pl-2 md:pl-3 pr-6 md:pr-8 text-xs md:text-sm">
+                    <option>Recommended</option>
+                    <option>Price: Low to High</option>
+                    <option>Price: High to Low</option>
+                    <option>Newest</option>
+                  </select>
+                  <ChevronDown
+                    size={12}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500"
+                  />
+                </div>
+              </div>
+            </Motion.div>
+
+            <Motion.div 
+              className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+            >
+              {currentProperties.map((property) => (
+                <Motion.div key={property.id} variants={staggerItem}>
+                  <PropertyCard property={property} />
+                </Motion.div>
+              ))}
+            </Motion.div>
+
+            {/* Pagination */}
+            <Motion.div 
+              className="mt-8 md:mt-10 flex justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+            >
+              <nav className="flex items-center gap-1">
+                <Motion.button
+                  className="p-1 md:p-2 rounded-lg border border-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+                  whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
+                  onClick={prevPage}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft size={isMobileView ? 14 : 16} />
+                </Motion.button>
+
+                {isMobileView ? (
+                  <div className="px-3 py-1 text-sm">
+                    {currentPage} / {totalPages}
+                  </div>
+                ) : (
+                  <>
+                    {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+                      // Show pages around current page
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <Motion.button
+                          key={i}
+                          className={`w-8 md:w-10 h-8 md:h-10 rounded-lg flex items-center justify-center text-xs md:text-sm ${
+                            currentPage === pageNum
+                              ? "bg-primary-600 text-white"
+                              : "border border-neutral-200 hover:bg-neutral-50"
+                          }`}
+                          style={
+                            currentPage === pageNum
+                              ? { backgroundColor: Colors.accent.orange }
+                              : {}
+                          }
+                          whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+                          whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
+                          onClick={() => paginate(pageNum)}
+                        >
+                          {pageNum}
+                        </Motion.button>
+                      );
+                    })}
+
+                    {totalPages > 5 && currentPage < totalPages - 2 && (
+                      <>
+                        <span className="px-1">...</span>
+                        <Motion.button
+                          className="w-8 md:w-10 h-8 md:h-10 rounded-lg border border-neutral-200 flex items-center justify-center text-xs md:text-sm hover:bg-neutral-50"
+                          whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+                          whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
+                          onClick={() => paginate(totalPages)}
+                        >
+                          {totalPages}
+                        </Motion.button>
+                      </>
+                    )}
+                  </>
+                )}
+
+                <Motion.button
+                  className="p-1 md:p-2 rounded-lg border border-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+                  whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
+                  onClick={nextPage}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight size={isMobileView ? 14 : 16} />
+                </Motion.button>
+              </nav>
+            </Motion.div>
+          </div>
+        </Motion.section>
+      </div>
+    </GuestLayout>
+  );
+};
+
+export default AllProperties;
