@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, ArrowRight, Check, Plus, Minus, Upload, X, AlertCircle,
-  DollarSign, Phone, MessageCircle, Image as ImageIcon
+  DollarSign, Phone, MessageCircle, Image as ImageIcon, Star, Copy, Eye, EyeOff, Code
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router";
 import AuthLayout from "../../Layouts/AuthLayout";
@@ -17,6 +17,7 @@ const EditProperty = () => {
   const fileInputRef = useRef(null);
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState([]);
+  const [showFullPayload, setShowFullPayload] = useState(false);
 
   // Scroll to top on step change
   useEffect(() => {
@@ -56,7 +57,7 @@ const EditProperty = () => {
     { id: 4, title: "Images & Review", description: "Property photos and final review" }
   ];
 
-  // Mock existing property data
+  // Mock existing property data - updated to use new image structure
   const existingProperty = {
     title: "Modern 3-Bedroom Apartment in East Legon",
     region: "Greater Accra",
@@ -76,9 +77,17 @@ const EditProperty = () => {
     year_built: "2020",
     amenities: ["Air Conditioning", "Parking", "Security", "Elevator", "Balcony"],
     property_type: "3 Bedroom Apartment",
+    is_available: true,
+    approval_status: "verified",
     property_images: [
-      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80"
+      {
+        image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
+        is_featured: true
+      },
+      {
+        image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80",
+        is_featured: false
+      }
     ]
   };
 
@@ -113,9 +122,24 @@ const EditProperty = () => {
     }));
   };
 
-  const handleImageUpload = (e) => {
+  // Convert file to base64
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  // Check if image is a URL (existing) or base64 (new upload)
+  const isImageUrl = (imageString) => {
+    return imageString.startsWith('http://') || imageString.startsWith('https://');
+  };
+
+  const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
-    const totalImages = imageFiles.length + files.length;
+    const totalImages = formData.property_images.length + files.length;
 
     if (totalImages > 5) {
       toast.error("Maximum 5 images allowed");
@@ -136,27 +160,164 @@ const EditProperty = () => {
 
     if (validFiles.length === 0) return;
 
-    const newPreviewUrls = validFiles.map(file => URL.createObjectURL(file));
-    
-    setImageFiles(prev => [...prev, ...validFiles]);
-    setImagePreviewUrls(prev => [...prev, ...newPreviewUrls]);
-    setFormData(prev => ({
-      ...prev,
-      property_images: [...prev.property_images, ...newPreviewUrls]
-    }));
+    try {
+      const base64Images = await Promise.all(
+        validFiles.map(async (file) => {
+          const base64 = await convertToBase64(file);
+          return {
+            image: base64,
+            is_featured: false,
+            isNew: true // Flag to identify new uploads
+          };
+        })
+      );
 
-    toast.success(`${validFiles.length} image(s) uploaded successfully`);
+      const newPreviewUrls = validFiles.map(file => URL.createObjectURL(file));
+      
+      setImageFiles(prev => [...prev, ...validFiles]);
+      setImagePreviewUrls(prev => [...prev, ...newPreviewUrls]);
+      
+      setFormData(prev => {
+        const updatedImages = [...prev.property_images, ...base64Images];
+        
+        // If no image is currently featured, make the first image featured
+        const hasFeaturedImage = updatedImages.some(img => img.is_featured);
+        if (!hasFeaturedImage && updatedImages.length > 0) {
+          updatedImages[0].is_featured = true;
+        }
+        
+        return {
+          ...prev,
+          property_images: updatedImages
+        };
+      });
+
+      toast.success(`${validFiles.length} image(s) uploaded successfully`);
+    } catch {
+      toast.error("Failed to process images. Please try again.");
+    }
   };
 
   const removeImage = (index) => {
-    URL.revokeObjectURL(imagePreviewUrls[index]);
+    const imageToRemove = formData.property_images[index];
+    const wasFeatureImage = imageToRemove?.is_featured;
     
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
-    setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
+    // Only revoke URL if it's a newly uploaded image (has preview URL)
+    if (imagePreviewUrls[index] && imageToRemove?.isNew) {
+      URL.revokeObjectURL(imagePreviewUrls[index]);
+      setImageFiles(prev => prev.filter((_, i) => i !== index));
+      setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
+    }
+    
+    setFormData(prev => {
+      const updatedImages = prev.property_images.filter((_, i) => i !== index);
+      
+      // If we removed the featured image and there are other images, make the first one featured
+      if (wasFeatureImage && updatedImages.length > 0) {
+        updatedImages[0].is_featured = true;
+      }
+      
+      return {
+        ...prev,
+        property_images: updatedImages
+      };
+    });
+
+    toast.success("Image removed successfully");
+  };
+
+  const setFeaturedImage = (index) => {
     setFormData(prev => ({
       ...prev,
-      property_images: prev.property_images.filter((_, i) => i !== index)
+      property_images: prev.property_images.map((img, i) => ({
+        ...img,
+        is_featured: i === index
+      }))
     }));
+    toast.success("Featured image updated");
+  };
+
+  const getFeaturedImageIndex = () => {
+    return formData.property_images.findIndex(img => img.is_featured);
+  };
+
+  // Get display URL for image (either URL or blob URL for new uploads)
+  const getImageDisplayUrl = (imageObj, index) => {
+    if (isImageUrl(imageObj.image)) {
+      return imageObj.image; // Existing image URL
+    } else {
+      // For base64 images, we need to create blob URLs for preview
+      return imagePreviewUrls[index] || imageObj.image;
+    }
+  };
+
+  // Generate complete API payload for preview
+  const generateCompletePayload = (forPreview = false) => {
+    const payload = {
+      // System fields
+      id: propertyId,
+      
+      // Basic Information
+      title: formData.title,
+      property_type: formData.property_type,
+      
+      // Location Details
+      region: formData.region,
+      location: formData.location === "Other" ? formData.customLocation : formData.location,
+      suburb: formData.suburb,
+      district: formData.district || null,
+      landmark: formData.landmark || null,
+      
+      // Property Specifications
+      number_of_bedrooms: formData.number_of_bedrooms,
+      number_of_bathrooms: formData.number_of_bathrooms,
+      year_built: formData.year_built ? parseInt(formData.year_built) : null,
+      description: formData.description,
+      amenities: formData.amenities,
+      
+      // Pricing & Availability
+      per_month_amount: parseFloat(formData.per_month_amount) || 0,
+      rental_years: formData.rental_years,
+      negotiable: formData.negotiable,
+      is_available: formData.is_available,
+      
+      // Contact Information
+      contact_number: `+233${formData.contact_number}`,
+      whatsapp_number: `+233${formData.whatsapp_number}`,
+      
+      // System Fields
+      approval_status: formData.approval_status,
+      
+      // Property Images
+      property_images: formData.property_images.length > 0 
+        ? formData.property_images.map((img, index) => {
+            const hasFeaturedImage = formData.property_images.some(img => img.is_featured);
+            return {
+              image: forPreview && img.image.startsWith('data:') 
+                ? `${img.image.substring(0, 20)}...` 
+                : img.image, // Truncate base64 for preview, keep full for actual submission
+              is_featured: hasFeaturedImage ? img.is_featured : index === 0,
+              ...(img.isNew && { isNew: true }) // Flag for new images
+            };
+          })
+        : [],
+      
+      // Metadata
+      updated_at: new Date().toISOString()
+    };
+    
+    return payload;
+  };
+
+  // Copy payload to clipboard
+  const copyPayloadToClipboard = async () => {
+    try {
+      const payload = generateCompletePayload(true); // Use truncated version for copy too
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      toast.success("API payload copied to clipboard!");
+    } catch {
+      toast.error("Failed to copy to clipboard");
+    }
   };
 
   const validateStep = (step) => {
@@ -207,7 +368,28 @@ const EditProperty = () => {
     
     setLoading(true);
     try {
+      // Prepare the data for API submission
+      const submissionData = {
+        ...formData,
+        // Clean up images for API - remove internal flags and ensure proper structure
+        property_images: formData.property_images.length > 0 
+          ? formData.property_images.map((img, index) => {
+              // Ensure we have at least one featured image
+              const hasFeaturedImage = formData.property_images.some(img => img.is_featured);
+              
+              return {
+                image: img.image, // This will be either URL (existing) or base64 (new)
+                is_featured: hasFeaturedImage ? img.is_featured : index === 0,
+                // Optional: Add metadata for backend processing
+                ...(img.isNew && { isNew: true }) // Flag new images for backend processing
+              };
+            })
+          : []
+      };
+
       await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      console.log("Updated Property Data being sent to API:", submissionData);
       toast.success("Property updated successfully!");
       navigate(`/view-property/${propertyId}`);
     } catch (error) {
@@ -610,52 +792,83 @@ const EditProperty = () => {
                         }`}
                       />
                     </div>
-                                         {errors.per_month_amount && (
-                       <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                         <AlertCircle size={14} />
-                         {errors.per_month_amount}
-                       </p>
-                     )}
-                   </div>
+                    {errors.per_month_amount && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                        <AlertCircle size={14} />
+                        {errors.per_month_amount}
+                      </p>
+                    )}
+                  </div>
 
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                         Minimum Rental Period (Years)
-                       </label>
-                       <select
-                         value={formData.rental_years}
-                         onChange={(e) => handleInputChange("rental_years", parseInt(e.target.value))}
-                         className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
-                       >
-                         <option value={1}>1 Year</option>
-                         <option value={2}>2 Years</option>
-                         <option value={3}>3 Years</option>
-                         <option value={4}>4 Years</option>
-                         <option value={5}>5+ Years</option>
-                       </select>
-                     </div>
-                   </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Minimum Rental Period (Years)
+                      </label>
+                      <select
+                        value={formData.rental_years}
+                        onChange={(e) => handleInputChange("rental_years", parseInt(e.target.value))}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                      >
+                        <option value={1}>1 Year</option>
+                        <option value={2}>2 Years</option>
+                        <option value={3}>3 Years</option>
+                        <option value={4}>4 Years</option>
+                        <option value={5}>5+ Years</option>
+                      </select>
+                    </div>
+                  </div>
 
-                   {/* Negotiable Toggle */}
-                   <div className="flex items-center gap-3">
-                     <button
-                       type="button"
-                       onClick={() => handleInputChange("negotiable", !formData.negotiable)}
-                       className={`w-12 h-6 rounded-full transition-all ${
-                         formData.negotiable ? "bg-orange-500" : "bg-gray-200"
-                       }`}
-                     >
-                       <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
-                         formData.negotiable ? "translate-x-6" : "translate-x-0.5"
-                       }`} />
-                     </button>
-                     <label className="text-sm font-medium text-gray-700">
-                       Price is negotiable
-                     </label>
-                   </div>
+                  {/* Toggles Section */}
+                  <div className="space-y-4">
+                    {/* Negotiable Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          Price is negotiable
+                        </label>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Allow potential tenants to negotiate the rental price
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange("negotiable", !formData.negotiable)}
+                        className={`w-12 h-6 rounded-full transition-all ${
+                          formData.negotiable ? "bg-orange-500" : "bg-gray-200"
+                        }`}
+                      >
+                        <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
+                          formData.negotiable ? "translate-x-6" : "translate-x-0.5"
+                        }`} />
+                      </button>
+                    </div>
 
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Available Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          Property is available for rent
+                        </label>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Toggle this off if the property is temporarily unavailable
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange("is_available", !formData.is_available)}
+                        className={`w-12 h-6 rounded-full transition-all ${
+                          formData.is_available ? "bg-green-500" : "bg-gray-200"
+                        }`}
+                      >
+                        <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
+                          formData.is_available ? "translate-x-6" : "translate-x-0.5"
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Contact Number *
@@ -732,7 +945,7 @@ const EditProperty = () => {
                 </Motion.div>
               )}
 
-              {/* Step 4 - Images */}
+              {/* Step 4 - Images with Complete API Payload Preview */}
               {currentStep === 4 && (
                 <Motion.div
                   initial={{ opacity: 0, x: 20 }}
@@ -759,14 +972,27 @@ const EditProperty = () => {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-semibold inline-flex items-center gap-2"
+                      disabled={formData.property_images.length >= 5}
+                      className={`px-6 py-3 rounded-xl font-semibold inline-flex items-center gap-2 transition-colors ${
+                        formData.property_images.length >= 5
+                          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                          : "bg-orange-500 hover:bg-orange-600 text-white"
+                      }`}
                     >
                       <Upload size={20} />
-                      Upload Images
+                      {formData.property_images.length > 0 ? "Add More Images" : "Upload Images"}
                     </button>
                     <p className="text-gray-500 text-sm mt-2">
                       Drop images here or click to browse (Max 5MB each)
                     </p>
+                    <p className="text-gray-400 text-xs mt-1">
+                      Supported formats: JPG, PNG, WebP
+                    </p>
+                    {formData.property_images.length > 0 && (
+                      <p className="text-sm text-gray-600 mt-2 font-medium">
+                        {formData.property_images.length}/5 images
+                      </p>
+                    )}
                   </div>
 
                   {errors.property_images && (
@@ -776,31 +1002,186 @@ const EditProperty = () => {
                     </p>
                   )}
 
-                  {imagePreviewUrls.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                      {imagePreviewUrls.map((url, index) => (
-                        <Motion.div
-                          key={index}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="relative group"
-                        >
-                          <img
-                            src={url}
-                            alt={`Property ${index + 1}`}
-                            className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  {formData.property_images.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">Property Images</h3>
+                        <p className="text-sm text-gray-500">
+                          Click the star to set featured image
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {formData.property_images.map((imageObj, index) => (
+                          <Motion.div
+                            key={`${imageObj.image}-${index}`}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="relative group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all"
                           >
-                            <X size={12} />
-                          </button>
-                        </Motion.div>
-                      ))}
+                            <div className="aspect-video relative">
+                              <img
+                                src={getImageDisplayUrl(imageObj, index)}
+                                alt={`Property ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              
+                              {/* Featured Badge */}
+                              {imageObj.is_featured && (
+                                <div className="absolute top-2 left-2 bg-orange-500 text-white px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1">
+                                  <Star size={12} fill="currentColor" />
+                                  Featured
+                                </div>
+                              )}
+
+                              {/* New Image Badge */}
+                              {imageObj.isNew && (
+                                <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-lg text-xs font-semibold">
+                                  New
+                                </div>
+                              )}
+                              
+                              {/* Image Controls */}
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setFeaturedImage(index)}
+                                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
+                                    imageObj.is_featured
+                                      ? "bg-orange-500 text-white"
+                                      : "bg-white text-gray-800 hover:bg-gray-100"
+                                  }`}
+                                >
+                                  <Star size={14} fill={imageObj.is_featured ? "currentColor" : "none"} />
+                                  {imageObj.is_featured ? "Featured" : "Set Featured"}
+                                </button>
+                                
+                                <button
+                                  type="button"
+                                  onClick={() => removeImage(index)}
+                                  className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors flex items-center gap-1"
+                                >
+                                  <X size={14} />
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                            
+                            {/* Image Info */}
+                            <div className="p-3">
+                              <p className="text-sm font-medium text-gray-900">
+                                Image {index + 1}
+                                {imageObj.is_featured && (
+                                  <span className="ml-2 text-orange-600">• Featured</span>
+                                )}
+                                {imageObj.isNew && (
+                                  <span className="ml-2 text-green-600">• New Upload</span>
+                                )}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {isImageUrl(imageObj.image) ? "Existing image" : "New upload"}
+                                {imageFiles[index]?.size && ` • ${(imageFiles[index].size / 1024 / 1024).toFixed(2)} MB`}
+                              </p>
+                            </div>
+                          </Motion.div>
+                        ))}
+                      </div>
+                      
+                      {/* Featured Image Info */}
+                      <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                        <div className="flex items-start gap-3">
+                          <Star size={20} className="text-orange-600 flex-shrink-0 mt-0.5" fill="currentColor" />
+                          <div>
+                            <h4 className="text-sm font-semibold text-orange-900">Featured Image</h4>
+                            <p className="text-sm text-orange-700 mt-1">
+                              {getFeaturedImageIndex() >= 0 
+                                ? `Image ${getFeaturedImageIndex() + 1} is set as featured and will be displayed on property cards.`
+                                : "The first image will be used as featured image by default."
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
+
+                  {/* Complete API Payload Preview */}
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                          <Code size={16} className="text-white" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-blue-900">Complete API Payload</h4>
+                          <p className="text-sm text-blue-700">Ready to send to your backend for UPDATE</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowFullPayload(!showFullPayload)}
+                          className="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                        >
+                          {showFullPayload ? <EyeOff size={14} /> : <Eye size={14} />}
+                          {showFullPayload ? "Collapse" : "Expand"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={copyPayloadToClipboard}
+                          className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                        >
+                          <Copy size={14} />
+                          Copy JSON
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* Payload Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div className="bg-white/60 rounded-lg p-3 text-center">
+                        <p className="text-2xl font-bold text-blue-600">{Object.keys(generateCompletePayload(false)).length}</p>
+                        <p className="text-xs text-blue-700">Total Fields</p>
+                      </div>
+                      <div className="bg-white/60 rounded-lg p-3 text-center">
+                        <p className="text-2xl font-bold text-green-600">{formData.property_images.length}</p>
+                        <p className="text-xs text-green-700">Images</p>
+                      </div>
+                      <div className="bg-white/60 rounded-lg p-3 text-center">
+                        <p className="text-2xl font-bold text-orange-600">{formData.amenities.length}</p>
+                        <p className="text-xs text-orange-700">Amenities</p>
+                      </div>
+                      <div className="bg-white/60 rounded-lg p-3 text-center">
+                        <p className="text-2xl font-bold text-purple-600">
+                          {JSON.stringify(generateCompletePayload(false)).length}
+                        </p>
+                        <p className="text-xs text-purple-700">Bytes</p>
+                      </div>
+                    </div>
+
+                    {/* JSON Preview */}
+                    <div className={`transition-all duration-300 ${showFullPayload ? 'max-h-96' : 'max-h-40'} overflow-y-auto`}>
+                      <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm">
+                        <pre className="text-green-400 whitespace-pre-wrap break-all">
+                          {JSON.stringify(generateCompletePayload(true), null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                    
+                    {/* API Integration Guide */}
+                    <div className="mt-4 p-4 bg-white/60 rounded-lg">
+                      <h5 className="font-semibold text-blue-900 mb-2">🔄 Backend Update Integration Guide</h5>
+                      <div className="text-sm text-blue-800 space-y-1">
+                        <p>• <strong>Endpoint:</strong> PUT /api/properties/{propertyId}</p>
+                        <p>• <strong>Content-Type:</strong> application/json</p>
+                        <p>• <strong>Mixed Images:</strong> URLs (existing) + Base64 (new uploads)</p>
+                        <p>• <strong>New Image Flag:</strong> isNew: true for newly uploaded images</p>
+                        <p>• <strong>Featured Image:</strong> Only one image has is_featured: true</p>
+                        <p>• <strong>Response:</strong> Return updated property with new image URLs</p>
+                        <p>• <strong>Processing:</strong> Decode base64 for new images, keep URLs for existing</p>
+                      </div>
+                    </div>
+                  </div>
                 </Motion.div>
               )}
             </AnimatePresence>

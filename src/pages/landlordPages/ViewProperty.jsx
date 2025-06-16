@@ -37,15 +37,17 @@ import {
   Sparkles,
   Mail,
   Copy,
-  ExternalLink
+  ExternalLink,
+  User,
+  BuildingIcon
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router";
 import AuthLayout from "../../Layouts/AuthLayout";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import { toast } from "react-toastify";
+import { getPropertyById } from "../../api/Landlord/General/PropertyRequest";
 
 const ViewProperty = () => {
-  const { propertyId } = useParams();
   const navigate = useNavigate();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -53,84 +55,33 @@ const ViewProperty = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [selectedTab, setSelectedTab] = useState('overview');
-
-  // Mock property data - in real app, this would come from API
-  const mockProperty = {
-    id: parseInt(propertyId),
-    title: "Modern 3-Bedroom Apartment in East Legon",
-    region: "Greater Accra",
-    location: "East Legon",
-    suburb: "American House",
-    district: "Ayawaso West Municipal",
-    landmark: "Near East Legon Police Station",
-    per_month_amount: 2500,
-    rental_years: 1,
-    number_of_bedrooms: 3,
-    number_of_bathrooms: 2,
-    property_type: "3 Bedroom Apartment",
-    approval_status: "verified",
-    negotiable: true,
-    contact_number: "233244567890",
-    whatsapp_number: "233244567890",
-    year_built: "2020",
-    description: "This beautiful 3-bedroom apartment is located in the heart of East Legon, one of Accra's most prestigious neighborhoods. The property features modern amenities, spacious rooms, and excellent connectivity to major business districts. Perfect for families or professionals looking for comfort and convenience.",
-    amenities: [
-      "Air Conditioning", "Parking", "Security", "Elevator", "Balcony", 
-      "WiFi", "Furnished", "Generator", "Water Tank", "CCTV"
-    ],
-    property_images: [
-      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1560448204-444dcb5c385a?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1571624436279-b272aff752b5?auto=format&fit=crop&w=1200&q=80"
-    ],
-    created_at: "2024-01-15T10:30:00Z",
-    updated_at: "2024-01-20T14:30:00Z",
-    views: 245,
-    inquiries: 12,
-    favorites: 8,
-    is_featured: true,
-    // Analytics data
-    viewsThisMonth: 45,
-    inquiriesThisMonth: 3,
-    viewsLastMonth: 38,
-    inquiriesLastMonth: 2,
-    // Recent activity
-    recentInquiries: [
-      {
-        id: 1,
-        name: "John Doe",
-        email: "john@example.com",
-        phone: "233201234567",
-        message: "Interested in viewing this property",
-        date: "2024-01-22T10:30:00Z"
-      },
-      {
-        id: 2,
-        name: "Jane Smith",
-        email: "jane@example.com",
-        phone: "233207654321",
-        message: "Is this property still available?",
-        date: "2024-01-21T15:45:00Z"
+  const {propertySlug} = useParams();
+  
+  useEffect(()=>{
+    const fetchProperty = async()=>{
+      setLoading(true)
+      try{
+        const response = await getPropertyById(propertySlug);
+        if(response?.data?.status_code === "000" && !response?.data?.in_error){
+          setProperty(response?.data?.data);
+          setCurrentImageIndex(0); // Reset image index when property loads
+        }else{
+          toast.error(response?.data?.reason || "Failed to fetch property. Please try again.");
+        }
+      }catch(error){
+        toast.error(error?.response?.data?.reason || "An error occurred while fetching the property. Please try again.");
+      }finally{
+        setLoading(false);
       }
-    ]
-  };
-
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setProperty(mockProperty);
-      setLoading(false);
-    }, 1000);
-  }, [propertyId]);
+    }
+    fetchProperty();
+  },[propertySlug]);
 
   const handleDeleteProperty = () => {
     setShowDeleteModal(true);
   };
 
   const confirmDelete = () => {
-    // In real app, make API call to delete
     toast.success('Property deleted successfully');
     navigate('/my-properties');
   };
@@ -144,7 +95,7 @@ const ViewProperty = () => {
     return new Intl.NumberFormat('en-GH', {
       style: 'currency',
       currency: 'GHS',
-      minimumFractionDigits: 0
+      minimumFractionDigits: 2
     }).format(amount);
   };
 
@@ -165,15 +116,61 @@ const ViewProperty = () => {
   };
 
   const nextImage = () => {
-    setCurrentImageIndex((prev) => 
-      prev === property.property_images.length - 1 ? 0 : prev + 1
-    );
+    if (property?.images && property.images.length > 0) {
+      setCurrentImageIndex((prev) => {
+        const nextIndex = prev === property.images.length - 1 ? 0 : prev + 1;
+        console.log('Next image:', nextIndex, 'of', property.images.length);
+        return nextIndex;
+      });
+    }
   };
 
   const prevImage = () => {
-    setCurrentImageIndex((prev) => 
-      prev === 0 ? property.property_images.length - 1 : prev - 1
-    );
+    if (property?.images && property.images.length > 0) {
+      setCurrentImageIndex((prev) => {
+        const prevIndex = prev === 0 ? property.images.length - 1 : prev - 1;
+        console.log('Prev image:', prevIndex, 'of', property.images.length);
+        return prevIndex;
+      });
+    }
+  };
+
+  // Get current image URL
+  const getCurrentImageUrl = () => {
+    if (property?.images && property.images.length > 0) {
+      // Ensure currentImageIndex is within bounds
+      const safeIndex = Math.min(currentImageIndex, property.images.length - 1);
+      const imageUrl = property.images[safeIndex]?.url || property?.featured_image?.url || '/placeholder-image.jpg';
+      console.log('Current image index:', currentImageIndex, 'Safe index:', safeIndex, 'URL:', imageUrl);
+      return imageUrl;
+    }
+    return property?.featured_image?.url || '/placeholder-image.jpg';
+  };
+
+  const getApprovalStatusColor = (status) => {
+    switch(status) {
+      case 'verified':
+        return 'bg-green-100 text-green-800';
+      case 'unverified':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getApprovalStatusIcon = (status) => {
+    switch(status) {
+      case 'verified':
+        return CheckCircle2;
+      case 'unverified':
+        return AlertCircle;
+      case 'rejected':
+        return AlertCircle;
+      default:
+        return AlertCircle;
+    }
   };
 
   if (loading) {
@@ -206,6 +203,8 @@ const ViewProperty = () => {
     );
   }
 
+  const StatusIcon = getApprovalStatusIcon(property.approval_status);
+
   return (
     <AuthLayout>
       <div className="min-h-screen bg-gray-50">
@@ -223,25 +222,18 @@ const ViewProperty = () => {
                 <h1 className="text-2xl font-bold text-gray-900">{property.title}</h1>
                 <div className="flex items-center gap-2 mt-1">
                   <MapPin size={16} className="text-gray-400" />
-                  <span className="text-gray-600">{property.location}, {property.suburb}</span>
-                  {property.approval_status === 'verified' ? (
-                    <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
-                      <CheckCircle2 size={12} />
-                      <span>Verified</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
-                      <AlertCircle size={12} />
-                      <span>Pending</span>
-                    </div>
-                  )}
+                  <span className="text-gray-600">{property.location}, {property.region}</span>
+                  <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getApprovalStatusColor(property.approval_status)}`}>
+                    <StatusIcon size={12} />
+                    <span className="capitalize">{property.approval_status}</span>
+                  </div>
                 </div>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate(`/edit-property/${property.id}`)}
+                onClick={() => navigate(`/edit-property/${property.property_slug}`)}
                 className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
               >
                 <Edit3 size={16} />
@@ -265,39 +257,39 @@ const ViewProperty = () => {
             <div className="bg-white p-4 rounded-xl border border-gray-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Views</p>
-                  <p className="text-2xl font-bold text-gray-900">{property.views}</p>
-                  <p className="text-xs text-green-600">+{property.viewsThisMonth - property.viewsLastMonth} this month</p>
+                  <p className="text-sm text-gray-600">Property Status</p>
+                  <p className="text-lg font-bold text-gray-900 capitalize">{property.approval_status}</p>
+                  <p className="text-xs text-gray-500">{property.is_available ? 'Available' : 'Not Available'}</p>
                 </div>
-                <Eye className="text-blue-500" size={24} />
+                <StatusIcon className="text-blue-500" size={24} />
               </div>
             </div>
             <div className="bg-white p-4 rounded-xl border border-gray-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Inquiries</p>
-                  <p className="text-2xl font-bold text-gray-900">{property.inquiries}</p>
-                  <p className="text-xs text-green-600">+{property.inquiriesThisMonth - property.inquiriesLastMonth} this month</p>
+                  <p className="text-sm text-gray-600">Property Type</p>
+                  <p className="text-lg font-bold text-gray-900">{property.property_type}</p>
+                  <p className="text-xs text-gray-500">{property.number_of_rooms} Room(s)</p>
                 </div>
-                <Users className="text-green-500" size={24} />
+                <Home className="text-green-500" size={24} />
               </div>
             </div>
             <div className="bg-white p-4 rounded-xl border border-gray-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Favorites</p>
-                  <p className="text-2xl font-bold text-gray-900">{property.favorites}</p>
-                  <p className="text-xs text-gray-500">Saved by users</p>
+                  <p className="text-sm text-gray-600">Rental Period</p>
+                  <p className="text-lg font-bold text-gray-900">{property.rental_years} Year(s)</p>
+                  <p className="text-xs text-gray-500">Built in {property.year_built}</p>
                 </div>
-                <Heart className="text-red-500" size={24} />
+                <Calendar className="text-purple-500" size={24} />
               </div>
             </div>
             <div className="bg-white p-4 rounded-xl border border-gray-100">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Monthly Rent</p>
-                  <p className="text-2xl font-bold text-orange-600">{formatCurrency(property.per_month_amount)}</p>
-                  <p className="text-xs text-gray-500">{property.negotiable ? 'Negotiable' : 'Fixed'}</p>
+                  <p className="text-lg font-bold text-orange-600">{formatCurrency(property.price)}</p>
+                  <p className="text-xs text-gray-500">{property.is_negotiable ? 'Negotiable' : 'Fixed'}</p>
                 </div>
                 <DollarSign className="text-orange-500" size={24} />
               </div>
@@ -310,53 +302,51 @@ const ViewProperty = () => {
               {/* Image Gallery */}
               <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                 <div className="relative h-96">
-                  {property.property_images && property.property_images.length > 0 ? (
+                  <img
+                    src={getCurrentImageUrl()}
+                    alt={`${property.title} - Image ${currentImageIndex + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.src = '/placeholder-image.jpg';
+                    }}
+                  />
+                  {property.images && property.images.length > 1 && (
                     <>
-                      <img
-                        src={property.property_images[currentImageIndex]}
-                        alt={`${property.title} - Image ${currentImageIndex + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      {property.property_images.length > 1 && (
-                        <>
+                      <button
+                        onClick={prevImage}
+                        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full transition-colors shadow-lg"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                      <button
+                        onClick={nextImage}
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full transition-colors shadow-lg"
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+                        {property.images.map((_, index) => (
                           <button
-                            onClick={prevImage}
-                            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full transition-colors"
-                          >
-                            <ChevronLeft size={20} />
-                          </button>
-                          <button
-                            onClick={nextImage}
-                            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full transition-colors"
-                          >
-                            <ChevronRight size={20} />
-                          </button>
-                          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-                            {property.property_images.map((_, index) => (
-                              <button
-                                key={index}
-                                onClick={() => setCurrentImageIndex(index)}
-                                className={`w-2 h-2 rounded-full transition-colors ${
-                                  index === currentImageIndex ? 'bg-white' : 'bg-white/50'
-                                }`}
-                              />
-                            ))}
-                          </div>
-                        </>
-                      )}
+                            key={index}
+                            onClick={() => setCurrentImageIndex(index)}
+                            className={`w-2 h-2 rounded-full transition-colors ${
+                              index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <div className="absolute top-4 right-4 bg-black/50 text-white px-2 py-1 rounded-full text-sm">
+                        {currentImageIndex + 1} / {property.images.length}
+                      </div>
                     </>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                      <ImageIcon size={48} className="text-gray-400" />
-                    </div>
                   )}
                 </div>
                 
                 {/* Thumbnail Strip */}
-                {property.property_images && property.property_images.length > 1 && (
+                {property.images && property.images.length > 1 && (
                   <div className="p-4 border-t border-gray-100">
                     <div className="flex gap-2 overflow-x-auto">
-                      {property.property_images.map((image, index) => (
+                      {property.images.map((image, index) => (
                         <button
                           key={index}
                           onClick={() => setCurrentImageIndex(index)}
@@ -365,9 +355,12 @@ const ViewProperty = () => {
                           }`}
                         >
                           <img
-                            src={image}
+                            src={image.url}
                             alt={`Thumbnail ${index + 1}`}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.src = '/placeholder-image.jpg';
+                            }}
                           />
                         </button>
                       ))}
@@ -382,8 +375,8 @@ const ViewProperty = () => {
                   <div className="flex">
                     {[
                       { id: 'overview', label: 'Overview' },
-                      { id: 'analytics', label: 'Analytics' },
-                      { id: 'inquiries', label: 'Inquiries' }
+                      { id: 'landlord', label: 'Landlord Info' },
+                      { id: 'location', label: 'Location Details' }
                     ].map((tab) => (
                       <button
                         key={tab.id}
@@ -406,22 +399,30 @@ const ViewProperty = () => {
                       {/* Property Details */}
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Property Details</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                           <div className="flex items-center gap-2">
-                            <Bed size={16} className="text-gray-400" />
-                            <span className="text-sm text-gray-600">{property.number_of_bedrooms} Bedrooms</span>
+                            <Home size={16} className="text-gray-400" />
+                            <span className="text-sm text-gray-600">{property.number_of_rooms} Room(s)</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Bath size={16} className="text-gray-400" />
-                            <span className="text-sm text-gray-600">{property.number_of_bathrooms} Bathrooms</span>
+                            <span className="text-sm text-gray-600">{property.no_of_bathrooms} Bathroom(s)</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Home size={16} className="text-gray-400" />
+                            <BuildingIcon size={16} className="text-gray-400" />
                             <span className="text-sm text-gray-600">{property.property_type}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Calendar size={16} className="text-gray-400" />
                             <span className="text-sm text-gray-600">Built {property.year_built}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Bath size={16} className="text-gray-400" />
+                            <span className="text-sm text-gray-600 capitalize">{property.bathroom_type} Bathroom</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Home size={16} className="text-gray-400" />
+                            <span className="text-sm text-gray-600 capitalize">{property.kitchen_type} Kitchen</span>
                           </div>
                         </div>
                       </div>
@@ -433,69 +434,63 @@ const ViewProperty = () => {
                       </div>
 
                       {/* Amenities */}
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3">Amenities</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          {property.amenities.map((amenity) => {
-                            const IconComponent = getAmenityIcon(amenity);
-                            return (
-                              <div key={amenity} className="flex items-center gap-2 text-sm text-gray-600">
-                                <IconComponent size={16} className="text-orange-500" />
-                                <span>{amenity}</span>
-                              </div>
-                            );
-                          })}
+                      {property.amenities && property.amenities.length > 0 && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-3">Amenities</h3>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {property.amenities.map((amenity) => {
+                              const IconComponent = getAmenityIcon(amenity.name);
+                              return (
+                                <div key={amenity.slug} className="flex items-center gap-2 text-sm text-gray-600">
+                                  <IconComponent size={16} className="text-orange-500" />
+                                  <span>{amenity.name}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-
-                      {/* Location Details */}
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3">Location</h3>
-                        <div className="space-y-2 text-sm text-gray-600">
-                          <p><strong>Region:</strong> {property.region}</p>
-                          <p><strong>Location:</strong> {property.location}</p>
-                          <p><strong>Suburb:</strong> {property.suburb}</p>
-                          {property.district && <p><strong>District:</strong> {property.district}</p>}
-                          {property.landmark && <p><strong>Landmark:</strong> {property.landmark}</p>}
-                        </div>
-                      </div>
+                      )}
                     </div>
                   )}
 
-                  {selectedTab === 'analytics' && (
+                  {selectedTab === 'landlord' && (
                     <div className="space-y-6">
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Analytics</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-blue-50 p-4 rounded-lg">
-                            <h4 className="font-medium text-blue-900 mb-2">Views Trend</h4>
-                            <div className="space-y-2">
-                              <div className="flex justify-between">
-                                <span className="text-sm text-blue-700">This Month</span>
-                                <span className="font-semibold text-blue-900">{property.viewsThisMonth}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-sm text-blue-700">Last Month</span>
-                                <span className="font-semibold text-blue-900">{property.viewsLastMonth}</span>
-                              </div>
-                              <div className="text-xs text-green-600">
-                                +{((property.viewsThisMonth - property.viewsLastMonth) / property.viewsLastMonth * 100).toFixed(1)}% growth
-                              </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Landlord Information</h3>
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <div className="flex items-start gap-4">
+                            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
+                              {property.landlord.business_logo ? (
+                                <img 
+                                  src={property.landlord.business_logo} 
+                                  alt={property.landlord.business_name}
+                                  className="w-full h-full rounded-full object-cover"
+                                />
+                              ) : (
+                                <User size={24} className="text-orange-600" />
+                              )}
                             </div>
-                          </div>
-                          <div className="bg-green-50 p-4 rounded-lg">
-                            <h4 className="font-medium text-green-900 mb-2">Inquiries Trend</h4>
-                            <div className="space-y-2">
-                              <div className="flex justify-between">
-                                <span className="text-sm text-green-700">This Month</span>
-                                <span className="font-semibold text-green-900">{property.inquiriesThisMonth}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-sm text-green-700">Last Month</span>
-                                <span className="font-semibold text-green-900">{property.inquiriesLastMonth}</span>
-                              </div>
-                              <div className="text-xs text-green-600">
-                                +{((property.inquiriesThisMonth - property.inquiriesLastMonth) / property.inquiriesLastMonth * 100).toFixed(1)}% growth
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900">{property.landlord.full_name}</h4>
+                              <p className="text-sm text-gray-600 mb-2">{property.landlord.business_name}</p>
+                              <div className="space-y-1 text-sm text-gray-600">
+                                <p><strong>Business Type:</strong> {property.landlord.business_type}</p>
+                                <p><strong>Location:</strong> {property.landlord.location}, {property.landlord.region}</p>
+                                <p><strong>Email:</strong> {property.landlord.email}</p>
+                                <p><strong>Phone:</strong> {property.landlord.phone_number}</p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  {property.landlord.is_verified ? (
+                                    <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                                      <CheckCircle2 size={12} />
+                                      <span>Verified Landlord</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">
+                                      <AlertCircle size={12} />
+                                      <span>Unverified</span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -504,42 +499,37 @@ const ViewProperty = () => {
                     </div>
                   )}
 
-                  {selectedTab === 'inquiries' && (
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-gray-900">Recent Inquiries</h3>
-                      {property.recentInquiries.map((inquiry) => (
-                        <div key={inquiry.id} className="border border-gray-200 rounded-lg p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h4 className="font-medium text-gray-900">{inquiry.name}</h4>
-                                <span className="text-xs text-gray-500">
-                                  {new Date(inquiry.date).toLocaleDateString()}
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-600 mb-2">{inquiry.message}</p>
-                              <div className="flex items-center gap-4 text-xs text-gray-500">
-                                <span className="flex items-center gap-1">
-                                  <Mail size={12} />
-                                  {inquiry.email}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Phone size={12} />
-                                  {inquiry.phone}
-                                </span>
-                              </div>
+                  {selectedTab === 'location' && (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3">Location Details</h3>
+                        <div className="space-y-3 text-sm text-gray-600">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="font-medium text-gray-900">Region</p>
+                              <p>{property.region}</p>
                             </div>
-                            <div className="flex gap-2">
-                              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                                <Mail size={16} />
-                              </button>
-                              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                                <Phone size={16} />
-                              </button>
+                            <div>
+                              <p className="font-medium text-gray-900">Location</p>
+                              <p>{property.location}</p>
                             </div>
+                            <div>
+                              <p className="font-medium text-gray-900">Suburb</p>
+                              <p>{property.suburb}</p>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">District</p>
+                              <p>{property.district}</p>
+                            </div>
+                            {property.landmark && (
+                              <div className="md:col-span-2">
+                                <p className="font-medium text-gray-900">Landmark</p>
+                                <p>{property.landmark}</p>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -572,8 +562,8 @@ const ViewProperty = () => {
                   <button className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors">
                     <Download size={20} className="text-green-500" />
                     <div>
-                      <p className="font-medium text-gray-900">Download Report</p>
-                      <p className="text-sm text-gray-500">Property analytics</p>
+                      <p className="font-medium text-gray-900">Download Info</p>
+                      <p className="text-sm text-gray-500">Property details</p>
                     </div>
                   </button>
                 </div>
@@ -588,18 +578,20 @@ const ViewProperty = () => {
                     <span className="font-medium">{new Date(property.created_at).toLocaleDateString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Last Updated</span>
-                    <span className="font-medium">{new Date(property.updated_at).toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-gray-600">Status</span>
-                    <span className={`font-medium ${property.approval_status === 'verified' ? 'text-green-600' : 'text-yellow-600'}`}>
-                      {property.approval_status === 'verified' ? 'Verified' : 'Pending'}
+                    <span className={`font-medium capitalize ${
+                      property.approval_status === 'verified' ? 'text-green-600' : 'text-yellow-600'
+                    }`}>
+                      {property.approval_status}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Featured</span>
-                    <span className="font-medium">{property.is_featured ? 'Yes' : 'No'}</span>
+                    <span className="text-gray-600">Available</span>
+                    <span className="font-medium">{property.is_available ? 'Yes' : 'No'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Negotiable</span>
+                    <span className="font-medium">{property.is_negotiable ? 'Yes' : 'No'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Rental Period</span>

@@ -28,6 +28,8 @@ import { Link, useNavigate } from "react-router";
 import AuthLayout from "../../Layouts/AuthLayout";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import { toast } from "react-toastify";
+import { getAllProperties } from "../../api/Landlord/General/PropertyRequest";
+import moment from "moment";
 
 const MyProperties = () => {
   const navigate = useNavigate();
@@ -42,83 +44,25 @@ const MyProperties = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Mock data - in real app, this would come from API
-  const mockProperties = [
-    {
-      id: 1,
-      title: "Modern 3-Bedroom Apartment in East Legon",
-      region: "Greater Accra",
-      location: "East Legon",
-      suburb: "American House",
-      per_month_amount: 2500,
-      rental_years: 1,
-      number_of_bedrooms: 3,
-      number_of_bathrooms: 2,
-      property_type: "3 Bedroom Apartment",
-      approval_status: "verified",
-      property_images: [
-        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80"
-      ],
-      created_at: "2024-01-15T10:30:00Z",
-      views: 245,
-      inquiries: 12,
-      is_featured: true,
-      negotiable: true
-    },
-    {
-      id: 2,
-      title: "Cozy Chamber and Hall in Tema",
-      region: "Greater Accra",
-      location: "Tema",
-      suburb: "Community 25",
-      per_month_amount: 800,
-      rental_years: 1,
-      number_of_bedrooms: 1,
-      number_of_bathrooms: 1,
-      property_type: "Chamber and Hall",
-      approval_status: "unverified",
-      property_images: [
-        "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=800&q=80"
-      ],
-      created_at: "2024-01-10T14:20:00Z",
-      views: 89,
-      inquiries: 5,
-      is_featured: false,
-      negotiable: false
-    },
-    {
-      id: 3,
-      title: "Luxury 2-Bedroom in Airport Residential",
-      region: "Greater Accra",
-      location: "Airport Residential",
-      suburb: "Dzorwulu",
-      per_month_amount: 3200,
-      rental_years: 2,
-      number_of_bedrooms: 2,
-      number_of_bathrooms: 2,
-      property_type: "2 Bedroom Apartment",
-      approval_status: "verified",
-      property_images: [
-        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1560448204-444dcb5c385a?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1571624436279-b272aff752b5?auto=format&fit=crop&w=800&q=80"
-      ],
-      created_at: "2024-01-05T09:15:00Z",
-      views: 432,
-      inquiries: 28,
-      is_featured: true,
-      negotiable: true
-    }
-  ];
 
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setProperties(mockProperties);
-      setFilteredProperties(mockProperties);
-      setLoading(false);
-    }, 1000);
+  useEffect(()=>{
+    const fetchProperties = async()=>{
+      setLoading(true);
+      try{
+        const response = await getAllProperties();
+        if(response?.data?.status_code === "000" && !response?.data?.in_error){
+          setProperties(response?.data?.data);
+          setFilteredProperties(response?.data?.data);
+        }else{
+          toast.error(response?.data?.reason || "Failed to fetch properties. Please try again.");
+        }
+      }catch(error){
+        toast.error(error?.response?.data?.reason || "Failed to fetch properties. Please try again.");
+      }finally{
+        setLoading(false);
+      }
+    };
+    fetchProperties();
   }, []);
 
   useEffect(() => {
@@ -146,9 +90,9 @@ const MyProperties = () => {
         case 'oldest':
           return new Date(a.created_at) - new Date(b.created_at);
         case 'price_high':
-          return b.per_month_amount - a.per_month_amount;
+          return b.price - a.price;
         case 'price_low':
-          return a.per_month_amount - b.per_month_amount;
+          return a.price - b.price;
         case 'views':
           return b.views - a.views;
         default:
@@ -181,12 +125,16 @@ const MyProperties = () => {
         </div>
       );
     }
-    return (
-      <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
-        <AlertCircle size={12} />
-        <span>Pending</span>
-      </div>
-    );
+
+    if(status === 'unverified'){
+      return (
+        <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+          <AlertCircle size={12} />
+          <span>Pending</span>
+        </div>
+      );
+    }
+    return null;
   };
 
   const formatCurrency = (amount) => {
@@ -198,6 +146,7 @@ const MyProperties = () => {
   };
 
   const PropertyCard = ({ property }) => (
+
     <Motion.div
       layout
       initial={{ opacity: 0, y: 20 }}
@@ -205,11 +154,12 @@ const MyProperties = () => {
       exit={{ opacity: 0, y: -20 }}
       className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
     >
+      {/* <h1 className="">{property.property_slug}</h1> */}
       {/* Image Section */}
       <div className="relative h-48 bg-gray-100">
-        {property.property_images && property.property_images.length > 0 ? (
+        {property.featured_image && property.featured_image.url ? (
           <img
-            src={property.property_images[0]}
+            src={property.featured_image.url}
             alt={property.title}
             className="w-full h-full object-cover"
           />
@@ -225,23 +175,23 @@ const MyProperties = () => {
         </div>
 
         {/* Featured Badge */}
-        {property.is_featured && (
+        {property.is_available && (
           <div className="absolute top-3 right-3 bg-orange-500 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
             <Star size={12} fill="currentColor" />
-            <span>Featured</span>
+            <span>Available</span>
           </div>
         )}
 
         {/* Actions */}
         <div className="absolute bottom-3 right-3 flex gap-2">
           <button
-            onClick={() => navigate(`/edit-property/${property.id}`)}
+            onClick={() => navigate(`/edit-property/${property.property_slug}`)}
             className="p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors"
           >
             <Edit3 size={16} className="text-gray-700" />
           </button>
           <button
-            onClick={() => navigate(`/properties/${property.id}`)}
+            onClick={() => navigate(`/view-property/${property.property_slug}`)}
             className="p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors"
           >
             <Eye size={16} className="text-gray-700" />
@@ -263,15 +213,15 @@ const MyProperties = () => {
         
         <div className="flex items-center gap-1 text-gray-600 text-sm mb-3">
           <MapPin size={14} />
-          <span>{property.location}, {property.suburb}</span>
+          <span>{property.location}, {property.region}</span>
         </div>
 
         <div className="flex items-center justify-between mb-3">
           <div className="text-2xl font-bold text-orange-600">
-            {formatCurrency(property.per_month_amount)}
+            {formatCurrency(property.price)}
             <span className="text-sm font-normal text-gray-500">/month</span>
           </div>
-          {property.negotiable && (
+          {property.is_negotiable && (
             <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
               Negotiable
             </span>
@@ -280,12 +230,12 @@ const MyProperties = () => {
 
         <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
           <div className="flex items-center gap-1">
-            <Bed size={14} />
-            <span>{property.number_of_bedrooms} bed</span>
+            <Home size={14} />
+            <span>{property.number_of_rooms} room(s)</span>
           </div>
           <div className="flex items-center gap-1">
             <Bath size={14} />
-            <span>{property.number_of_bathrooms} bath</span>
+            <span>{property.no_of_bathrooms} bath</span>
           </div>
           <div className="flex items-center gap-1">
             <Home size={14} />
@@ -299,14 +249,11 @@ const MyProperties = () => {
               <Eye size={12} />
               <span>{property.views} views</span>
             </div>
-            <div className="flex items-center gap-1">
-              <Users size={12} />
-              <span>{property.inquiries} inquiries</span>
-            </div>
+            
           </div>
           <div className="flex items-center gap-1 text-xs text-gray-500">
             <Clock size={12} />
-            <span>{new Date(property.created_at).toLocaleDateString()}</span>
+            <span>{moment(property.created_at).format("DD-MMM-YYYY")}</span>
           </div>
         </div>
       </div>
@@ -370,7 +317,7 @@ const MyProperties = () => {
                 <span>{property.number_of_bathrooms}</span>
               </div>
               <div className="text-lg font-bold text-orange-600">
-                {formatCurrency(property.per_month_amount)}
+                {formatCurrency(property.price)}
                 <span className="text-xs font-normal text-gray-500">/mo</span>
               </div>
             </div>
@@ -378,17 +325,17 @@ const MyProperties = () => {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-3 text-xs text-gray-500">
                 <span>{property.views} views</span>
-                <span>{property.inquiries} inquiries</span>
+                {/* <span>{property.inquiries} inquiries</span> */}
               </div>
               <div className="flex gap-1">
                 <button
-                  onClick={() => navigate(`/edit-property/${property.id}`)}
+                  onClick={() => navigate(`/edit-property/${property.property_slug}`)}
                   className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <Edit3 size={14} className="text-gray-600" />
                 </button>
                 <button
-                  onClick={() => navigate(`/properties/${property.id}`)}
+                  onClick={() => navigate(`/view-property/${property.property_slug}`)}
                   className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <Eye size={14} className="text-gray-600" />
@@ -579,7 +526,7 @@ const MyProperties = () => {
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
                   {filteredProperties.map((property) => (
-                    <PropertyCard key={property.id} property={property} />
+                    <PropertyCard key={property.property_slug} property={property} />
                   ))}
                 </Motion.div>
               ) : (
@@ -591,7 +538,7 @@ const MyProperties = () => {
                   className="space-y-4"
                 >
                   {filteredProperties.map((property) => (
-                    <PropertyListItem key={property.id} property={property} />
+                    <PropertyListItem key={property.property_slug} property={property} />
                   ))}
                 </Motion.div>
               )}

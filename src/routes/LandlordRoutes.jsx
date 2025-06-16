@@ -35,7 +35,7 @@ function LandlordRoutes() {
       } />
       
       {/* Property routes for landlords */}
-      <Route path="/properties/:propertyId" element={
+      <Route path="/property/:propertyId" element={
         <ProtectedRoute requiredRoles={['landlord']}>
           <ViewProperty />
         </ProtectedRoute>
@@ -62,12 +62,12 @@ function LandlordRoutes() {
           <AddProperty />
         </ProtectedRoute>
       } />
-      <Route path="/view-property/:propertyId" element={
+      <Route path="/view-property/:propertySlug" element={
         <ProtectedRoute requiredRoles={['landlord']}>
-          <ViewProperty />
+          <ViewProperty />  
         </ProtectedRoute>
       } />
-      <Route path="/edit-property/:propertyId" element={
+      <Route path="/edit-property/:propertySlug" element={
         <ProtectedRoute requiredRoles={['landlord']}>
           <EditProperty />
         </ProtectedRoute>
