@@ -4,6 +4,7 @@ import { Menu, X, User, Home, HelpCircle, Heart, Settings, Bell, LogOut, Chevron
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import Images from "../../utils/Images";
 import Colors from "../../utils/Colors";
+import useAuthStore from "../../stores/authStore";
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -12,12 +13,10 @@ const Navbar = () => {
   const [activeMenuItem, setActiveMenuItem] = useState(null);
   const userMenuRef = useRef(null);
   const navigate = useNavigate();
+  const { user, logout, getUserType } = useAuthStore();
 
-  // Mock user data - in a real app, this would come from authentication context
-  const user = {
-    name: "John Doe",
-    email: "john@example.com",
-    avatar: null, // URL to avatar image if available
+  // Mock data - in a real app, this would come from API
+  const userStats = {
     unreadNotifications: 5,
     wishlistCount: 3
   };
@@ -122,19 +121,45 @@ const Navbar = () => {
     }
   };
 
-  const userMenuItems = [
-    { icon: <Home size={18} />, text: "Dashboard", to: "/dashboard", divider: false, color: "#4F46E5" },
-    { icon: <Heart size={18} />, text: "Wishlist", to: "/wishlist", badge: user.wishlistCount, divider: false, color: "#EC4899" },
-    { icon: <PlusCircle size={18} />, text: "List Property", to: "/list-property", divider: true, color: Colors.accent.orange },
-    { icon: <HelpCircle size={18} />, text: "Help Center", to: "/help", divider: false, color: "#8B5CF6" },
-    { icon: <Settings size={18} />, text: "Settings", to: "/settings", divider: true, color: "#6B7280" },
-    { icon: <LogOut size={18} />, text: "Logout", to: "/logout", divider: false, color: "#EF4444" },
-  ];
+  // Generate menu items based on user type
+  const getUserMenuItems = () => {
+    const userType = getUserType();
+    const baseItems = [
+      { icon: <Home size={18} />, text: "Dashboard", to: "/dashboard", divider: false, color: "#4F46E5" },
+    ];
+
+    // Add user type specific items
+    if (userType === 'renter') {
+      baseItems.push(
+        { icon: <Heart size={18} />, text: "Wishlist", to: "/wishlist", badge: userStats.wishlistCount, divider: false, color: "#EC4899" }
+      );
+    } else if (userType === 'landlord') {
+      baseItems.push(
+        { icon: <PlusCircle size={18} />, text: "My Properties", to: "/my-properties", divider: false, color: Colors.accent.orange },
+        { icon: <PlusCircle size={18} />, text: "Add Property", to: "/add-property", divider: false, color: "#10B981" }
+      );
+    } else if (userType === 'admin') {
+      baseItems.push(
+        { icon: <PlusCircle size={18} />, text: "User Management", to: "/users", divider: false, color: Colors.accent.orange },
+        { icon: <PlusCircle size={18} />, text: "System Settings", to: "/system-settings", divider: false, color: "#10B981" }
+      );
+    }
+
+    // Add common items
+    baseItems.push(
+      { icon: <HelpCircle size={18} />, text: "Help Center", to: "/help", divider: false, color: "#8B5CF6" },
+      { icon: <Settings size={18} />, text: "Settings", to: "/settings", divider: true, color: "#6B7280" },
+      { icon: <LogOut size={18} />, text: "Logout", to: "/logout", divider: false, color: "#EF4444" }
+    );
+
+    return baseItems;
+  };
+
+  const userMenuItems = getUserMenuItems();
 
   const handleLogout = () => {
-    // Handle logout logic here
-    console.log("Logging out...");
-    // After logout, redirect to login page
+    logout();
+    localStorage.removeItem("access_token");
     navigate("/login");
   };
 
@@ -189,14 +214,14 @@ const Navbar = () => {
               aria-label="Notifications"
             >
               <Bell size={20} className="text-gray-700" />
-              {user.unreadNotifications > 0 && (
+              {userStats.unreadNotifications > 0 && (
                 <Motion.span 
                   className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold"
                   initial={{ scale: 0.5, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", stiffness: 500, damping: 15 }}
                 >
-                  {user.unreadNotifications}
+                  {userStats.unreadNotifications}
                 </Motion.span>
               )}
             </Link>

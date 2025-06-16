@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, Link, useLocation } from "react-router";
 import {
   Eye,
   EyeOff,
@@ -11,17 +11,50 @@ import {
   ArrowLeft,
   Phone,
   Smartphone,
+  Home,
+  Building,
+  Users,
 } from "lucide-react";
 import Colors from "../../utils/Colors";
 import "react-phone-input-2/lib/style.css";
 import Images from "../../utils/Images";
+import useAuthStore from "../../stores/authStore";
+import { loginRenter } from "../../api/Renter/Authentication/Login";
 
 const Login = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const location = useLocation();
+  const { 
+    isAuthenticated, 
+    getRedirectPath, 
+    startLogin, 
+    finishLogin, 
+    loginError,
+    isLoading,
+    error: authError 
+  } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [loginMethod, setLoginMethod] = useState("email"); // "email" or "phone"
+
+  // Get user type from navigation state
+  const selectedUserType = location.state?.userType || null;
+  const fromUserTypeSelection = location.state?.from === "user-type-selection";
+
+  // Check if user is already authenticated and redirect
+  useEffect(() => {
+    if (isAuthenticated()) {
+      const redirectPath = getRedirectPath();
+      navigate(redirectPath, { replace: true });
+    }
+  }, [isAuthenticated, getRedirectPath, navigate]);
+
+  // Redirect to user type selection if no user type is selected
+  useEffect(() => {
+    if (!selectedUserType && !fromUserTypeSelection) {
+      navigate("/select-user-type", { replace: true });
+    }
+  }, [selectedUserType, fromUserTypeSelection, navigate]);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -118,22 +151,40 @@ const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) {
       return;
     }
 
-    setLoading(true);
+    startLogin();
 
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      // Prepare login data
+      const loginData = {
+        emailOrPhone: loginMethod === "email" ? formData.email : formData.phone,
+        password: formData.password,
+      };
 
-      // In a real app, you would handle the authentication and redirection based on response
-      navigate("/dashboard");
-    }, 1500);
+      // Call the login API
+      const response = await loginRenter(loginData);
+
+      if (response.success) {
+        // Login successful
+        finishLogin(response);
+        
+        // Navigate to dashboard (will be redirected based on user type)
+        const redirectPath = getRedirectPath();
+        navigate(redirectPath, { replace: true });
+      } else {
+        // Login failed
+        loginError(response.error || "Login failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      loginError("An unexpected error occurred. Please try again.");
+    }
   };
 
   // Custom phone input component with Ghana only
@@ -211,6 +262,32 @@ const Login = () => {
                       className="w-32 inline-block mb-8"
                     />
                   </Link>
+
+                  {/* User Type Indicator */}
+                  {selectedUserType && (
+                    <Motion.div
+                      className="inline-flex items-center px-4 py-2 rounded-full bg-orange-100 text-orange-700 text-sm font-medium mb-6"
+                      variants={itemVariants}
+                    >
+                      {selectedUserType === 'renter' ? (
+                        <>
+                          <Home className="w-4 h-4 mr-2" />
+                          Signing in as Renter
+                        </>
+                      ) : (
+                        <>
+                          <Building className="w-4 h-4 mr-2" />
+                          Signing in as Landlord
+                        </>
+                      )}
+                      <button
+                        onClick={() => navigate("/select-user-type")}
+                        className="ml-3 text-orange-600 hover:text-orange-800 underline"
+                      >
+                        Change
+                      </button>
+                    </Motion.div>
+                  )}
 
                   <Motion.h1
                     className="text-3xl md:text-4xl font-bold text-neutral-900 tracking-tight"
@@ -417,6 +494,20 @@ const Login = () => {
                     </Link>
                   </div>
 
+                  {/* Auth Error Display */}
+                  {authError && (
+                    <Motion.div
+                      className="p-4 bg-red-50 border border-red-200 rounded-xl"
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <p className="text-sm text-red-600 text-center">
+                        {authError}
+                      </p>
+                    </Motion.div>
+                  )}
+
                   {/* Submit Button */}
                   <div className="pt-4">
                     <Motion.button
@@ -428,9 +519,9 @@ const Login = () => {
                         boxShadow: "0 8px 20px rgba(255, 144, 45, 0.25)",
                       }}
                       whileTap={{ scale: 0.98 }}
-                      disabled={loading}
+                                              disabled={isLoading}
                     >
-                      {loading ? (
+                                              {isLoading ? (
                         <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       ) : (
                         <>

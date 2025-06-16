@@ -116,7 +116,7 @@ const TopNavbar = () => {
   };
 
   const userMenuItems = [
-    { icon: <LogIn size={18} />, text: "Login", to: "/login", divider: false, color: "#4F46E5" },
+          { icon: <LogIn size={18} />, text: "Login", to: "/select-user-type", divider: false, color: "#4F46E5" },
     { icon: <UserPlus size={18} />, text: "Register", to: "/register", divider: true, color: "#10B981" },
     { icon: <Home size={18} />, text: "Host your property", to: "/list-property", divider: false, color: Colors.accent.orange },
     { icon: <HelpCircle size={18} />, text: "Help Center", to: "/help", divider: false, color: "#8B5CF6" },

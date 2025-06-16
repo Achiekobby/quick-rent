@@ -5,10 +5,12 @@ import { ArrowLeft, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import Colors from "../../utils/Colors";
 import GuestLayout from "../../Layouts/GuestLayout";
 import Images from "../../utils/Images";
+import useAuthStore from "../../stores/authStore";
 
 const VerifyOTP = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAuthenticated, getRedirectPath } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -64,6 +66,14 @@ const VerifyOTP = () => {
       setResendDisabled(false);
     }
   }, [countdown, resendDisabled]);
+
+  // Check if user is already authenticated and redirect
+  useEffect(() => {
+    if (isAuthenticated()) {
+      const redirectPath = getRedirectPath();
+      navigate(redirectPath, { replace: true });
+    }
+  }, [isAuthenticated, getRedirectPath, navigate]);
 
   const handleOtpChange = (index, value) => {
     // Only allow numbers
