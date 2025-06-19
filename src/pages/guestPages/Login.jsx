@@ -546,7 +546,7 @@ const Login = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6 grid grid-cols-2 gap-3">
+                  {/* <div className="mt-6 grid grid-cols-2 gap-3">
                     <Motion.button
                       type="button"
                       className="py-3 px-4 border border-neutral-200 rounded-xl flex items-center justify-center shadow-sm hover:shadow-md transition-all"
@@ -608,7 +608,7 @@ const Login = () => {
                         Facebook
                       </span>
                     </Motion.button>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Form Switch */}

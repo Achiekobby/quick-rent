@@ -67,9 +67,9 @@ const DeleteConfirmationModal = ({
                   className="bg-gray-50 rounded-xl p-4 mb-8 border border-gray-100"
                 >
                   <div className="flex items-center gap-3">
-                    {property.property_images && property.property_images.length > 0 ? (
+                    {property.images && property.images.length > 0 ? (
                       <img
-                        src={property.property_images[0]}
+                        src={property.images[0].url}
                         alt={property.title}
                         className="w-12 h-12 rounded-lg object-cover"
                       />
@@ -105,7 +105,7 @@ const DeleteConfirmationModal = ({
                   Cancel
                 </button>
                 <button
-                  onClick={onConfirm}
+                  onClick={() => onConfirm(property.property_slug)}
                   disabled={isLoading}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-semibold hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >

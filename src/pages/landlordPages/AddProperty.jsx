@@ -125,6 +125,8 @@ const AddProperty = () => {
     negotiable: false,
     number_of_bedrooms: 1,
     number_of_bathrooms: 1,
+    bathroom_type: "private",
+    kitchen_type: "private",
     description: "",
     contact_number: "",
     whatsapp_number: "",
@@ -132,8 +134,8 @@ const AddProperty = () => {
     amenities: [],
     approval_status: "unverified",
     property_type: "",
-    property_images: [], // Now stores [{image: "base64_string", is_featured: boolean}]
-    is_available: true, // New field with default true
+    property_images: [],
+    is_available: true,
   });
 
   const [errors, setErrors] = useState({});
@@ -149,7 +151,7 @@ const AddProperty = () => {
     },
     {
       id: 2,
-      title: "Specifications",
+      title: "Property Specifications",
       description: "Rooms, amenities, and features",
     },
     {
@@ -423,6 +425,8 @@ const AddProperty = () => {
       // Property Specifications
       number_of_bedrooms: formData.number_of_bedrooms,
       number_of_bathrooms: formData.number_of_bathrooms,
+      bathroom_type: formData.bathroom_type,
+      kitchen_type: formData.kitchen_type,
       year_built: formData.year_built ? parseInt(formData.year_built) : null,
       description: formData.description,
       amenities: formData.amenities,
@@ -781,6 +785,53 @@ const AddProperty = () => {
                     {errors.number_of_bathrooms}
                   </p>
                 )}
+              </div>
+            </div>
+
+            {/* Bathroom and Kitchen Type */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Bathroom Type *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {["private", "shared"].map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => handleInputChange("bathroom_type", type)}
+                      className={`p-3 border rounded-xl text-sm font-medium transition-all ${
+                        formData.bathroom_type === type
+                          ? "border-orange-500 bg-orange-50 text-orange-700"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Kitchen Type *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {["private", "shared"].map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => handleInputChange("kitchen_type", type)}
+                      className={`p-3 border rounded-xl text-sm font-medium transition-all ${
+                        formData.kitchen_type === type
+                          ? "border-orange-500 bg-orange-50 text-orange-700"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

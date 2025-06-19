@@ -208,7 +208,7 @@ const Navbar = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Link
+            {/* <Link
               to="/notifications"
               className="flex items-center justify-center p-2 rounded-full hover:bg-gray-100 transition-colors relative"
               aria-label="Notifications"
@@ -224,7 +224,7 @@ const Navbar = () => {
                   {userStats.unreadNotifications}
                 </Motion.span>
               )}
-            </Link>
+            </Link> */}
           </Motion.div>
           
           {/* User Menu Button */}

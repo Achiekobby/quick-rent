@@ -6,6 +6,8 @@ import GuestLayout from "../../Layouts/GuestLayout";
 import PropertyCard from "../../components/Utilities/PropertyCard";
 import Colors from "../../utils/Colors";
 import AuthLayout from "../../Layouts/AuthLayout";
+import { toast } from "react-toastify";
+import { getWishlist, removeWishlistItem } from "../../api/Renter/General/WishlistRequests";
 
 const Wishlist = () => {
   const navigate = useNavigate();
@@ -33,67 +35,30 @@ const Wishlist = () => {
     },
   };
 
-  // Mock data - In a real app, you would fetch this from an API
+  // Fetch wishlist data
   useEffect(() => {
-    // Simulate API fetch
-    setTimeout(() => {
-      setWishlistItems([
-        {
-          id: "prop-1",
-          image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=1470&auto=format&fit=crop",
-          title: "Modern 3 Bedroom Apartment with Balcony",
-          location: "East Legon, Accra",
-          price: 2500,
-          isNegotiable: true,
-          likes: 45,
-          isFeatured: true,
-          isVerified: true,
-          dateAdded: new Date("2023-05-10"),
-          propertyType: "Apartment",
-        },
-        {
-          id: "prop-2",
-          image: "https://images.unsplash.com/photo-1560185007-cde436f6a4d0?q=80&w=1470&auto=format&fit=crop",
-          title: "Luxury 2 Bedroom Flat with Swimming Pool",
-          location: "Airport Residential, Accra",
-          price: 3800,
-          isNegotiable: false,
-          likes: 32,
-          isFeatured: false,
-          isVerified: true,
-          dateAdded: new Date("2023-06-15"),
-          propertyType: "Apartment",
-        },
-        {
-          id: "prop-3",
-          image: "https://images.unsplash.com/photo-1560185009-5bf9f2849488?q=80&w=1470&auto=format&fit=crop",
-          title: "Cozy 1 Bedroom Studio Near University",
-          location: "Osu, Accra",
-          price: 1200,
-          isNegotiable: true,
-          likes: 18,
-          isFeatured: false,
-          isVerified: false,
-          dateAdded: new Date("2023-07-20"),
-          propertyType: "Studio",
-        },
-        {
-          id: "prop-4",
-          image: "https://images.unsplash.com/photo-1560448204-61dc36dc98c8?q=80&w=1470&auto=format&fit=crop",
-          title: "Spacious 4 Bedroom House with Garden",
-          location: "Cantonments, Accra",
-          price: 5000,
-          isNegotiable: false,
-          likes: 64,
-          isFeatured: true,
-          isVerified: true,
-          dateAdded: new Date("2023-08-05"),
-          propertyType: "House",
-        },
-      ]);
-      setLoading(false);
-    }, 800);
+    fetchWishlist();
   }, []);
+
+  const fetchWishlist = async () => {
+    setLoading(true);
+    try {
+      const response = await getWishlist();
+      if (response?.data?.status_code === "000" && !response?.data?.in_error) {
+        // Convert object to array if needed
+        const items = Array.isArray(response?.data?.data) 
+          ? response?.data?.data 
+          : Object.values(response?.data?.data || {});
+        setWishlistItems(items);
+      } else {
+        toast.error(response?.data?.reason || "An error occurred");
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.reason || "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGoBack = () => {
     navigate(-1);
@@ -107,9 +72,19 @@ const Wishlist = () => {
     );
   };
 
-  const handleRemoveFromWishlist = (id, event) => {
+  const handleRemoveFromWishlist = async (propertySlug, event) => {
     event.stopPropagation();
-    setWishlistItems(prev => prev.filter(item => item.id !== id));
+    try {
+      const response = await removeWishlistItem(propertySlug);
+      if (response?.data?.status_code === "000" && !response?.data?.in_error) {
+        setWishlistItems(prev => prev.filter(item => item.wishlist_slug !== propertySlug));
+        toast.success("Property removed from wishlist successfully");
+      } else {
+        toast.error(response?.data?.reason || "Failed to remove from wishlist");
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.reason || "Failed to remove from wishlist");
+    }
   };
 
   const handleClearWishlist = () => {
@@ -117,30 +92,43 @@ const Wishlist = () => {
   };
 
   const handleRefresh = () => {
-    setLoading(true);
-    // Simulate API fetch
-    setTimeout(() => {
-      // In a real app, you would re-fetch the data here
-      setLoading(false);
-    }, 800);
+    fetchWishlist();
+  };
+
+  // Get unique property types from wishlist items
+  const getAvailablePropertyTypes = () => {
+    const types = wishlistItems.map(item => item.property.property_type);
+    return [...new Set(types)];
   };
 
   // Filter and sort items
   const filteredItems = wishlistItems
-    .filter(item => 
-      (selectedPropertyTypes.length === 0 || selectedPropertyTypes.includes(item.propertyType)) &&
-      (item.price >= priceRange[0] && item.price <= priceRange[1])
-    )
+    .filter(item => {
+      const property = item.property;
+      const price = parseFloat(property.price);
+      
+      // Property type filter
+      const typeMatch = selectedPropertyTypes.length === 0 || 
+                       selectedPropertyTypes.includes(property.property_type);
+      
+      // Price range filter
+      const priceMatch = price >= priceRange[0] && price <= priceRange[1];
+      
+      return typeMatch && priceMatch;
+    })
     .sort((a, b) => {
+      const propertyA = a.property;
+      const propertyB = b.property;
+      
       switch(sortBy) {
         case "newest":
-          return new Date(b.dateAdded) - new Date(a.dateAdded);
+          return new Date(b.created_at) - new Date(a.created_at);
         case "oldest":
-          return new Date(a.dateAdded) - new Date(b.dateAdded);
+          return new Date(a.created_at) - new Date(b.created_at);
         case "price-asc":
-          return a.price - b.price;
+          return parseFloat(propertyA.price) - parseFloat(propertyB.price);
         case "price-desc":
-          return b.price - a.price;
+          return parseFloat(propertyB.price) - parseFloat(propertyA.price);
         default:
           return 0;
       }
@@ -155,6 +143,8 @@ const Wishlist = () => {
       </GuestLayout>
     );
   }
+
+  const availablePropertyTypes = getAvailablePropertyTypes();
 
   return (
     <AuthLayout>
@@ -266,7 +256,7 @@ const Wishlist = () => {
                       type="number" 
                       className="flex-1 p-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                       value={priceRange[0]}
-                      onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
+                      onChange={(e) => setPriceRange([parseInt(e.target.value) || 0, priceRange[1]])}
                       min="0"
                     />
                     <span>to</span>
@@ -274,7 +264,7 @@ const Wishlist = () => {
                       type="number" 
                       className="flex-1 p-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                       value={priceRange[1]}
-                      onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
+                      onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value) || 10000])}
                       min={priceRange[0]}
                     />
                   </div>
@@ -284,21 +274,25 @@ const Wishlist = () => {
                 <div>
                   <h3 className="text-sm font-medium mb-2 text-neutral-700">Property Type</h3>
                   <div className="flex flex-wrap gap-2">
-                    {["Apartment", "House", "Studio", "Villa"].map((type) => (
-                      <Motion.button
-                        key={type}
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          selectedPropertyTypes.includes(type)
-                            ? "bg-primary-100 text-primary-700 border-primary-300"
-                            : "bg-neutral-100 text-neutral-700 border-neutral-200"
-                        } border`}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() => togglePropertyType(type)}
-                      >
-                        {type}
-                      </Motion.button>
-                    ))}
+                    {availablePropertyTypes.length > 0 ? (
+                      availablePropertyTypes.map((type) => (
+                        <Motion.button
+                          key={type}
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            selectedPropertyTypes.includes(type)
+                              ? "bg-primary-100 text-primary-700 border-primary-300"
+                              : "bg-neutral-100 text-neutral-700 border-neutral-200"
+                          } border`}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => togglePropertyType(type)}
+                        >
+                          {type}
+                        </Motion.button>
+                      ))
+                    ) : (
+                      <span className="text-sm text-neutral-500">No property types available</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -310,24 +304,24 @@ const Wishlist = () => {
         {wishlistItems.length > 0 ? (
           <>
             <Motion.div 
-              className="grid grid-cols-2  lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
+              className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
               variants={staggerContainer}
             >
-              {filteredItems.map((property, index) => (
+              {filteredItems.map((wishlistItem, index) => (
                 <Motion.div
-                  key={property.id}
+                  key={wishlistItem.wishlist_slug}
                   variants={fadeIn}
                   custom={index}
                   className="relative group"
                 >
-                  <PropertyCard property={property} />
+                  <PropertyCard property={wishlistItem.property} />
                   
                   {/* Remove button - appears on hover */}
                   <Motion.button
                     className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
                     whileHover={{ scale: 1.1, backgroundColor: "#FEE2E2" }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={(e) => handleRemoveFromWishlist(property.id, e)}
+                    onClick={(e) => handleRemoveFromWishlist(wishlistItem.wishlist_slug, e)}
                   >
                     <Trash2 className="w-4 h-4 text-red-500" />
                   </Motion.button>

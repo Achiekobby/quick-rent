@@ -102,9 +102,9 @@ function GuestRoutes() {
           </AuthRedirect>
         }
       />
-      <Route path="/properties/:propertyId" element={<PropertyDetails />} />
+      <Route path="/properties/:propertySlug" element={<PropertyDetails />} />
       <Route
-        path="/properties/:propertyId/schedule"
+        path="/properties/:propertySlug/schedule"
         element={<ScheduleViewing />}
       />
       <Route path="/properties" element={<AllProperties />} />

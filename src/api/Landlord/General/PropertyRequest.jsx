@@ -7,8 +7,7 @@ const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
-    "X-Requested-With": "XMLHttpRequest",
-    Authorization: `Bearer ${localStorage.getItem("quick_landlord_token")}`,
+    "Authorization": `Bearer ${localStorage.getItem("quick_landlord_token")}`,
   },
   timeout: 30000,
   withCredentials: false,
@@ -26,7 +25,7 @@ export const createProperty = async (data) => {
 
 export const updateProperty = async (slug, data) => {
   try {
-    const response = await apiClient.put(`/landlord/property/${slug}`, data);
+    const response = await apiClient.put(`/landlord/properties/${slug}`, data);
     return response?.data;
   } catch (error) {
     console.error("🚨 Property Update Error:", error);
@@ -56,7 +55,7 @@ export const getPropertyById = async (slug) => {
 
 export const deleteProperty = async (slug) => {
   try {
-    const response = await apiClient.delete(`/landlord/property/${slug}`);
+    const response = await apiClient.delete(`/landlord/properties/${slug}`);
     return response?.data;
   } catch (error) {
     console.error("🚨 Property Deletion Error:", error);

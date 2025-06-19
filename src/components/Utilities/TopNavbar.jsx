@@ -143,7 +143,7 @@ const TopNavbar = () => {
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
           >
-            <Link 
+            {/* <Link 
               to="/list-property" 
               className="flex items-center gap-2 px-4 py-2.5 rounded-full text-white font-medium shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-orange-500 to-orange-400"
               style={{ 
@@ -153,7 +153,7 @@ const TopNavbar = () => {
             >
               <PlusCircle size={18} />
               <span>List Property</span>
-            </Link>
+            </Link> */}
           </Motion.div>
           
          

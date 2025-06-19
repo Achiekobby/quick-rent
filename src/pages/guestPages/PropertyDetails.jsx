@@ -32,14 +32,26 @@ import {
   Maximize,
   Minimize,
   PhoneCall,
+  AirVent,
+  WashingMachine,
+  CameraIcon,
+  Store,
+  Crop,
+  Tractor,
+  Dog,
+  UtilityPole,
+  Sun,
 } from "lucide-react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import GuestLayout from "../../Layouts/GuestLayout";
 import Colors from "../../utils/Colors";
 import PropertyCard from "../../components/Utilities/PropertyCard";
+import { toast } from "react-toastify";
+import { showPropertyDetails } from "../../api/Renter/General/DashboardRequests";
+import EmptyState from "../../components/Utilities/EmptyState";
 
 const PropertyDetails = () => {
-  const { propertyId } = useParams();
+  const { propertySlug } = useParams();
   const navigate = useNavigate();
   const [isLiked, setIsLiked] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
@@ -51,6 +63,7 @@ const PropertyDetails = () => {
   const [showFullscreenGallery, setShowFullscreenGallery] = useState(false);
   const [fullscreenActiveImage, setFullscreenActiveImage] = useState(0);
   const [isHoveringMainImage, setIsHoveringMainImage] = useState(false);
+  const [relatedProperties, setRelatedProperties] = useState([]);
 
   // Animation variants
   const fadeIn = {
@@ -91,73 +104,31 @@ const PropertyDetails = () => {
   }, [showFullscreenGallery]);
 
   useEffect(() => {
-    // Simulate API fetch
-    setTimeout(() => {
-      setProperty({
-        id: propertyId,
-        title: "Modern 3 Bedroom Apartment with Balcony",
-        description:
-          "This beautiful 3-bedroom apartment offers a blend of comfort and luxury living. Located in a serene environment with 24/7 security, the apartment features a spacious living area, a modern kitchen, and a private balcony with stunning views. Perfect for families or professionals looking for a comfortable home in Accra.",
-        location: "East Legon, Accra",
-        price: 2500,
-        isNegotiable: true,
-        images: [
-          "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=1470&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1560185007-cde436f6a4d0?q=80&w=1470&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1560185009-5bf9f2849488?q=80&w=1470&auto=format&fit=crop",
-          "https://images.unsplash.com/photo-1560448204-61dc36dc98c8?q=80&w=1470&auto=format&fit=crop",
-        ],
-        amenities: [
-          { name: "3 Bedrooms", icon: "Bed" },
-          { name: "2 Bathrooms", icon: "Bath" },
-          { name: "Fully Furnished", icon: "Sofa" },
-          { name: "Air Conditioning", icon: "Wind" },
-          { name: "24/7 Security", icon: "Shield" },
-          { name: "Swimming Pool", icon: "Waves" },
-          { name: "Gym Access", icon: "Dumbbell" },
-          { name: "Parking Space", icon: "Car" },
-          { name: "High-Speed Internet", icon: "Wifi" },
-          { name: "Smart Home Features", icon: "Smartphone" },
-        ],
-        propertyDetails: {
-          propertyType: "Apartment",
-          builtYear: 2020,
-          size: "180 sqm",
-          bedrooms: 3,
-          bathrooms: 2,
-          furnished: "Fully Furnished",
-          petPolicy: "No Pets Allowed",
-          availableFrom: "Immediate",
-        },
-        landlord: {
-          name: "Thomas Mensah",
-          phone: "+233 50 123 4567",
-          responseRate: "95%",
-          responseTime: "Within 2 hours",
-        },
-        reviews: {
-          average: 4.8,
-          total: 24,
-          breakdown: {
-            5: 20,
-            4: 3,
-            3: 1,
-            2: 0,
-            1: 0,
-          },
-        },
-        nearbyPlaces: [
-          { name: "Accra Mall", distance: "1.2 km" },
-          { name: "University of Ghana", distance: "3.5 km" },
-          { name: "Kotoka International Airport", distance: "5 km" },
-          { name: "A&C Mall", distance: "0.8 km" },
-        ],
-        isFeatured: true,
-        isVerified: true,
-      });
-      setLoading(false);
-    }, 1000);
-  }, [propertyId]);
+    const fetchPropertyDetails = async () => {
+      setLoading(true);
+      try {
+        const response = await showPropertyDetails(propertySlug);
+        if (
+          response?.data?.status_code === "000" &&
+          !response?.data?.in_error
+        ) {
+          setProperty(response?.data?.data);
+          setRelatedProperties(response?.data?.data?.related_properties || []);
+        } else {
+          toast.error(
+            response?.data?.reason || "Could not fetch property details"
+          );
+        }
+      } catch (error) {
+        toast.error(
+          error?.response?.data?.reason || "Could not fetch property details"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPropertyDetails();
+  }, [propertySlug]);
 
   if (loading) {
     return (
@@ -169,8 +140,8 @@ const PropertyDetails = () => {
     );
   }
 
-  const handleScheduleViewing = () => {
-    navigate(`/properties/${propertyId}/schedule`);
+  const handleCallLandlord = () => {
+    window.location.href = `tel:+233${property.contact_number}`;
   };
 
   const handleGoBack = () => {
@@ -215,26 +186,43 @@ const PropertyDetails = () => {
   const renderAmenityIcon = (iconName) => {
     const iconProps = { className: "w-4 h-4 text-primary-600" };
     switch (iconName) {
-      case "Bed":
-        return <Bed {...iconProps} />;
-      case "Bath":
-        return <Bath {...iconProps} />;
-      case "Sofa":
+      case "Air Conditioning":
+        return <AirVent {...iconProps} />;
+      case "Parking":
+        return <Car {...iconProps} />;
+      case "Furnished":
         return <Sofa {...iconProps} />;
-      case "Wind":
-        return <Wind {...iconProps} />;
-      case "Shield":
+      case "Security":
         return <Shield {...iconProps} />;
-      case "Waves":
-        return <Waves {...iconProps} />;
+      case "Swimming Pool":
+        return <Swim {...iconProps} />;
+      case "Gym":
+        return <Dumbbell {...iconProps} />;
       case "Dumbbell":
         return <Dumbbell {...iconProps} />;
       case "Car":
         return <Car {...iconProps} />;
-      case "Wifi":
+      case "WiFi":
+      case "wifi":
         return <Wifi {...iconProps} />;
-      case "Smartphone":
-        return <Smartphone {...iconProps} />;
+      case "Internet":
+        return <Wifi {...iconProps} />;
+      case "Laundry":
+        return <WashingMachine {...iconProps} />;
+      case "CCTV":
+        return <CameraIcon {...iconProps} />;
+      case "Gated Community":
+        return <Shield {...iconProps} />;
+      case "Storage":
+        return <Store {...iconProps} />;
+      case "Garden":
+        return <Tractor {...iconProps} />;
+      case "Pet Friendly":
+        return <Dog {...iconProps} />;
+      case "Generator":
+        return <UtilityPole {...iconProps} />;
+      case "Solar Power":
+        return <Sun {...iconProps} />;
       default:
         return <Check {...iconProps} />;
     }
@@ -253,9 +241,9 @@ const PropertyDetails = () => {
       action: handleGoBack,
     },
     {
-      name: "Schedule",
-      icon: <Calendar className="w-4 h-4" />,
-      action: handleScheduleViewing,
+      name: "Call",
+      icon: <PhoneCall className="w-4 h-4" />,
+      action: handleCallLandlord,
     },
     {
       name: "Top",
@@ -347,14 +335,6 @@ const PropertyDetails = () => {
                 </span>
               )}
             </div>
-
-            <div className="flex items-center">
-              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 mr-1" />
-              <span className="font-medium">{property.reviews.average}</span>
-              <span className="text-sm text-neutral-500 ml-1">
-                ({property.reviews.total} reviews)
-              </span>
-            </div>
           </div>
         </Motion.div>
 
@@ -368,7 +348,7 @@ const PropertyDetails = () => {
               onMouseLeave={() => setIsHoveringMainImage(false)}
             >
               <Motion.img
-                src={property.images[activeImage]}
+                src={property.images[activeImage].url}
                 alt={`Property view ${activeImage + 1}`}
                 className="w-full h-full object-cover cursor-pointer"
                 initial={{ scale: 1.05, opacity: 0 }}
@@ -420,7 +400,7 @@ const PropertyDetails = () => {
                     whileTap={{ scale: 0.99 }}
                   >
                     <img
-                      src={image}
+                      src={image.url}
                       alt={`Thumbnail ${originalIndex + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -450,7 +430,7 @@ const PropertyDetails = () => {
                     whileTap={{ scale: 0.99 }}
                   >
                     <img
-                      src={image}
+                      src={image.url}
                       alt={`Thumbnail ${originalIndex + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -512,7 +492,7 @@ const PropertyDetails = () => {
               <div className="flex-1 flex items-center justify-center relative max-h-[70vh]">
                 <Motion.img
                   key={fullscreenActiveImage}
-                  src={property.images[fullscreenActiveImage]}
+                  src={property.images[fullscreenActiveImage].url}
                   alt={`Property view ${fullscreenActiveImage + 1}`}
                   className="max-h-full max-w-full object-contain h-auto w-auto mx-auto"
                   style={{ maxHeight: "70vh", maxWidth: "90vw" }}
@@ -558,7 +538,7 @@ const PropertyDetails = () => {
                       whileTap={{ scale: 0.97 }}
                     >
                       <img
-                        src={image}
+                        src={image.url}
                         alt={`Thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
                       />
@@ -588,20 +568,22 @@ const PropertyDetails = () => {
                   <div className="flex items-center">
                     <Bed className="w-4 h-4 mr-1" />
                     <span className="text-[10.5px] lg:text-base">
-                      {property.propertyDetails.bedrooms} bedrooms
+                      {property.number_of_rooms} rooms
                     </span>
                   </div>
                   <span className="text-neutral-300">•</span>
                   <div className="flex items-center">
                     <Bath className="w-4 h-4 mr-1" />
                     <span className="text-[10.5px] lg:text-base">
-                      {property.propertyDetails.bathrooms} bathrooms
+                      {property.number_of_bathrooms} bathrooms
                     </span>
                   </div>
                   <span className="text-neutral-300">•</span>
                   <div className="flex items-center">
                     <MapPin className="w-4 h-4 mr-1" />
-                    <span className="text-[10.5px] lg:text-base">{property.location}</span>
+                    <span className="text-[10.5px] lg:text-base">
+                      {property.location}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -610,18 +592,18 @@ const PropertyDetails = () => {
                 <div className="w-12 h-12 rounded-full bg-neutral-200 flex items-center justify-center mr-3 overflow-hidden">
                   <img
                     src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                      property.landlord.name
+                      property.landlord.full_name
                     )}&background=random`}
-                    alt={property.landlord.name}
+                    alt={property.landlord.full_name}
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div>
                   <h3 className="font-medium text-neutral-900 text-sm lg:text-base">
-                    Hosted by {property.landlord.name}
+                    Hosted by {property.landlord.full_name}
                   </h3>
                   <p className="text-[10px] lg:text-xs text-neutral-500">
-                    Response time: {property.landlord.responseTime}
+                    Response time: 24 hours
                   </p>
                 </div>
               </div>
@@ -646,19 +628,19 @@ const PropertyDetails = () => {
                 <div className="bg-neutral-50 p-3 rounded-lg">
                   <p className="text-xs text-neutral-500">Property Type</p>
                   <p className="font-medium text-neutral-800">
-                    {property.propertyDetails.propertyType}
+                    {property.property_type}
                   </p>
                 </div>
                 <div className="bg-neutral-50 p-3 rounded-lg">
-                  <p className="text-xs text-neutral-500">Size</p>
+                  <p className="text-xs text-neutral-500">Rooms</p>
                   <p className="font-medium text-neutral-800">
-                    {property.propertyDetails.size}
+                    {property.number_of_rooms}
                   </p>
                 </div>
                 <div className="bg-neutral-50 p-3 rounded-lg">
                   <p className="text-xs text-neutral-500">Year Built</p>
                   <p className="font-medium text-neutral-800">
-                    {property.propertyDetails.builtYear}
+                    {property.year_built}
                   </p>
                 </div>
               </div>
@@ -688,9 +670,11 @@ const PropertyDetails = () => {
                     whileHover={{ x: 5 }}
                   >
                     <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center mr-3">
-                      {renderAmenityIcon(amenity.icon)}
+                      {renderAmenityIcon(amenity)}
                     </div>
-                    <span className="text-neutral-700 text-[13px] lg:text-base">{amenity.name}</span>
+                    <span className="text-neutral-700 text-[13px] lg:text-base">
+                      {amenity}
+                    </span>
                   </Motion.div>
                 ))}
               </Motion.div>
@@ -727,47 +711,46 @@ const PropertyDetails = () => {
                     ₵{property.price.toLocaleString()}
                   </span>
                   <span className="text-sm text-neutral-500 ml-1">/month</span>
-                  {property.isNegotiable && (
+                  {property.is_negotiable && (
                     <span className="block text-xs text-neutral-500 mt-1">
                       Price is negotiable
                     </span>
                   )}
-                </div>
-                <div className="flex items-center bg-primary-50 px-2 py-1 rounded-md">
-                  <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 mr-1" />
-                  <span className="font-bold" style={{ color: Colors.accent.orange }}>
-                    {property.reviews.average}
-                  </span>
                 </div>
               </div>
 
               <div className="border border-neutral-200 rounded-lg p-4 mb-4">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="font-medium">
-                    Contact {property.landlord.name}
+                    Contact {property.landlord.full_name}
                   </h3>
                   <div className="w-8 h-8 rounded-full bg-neutral-200 overflow-hidden">
                     <img
                       src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                        property.landlord.name
+                        property.landlord.full_name
                       )}&background=random`}
-                      alt={property.landlord.name}
+                      alt={property.landlord.full_name}
                       className="w-full h-full object-cover"
                     />
                   </div>
                 </div>
                 <div className="flex items-center text-sm mb-2">
                   <Phone className="w-4 h-4 text-neutral-500 mr-2" />
-                  <span>{property.landlord.phone}</span>
+                  <span>+233{property.contact_number}</span>
                 </div>
                 <div className="flex items-center text-sm">
                   <MessageSquare className="w-4 h-4 text-neutral-500 mr-2" />
-                  <span>Response Rate: {property.landlord.responseRate}</span>
+                  <span>
+                    Response Rate:{" "}
+                    {property.landlord.response_rate || "24 hours"}
+                  </span>
                 </div>
               </div>
 
               <Motion.button
-                onClick={() => window.location.href = "tel:+233123456789"}
+                onClick={() =>
+                  (window.location.href = `tel:+233${property.landlord.contact_number}`)
+                }
                 className="w-full py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all duration-300 mb-3"
                 style={{
                   backgroundColor: Colors.accent.orange,
@@ -781,28 +764,36 @@ const PropertyDetails = () => {
               </Motion.button>
 
               <Motion.button
-                onClick={() => window.location.href = `https://wa.me/${property.landlord.phone.replace(/\s+/g, '')}`}
+                onClick={() =>
+                  (window.location.href = `https://wa.me/${property.landlord.whatsapp_number.replace(
+                    /\s+/g,
+                    ""
+                  )}`)
+                }
                 className="w-full py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all duration-300"
                 style={{
                   backgroundColor: "#25D366",
                   color: "white",
-                  boxShadow: "0 4px 14px rgba(37, 211, 102, 0.4)"
+                  boxShadow: "0 4px 14px rgba(37, 211, 102, 0.4)",
                 }}
-                whileHover={{ 
-                  scale: 1.02, 
+                whileHover={{
+                  scale: 1.02,
                   boxShadow: "0 6px 20px rgba(37, 211, 102, 0.5)",
-                  backgroundColor: "#1ea952"
+                  backgroundColor: "#1ea952",
                 }}
                 whileTap={{ scale: 0.97 }}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="white">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5"
+                  viewBox="0 0 24 24"
+                  fill="white"
+                >
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                 </svg>
                 WhatsApp Landlord
               </Motion.button>
             </Motion.div>
-
-          
           </Motion.div>
         </div>
 
@@ -814,57 +805,30 @@ const PropertyDetails = () => {
               Related Properties
             </h2>
             <Motion.button
-              onClick={()=>navigate("/properties")}
+              onClick={() => navigate("/properties")}
               className="flex items-center gap-1 text-sm font-medium"
               style={{ color: Colors.accent.orange }}
               whileHover={{ scale: 1.05, x: 5 }}
               whileTap={{ scale: 0.95 }}
             >
-              View all
+              View All
               <ArrowRight className="w-4 h-4" />
             </Motion.button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {/* Related Properties using PropertyCard component */}
-            {[1, 2, 3, 4].map((item) => (
-              <PropertyCard
-                key={item}
-                property={{
-                  id: `related-${item}`,
-                  image: `https://images.unsplash.com/photo-${
-                    item === 1
-                      ? "1560448204-e02f11c3d0e2"
-                      : item === 2
-                      ? "1560185007-cde436f6a4d0"
-                      : item === 3
-                      ? "1560185009-5bf9f2849488"
-                      : "1560448204-61dc36dc98c8"
-                  }?q=80&w=1470&auto=format&fit=crop`,
-                  title:
-                    item === 1
-                      ? "Modern Studio Apartment"
-                      : item === 2
-                      ? "Luxury 2 Bedroom Flat"
-                      : item === 3
-                      ? "Cozy 1 Bedroom Apartment"
-                      : "Spacious 3 Bedroom House",
-                  location:
-                    item === 1
-                      ? "East Legon"
-                      : item === 2
-                      ? "Airport Residential"
-                      : item === 3
-                      ? "Cantonments"
-                      : "Osu, Accra",
-                  price: (1500 + item * 500).toLocaleString(),
-                  isNegotiable: item % 2 === 0,
-                  likes: Math.floor(Math.random() * 50) + 10,
-                  isFeatured: item === 1 || item === 3,
-                  isVerified: item === 2 || item === 4,
-                }}
-              />
+            {relatedProperties.map((property) => (
+              <PropertyCard key={property.property_slug} property={property} />
             ))}
+            {relatedProperties.length === 0 && (
+              <div className="col-span-full text-center text-neutral-600">
+                <EmptyState
+                  icon="home"
+                  title="No related properties found"
+                  description="There are no related properties to display at the moment."
+                />
+              </div>
+            )}
           </div>
         </Motion.section>
       </Motion.div>

@@ -1,124 +1,263 @@
 import { useState, useEffect, useRef } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { 
-  ArrowLeft, ArrowRight, Check, Plus, Minus, Upload, X, AlertCircle,
-  DollarSign, Phone, MessageCircle, Image as ImageIcon, Star, Copy, Eye, EyeOff, Code
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Plus,
+  Minus,
+  Upload,
+  X,
+  AlertCircle,
+  DollarSign,
+  Phone,
+  MessageCircle,
+  Image as ImageIcon,
+  Star,
+  Copy,
+  Eye,
+  EyeOff,
+  Code,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router";
 import AuthLayout from "../../Layouts/AuthLayout";
 import { toast } from "react-toastify";
+import {
+  getPropertyById,
+  updateProperty,
+} from "../../api/Landlord/General/PropertyRequest";
+import { Loader2 } from "lucide-react";
 
 const EditProperty = () => {
-  const { propertyId } = useParams();
+  const { propertySlug } = useParams();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState([]);
   const [showFullPayload, setShowFullPayload] = useState(false);
+  const [formData, setFormData] = useState(null);
+  const [property, setProperty] = useState(null);
 
-  // Scroll to top on step change
+  //Todo => Scroll to top on step change
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentStep]);
 
-  // Ghana regions and their major locations (same as AddProperty)
+  //Todo => Fetch property data
+  useEffect(() => {
+    const fetchProperty = async () => {
+      setLoading(true);
+      try {
+        const response = await getPropertyById(propertySlug);
+        console.log("Response", response);
+        if (
+          response?.data?.status_code === "000" &&
+          !response?.data?.in_error
+        ) {
+          const propertyData = response?.data?.data;
+
+          // Transform the data to match the form structure
+          const transformedData = (() => {
+            // Handle custom location logic - check if location is in predefined list
+            const region = propertyData.region;
+            const location = propertyData.location;
+            const isCustomLocation = region && location && 
+              !ghanaRegions[region]?.includes(location);
+            
+            return {
+              ...propertyData,
+              // Set location dropdown and custom location field based on whether it's a custom location
+              location: isCustomLocation ? "Other" : location,
+              customLocation: isCustomLocation ? location : "",
+              property_images: (() => {
+                const allImages = [];
+
+                if (propertyData.images && propertyData.images.length > 0) {
+                  propertyData.images.forEach((img) => {
+                    allImages.push({
+                      image: img.url,
+                      slug: img.slug,
+                      is_featured: false,
+                      isNew: false,
+                    });
+                  });
+                }
+
+                if (propertyData.featured_image) {
+                  const featuredImageSlug = propertyData.featured_image.slug;
+                  const existingImageIndex = allImages.findIndex((img) => {
+                    return img.slug === featuredImageSlug;
+                  });
+
+                  if (existingImageIndex >= 0) {
+                    allImages[existingImageIndex].is_featured = true;
+                  } else {
+                    allImages.unshift({
+                      image: propertyData.featured_image.url,
+                      slug: propertyData.featured_image.slug,
+                      is_featured: true,
+                      isNew: false,
+                    });
+                  }
+                }
+                return allImages;
+              })(),
+              amenities: propertyData.amenities || [],
+              district: propertyData.district || "",
+              landmark: propertyData.landmark || "",
+              bathroom_type: propertyData.bathroom_type || "private",
+              kitchen_type: propertyData.kitchen_type || "private",
+            };
+          })();
+
+          setFormData(transformedData);
+          setProperty(transformedData);
+        } else {
+          toast.error(
+            response?.data?.reason ||
+              "Failed to fetch property. Please try again."
+          );
+        }
+      } catch (error) {
+        toast.error(
+          error?.response?.data?.reason ||
+            "An error occurred while fetching the property. Please try again."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProperty();
+  }, [propertySlug]);
+
+  console.log("Form Data", formData);
+  console.log("Property", property);
+  console.log("Property Slug", propertySlug);
+
+  //Todo=> Ghana regions and their major locations (same as AddProperty)
   const ghanaRegions = {
-    "Greater Accra": ["Accra", "Tema", "Kasoa", "East Legon", "Airport Residential", "Dansoman", "Adenta", "Madina", "Spintex", "Cantonments", "Other"],
-    "Ashanti": ["Kumasi", "Obuasi", "Ejisu", "Konongo", "Mampong", "Bekwai", "Other"],
-    "Western": ["Takoradi", "Axim", "Half Assini", "Prestea", "Tarkwa", "Other"],
-    "Central": ["Cape Coast", "Elmina", "Winneba", "Kasoa", "Swedru", "Other"],
-    "Eastern": ["Koforidua", "Akosombo", "Nkawkaw", "Begoro", "Other"],
-    "Northern": ["Tamale", "Yendi", "Salaga", "Other"],
+    "Greater Accra": [
+      "Accra",
+      "Tema",
+      "Kasoa",
+      "East Legon",
+      "Airport Residential",
+      "Dansoman",
+      "Adenta",
+      "Madina",
+      "Spintex",
+      "Cantonments",
+      "Other",
+    ],
+    Ashanti: [
+      "Kumasi",
+      "Obuasi",
+      "Ejisu",
+      "Konongo",
+      "Mampong",
+      "Bekwai",
+      "Other",
+    ],
+    Western: ["Takoradi", "Axim", "Half Assini", "Prestea", "Tarkwa", "Other"],
+    Central: ["Cape Coast", "Elmina", "Winneba", "Kasoa", "Swedru", "Other"],
+    Eastern: ["Koforidua", "Akosombo", "Nkawkaw", "Begoro", "Other"],
+    Northern: ["Tamale", "Yendi", "Salaga", "Other"],
     "Upper East": ["Bolgatanga", "Navrongo", "Bawku", "Other"],
     "Upper West": ["Wa", "Lawra", "Jirapa", "Other"],
-    "Volta": ["Ho", "Keta", "Hohoe", "Kpando", "Other"],
-    "Brong Ahafo": ["Sunyani", "Techiman", "Berekum", "Dormaa Ahenkro", "Other"]
+    Volta: ["Ho", "Keta", "Hohoe", "Kpando", "Other"],
+    "Brong Ahafo": [
+      "Sunyani",
+      "Techiman",
+      "Berekum",
+      "Dormaa Ahenkro",
+      "Other",
+    ],
   };
 
   const propertyTypes = [
-    "Single Room", "Chamber and Hall", "2 Bedroom Apartment",
-    "3 Bedroom Apartment", "Office Space", "Short Stay"
+    "Single Room",
+    "Chamber and Hall",
+    "2 Bedroom Apartment",
+    "3 Bedroom Apartment",
+    "Office Space",
+    "Short Stay",
   ];
 
   const amenitiesList = [
-    "Air Conditioning", "Parking", "Swimming Pool", "Gym", "Security", 
-    "Elevator", "Balcony", "Garden", "WiFi", "Furnished", 
-    "Pet Friendly", "Laundry", "Storage", "Fire Safety", "CCTV",
-    "Generator", "Water Tank", "Solar Power", "Intercom", "Gated Community"
+    "Air Conditioning",
+    "Parking",
+    "Swimming Pool",
+    "Gym",
+    "Security",
+    "Elevator",
+    "Balcony",
+    "Garden",
+    "WiFi",
+    "Furnished",
+    "Pet Friendly",
+    "Laundry",
+    "Storage",
+    "Fire Safety",
+    "CCTV",
+    "Generator",
+    "Water Tank",
+    "Solar Power",
+    "Intercom",
+    "Gated Community",
   ];
 
   const steps = [
-    { id: 1, title: "Basic Info", description: "Property details and location" },
-    { id: 2, title: "Specifications", description: "Rooms, amenities, and features" },
-    { id: 3, title: "Pricing & Contact", description: "Rent details and contact info" },
-    { id: 4, title: "Images & Review", description: "Property photos and final review" }
+    {
+      id: 1,
+      title: "Basic Info",
+      description: "Property details and location",
+    },
+    {
+      id: 2,
+      title: "Property Specifications",
+      description: "Rooms, amenities, and features",
+    },
+    {
+      id: 3,
+      title: "Pricing & Contact",
+      description: "Rent details and contact info",
+    },
+    {
+      id: 4,
+      title: "Images & Review",
+      description: "Property photos and final review",
+    },
   ];
 
-  // Mock existing property data - updated to use new image structure
-  const existingProperty = {
-    title: "Modern 3-Bedroom Apartment in East Legon",
-    region: "Greater Accra",
-    location: "East Legon",
-    customLocation: "",
-    suburb: "American House",
-    district: "Ayawaso West Municipal",
-    landmark: "Near East Legon Police Station",
-    per_month_amount: "2500",
-    rental_years: 1,
-    negotiable: true,
-    number_of_bedrooms: 3,
-    number_of_bathrooms: 2,
-    description: "This beautiful 3-bedroom apartment is located in the heart of East Legon, one of Accra's most prestigious neighborhoods. The property features modern amenities, spacious rooms, and excellent connectivity to major business districts. Perfect for families or professionals looking for comfort and convenience.",
-    contact_number: "244567890", // Without 233 prefix for display
-    whatsapp_number: "244567890",
-    year_built: "2020",
-    amenities: ["Air Conditioning", "Parking", "Security", "Elevator", "Balcony"],
-    property_type: "3 Bedroom Apartment",
-    is_available: true,
-    approval_status: "verified",
-    property_images: [
-      {
-        image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
-        is_featured: true
-      },
-      {
-        image: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80",
-        is_featured: false
-      }
-    ]
-  };
-
-  const [formData, setFormData] = useState(existingProperty);
-
   const validatePhoneNumber = (phone) => {
-    const cleanPhone = phone.replace(/\D/g, '');
+    const cleanPhone = phone.replace(/\D/g, "");
     return cleanPhone.length === 9 && /^\d{9}$/.test(cleanPhone);
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
   const handlePhoneChange = (field, value) => {
-    let cleanValue = value.replace(/\D/g, '');
+    let cleanValue = value.replace(/\D/g, "");
     if (cleanValue.length > 9) {
       cleanValue = cleanValue.slice(0, 9);
     }
     handleInputChange(field, cleanValue);
   };
 
-  const handleAmenityToggle = (amenity) => {
-    setFormData(prev => ({
+  const handleAmenityToggle = (amenityName) => {
+    setFormData((prev) => ({
       ...prev,
-      amenities: prev.amenities.includes(amenity)
-        ? prev.amenities.filter(a => a !== amenity)
-        : [...prev.amenities, amenity]
+      amenities: prev.amenities.some((a) => a.name === amenityName)
+        ? prev.amenities.filter((a) => a.name !== amenityName)
+        : [...prev.amenities, { name: amenityName }],
     }));
   };
 
@@ -128,26 +267,28 @@ const EditProperty = () => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
+      reader.onerror = (error) => reject(error);
     });
   };
 
-  // Check if image is a URL (existing) or base64 (new upload)
   const isImageUrl = (imageString) => {
-    return imageString.startsWith('http://') || imageString.startsWith('https://');
+    return (
+      imageString.startsWith("http://") || imageString.startsWith("https://")
+    );
   };
 
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
-    const totalImages = formData.property_images.length + files.length;
+    const currentImagesCount = (formData.property_images || []).length;
+    const totalImages = currentImagesCount + files.length;
 
     if (totalImages > 5) {
       toast.error("Maximum 5 images allowed");
       return;
     }
 
-    const validFiles = files.filter(file => {
-      if (!file.type.startsWith('image/')) {
+    const validFiles = files.filter((file) => {
+      if (!file.type.startsWith("image/")) {
         toast.error(`${file.name} is not a valid image file`);
         return false;
       }
@@ -167,28 +308,31 @@ const EditProperty = () => {
           return {
             image: base64,
             is_featured: false,
-            isNew: true // Flag to identify new uploads
+            isNew: true, // Flag to identify new uploads
           };
         })
       );
 
-      const newPreviewUrls = validFiles.map(file => URL.createObjectURL(file));
-      
-      setImageFiles(prev => [...prev, ...validFiles]);
-      setImagePreviewUrls(prev => [...prev, ...newPreviewUrls]);
-      
-      setFormData(prev => {
-        const updatedImages = [...prev.property_images, ...base64Images];
-        
+      const newPreviewUrls = validFiles.map((file) =>
+        URL.createObjectURL(file)
+      );
+
+      setImageFiles((prev) => [...prev, ...validFiles]);
+      setImagePreviewUrls((prev) => [...prev, ...newPreviewUrls]);
+
+      setFormData((prev) => {
+        const currentImages = prev.property_images || [];
+        const updatedImages = [...currentImages, ...base64Images];
+
         // If no image is currently featured, make the first image featured
-        const hasFeaturedImage = updatedImages.some(img => img.is_featured);
+        const hasFeaturedImage = updatedImages.some((img) => img.is_featured);
         if (!hasFeaturedImage && updatedImages.length > 0) {
           updatedImages[0].is_featured = true;
         }
-        
+
         return {
           ...prev,
-          property_images: updatedImages
+          property_images: updatedImages,
         };
       });
 
@@ -199,27 +343,29 @@ const EditProperty = () => {
   };
 
   const removeImage = (index) => {
-    const imageToRemove = formData.property_images[index];
+    const propertyImages = formData.property_images || [];
+    const imageToRemove = propertyImages[index];
     const wasFeatureImage = imageToRemove?.is_featured;
-    
+
     // Only revoke URL if it's a newly uploaded image (has preview URL)
     if (imagePreviewUrls[index] && imageToRemove?.isNew) {
       URL.revokeObjectURL(imagePreviewUrls[index]);
-      setImageFiles(prev => prev.filter((_, i) => i !== index));
-      setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
+      setImageFiles((prev) => prev.filter((_, i) => i !== index));
+      setImagePreviewUrls((prev) => prev.filter((_, i) => i !== index));
     }
-    
-    setFormData(prev => {
-      const updatedImages = prev.property_images.filter((_, i) => i !== index);
-      
+
+    setFormData((prev) => {
+      const currentImages = prev.property_images || [];
+      const updatedImages = currentImages.filter((_, i) => i !== index);
+
       // If we removed the featured image and there are other images, make the first one featured
       if (wasFeatureImage && updatedImages.length > 0) {
         updatedImages[0].is_featured = true;
       }
-      
+
       return {
         ...prev,
-        property_images: updatedImages
+        property_images: updatedImages,
       };
     });
 
@@ -227,21 +373,20 @@ const EditProperty = () => {
   };
 
   const setFeaturedImage = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      property_images: prev.property_images.map((img, i) => ({
+      property_images: (prev.property_images || []).map((img, i) => ({
         ...img,
-        is_featured: i === index
-      }))
+        is_featured: i === index,
+      })),
     }));
     toast.success("Featured image updated");
   };
 
   const getFeaturedImageIndex = () => {
-    return formData.property_images.findIndex(img => img.is_featured);
+    return (formData.property_images || []).findIndex((img) => img.is_featured);
   };
 
-  // Get display URL for image (either URL or blob URL for new uploads)
   const getImageDisplayUrl = (imageObj, index) => {
     if (isImageUrl(imageObj.image)) {
       return imageObj.image; // Existing image URL
@@ -255,57 +400,66 @@ const EditProperty = () => {
   const generateCompletePayload = (forPreview = false) => {
     const payload = {
       // System fields
-      id: propertyId,
-      
+      property_slug: propertySlug,
+
       // Basic Information
       title: formData.title,
       property_type: formData.property_type,
-      
+
       // Location Details
       region: formData.region,
-      location: formData.location === "Other" ? formData.customLocation : formData.location,
+      location:
+        formData.location === "Other"
+          ? formData.customLocation
+          : formData.location,
       suburb: formData.suburb,
       district: formData.district || null,
-      landmark: formData.landmark || null,
-      
-      // Property Specifications
-      number_of_bedrooms: formData.number_of_bedrooms,
-      number_of_bathrooms: formData.number_of_bathrooms,
+      landmark: formData.landmark || "",
+
+      number_of_bedrooms: formData.number_of_rooms,
+      number_of_bathrooms: formData.no_of_bathrooms,
+      bathroom_type: formData.bathroom_type,
+      kitchen_type: formData.kitchen_type,
       year_built: formData.year_built ? parseInt(formData.year_built) : null,
       description: formData.description,
-      amenities: formData.amenities,
-      
+      amenities: formData.amenities.map((amenity) =>
+        typeof amenity === "string" ? amenity : amenity.name
+      ),
+
       // Pricing & Availability
-      per_month_amount: parseFloat(formData.per_month_amount) || 0,
+      per_month_amount: parseFloat(formData.price) || 0,
       rental_years: formData.rental_years,
-      negotiable: formData.negotiable,
+      negotiable: formData.is_negotiable,
       is_available: formData.is_available,
-      
+
       // Contact Information
-      contact_number: `+233${formData.contact_number}`,
-      whatsapp_number: `+233${formData.whatsapp_number}`,
-      
+      contact_number: `233${formData.contact_number}`,
+      whatsapp_number: `233${formData.whatsapp_number}`,
+
       // System Fields
       approval_status: formData.approval_status,
-      
+
       // Property Images
-      property_images: formData.property_images.length > 0 
-        ? formData.property_images.map((img, index) => {
-            const hasFeaturedImage = formData.property_images.some(img => img.is_featured);
-            return {
-              image: forPreview && img.image.startsWith('data:') 
-                ? `${img.image.substring(0, 20)}...` 
-                : img.image, // Truncate base64 for preview, keep full for actual submission
-              is_featured: hasFeaturedImage ? img.is_featured : index === 0,
-              ...(img.isNew && { isNew: true }) // Flag for new images
-            };
-          })
-        : [],
-      
+      property_images:
+        (formData.property_images || []).length > 0
+          ? (formData.property_images || []).map((img, index) => {
+              const hasFeaturedImage = (formData.property_images || []).some(
+                (img) => img.is_featured
+              );
+              return {
+                image:
+                  forPreview && img.image.startsWith("data:")
+                    ? `${img.image.substring(0, 50)}...`
+                    : img.image,
+                is_featured: hasFeaturedImage ? img.is_featured : index === 0,
+              };
+            })
+          : [],
+
       // Metadata
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
-    
+
     return payload;
   };
 
@@ -324,27 +478,35 @@ const EditProperty = () => {
     const newErrors = {};
     switch (step) {
       case 1:
-        if (!formData.title.trim()) newErrors.title = "Property title is required";
+        if (!formData.title.trim())
+          newErrors.title = "Property title is required";
         if (!formData.region) newErrors.region = "Region is required";
         if (!formData.location) newErrors.location = "Location is required";
         if (formData.location === "Other" && !formData.customLocation.trim()) {
           newErrors.customLocation = "Custom location is required";
         }
         if (!formData.suburb.trim()) newErrors.suburb = "Suburb is required";
-        if (!formData.property_type) newErrors.property_type = "Property type is required";
+        if (!formData.property_type)
+          newErrors.property_type = "Property type is required";
         break;
       case 2:
-        if (!formData.description.trim()) newErrors.description = "Property description is required";
+        if (!formData.description.trim())
+          newErrors.description = "Property description is required";
         break;
       case 3:
-        if (!formData.per_month_amount || formData.per_month_amount <= 0) {
-          newErrors.per_month_amount = "Valid monthly rent is required";
+        if (!formData.price || formData.price <= 0) {
+          newErrors.price = "Valid monthly rent is required";
         }
-        if (!formData.contact_number.trim()) newErrors.contact_number = "Contact number is required";
-        if (!formData.whatsapp_number.trim()) newErrors.whatsapp_number = "WhatsApp number is required";
+        if (!formData.contact_number.trim())
+          newErrors.contact_number = "Contact number is required";
+        if (!formData.whatsapp_number.trim())
+          newErrors.whatsapp_number = "WhatsApp number is required";
         break;
       case 4:
-        if (formData.property_images.length === 0) {
+        if (
+          !formData.property_images ||
+          formData.property_images.length === 0
+        ) {
           newErrors.property_images = "At least one property image is required";
         }
         break;
@@ -355,43 +517,31 @@ const EditProperty = () => {
 
   const nextStep = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 4));
+      setCurrentStep((prev) => Math.min(prev + 1, 4));
     }
   };
 
   const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
   const handleSubmit = async () => {
     if (!validateStep(4)) return;
-    
+
     setLoading(true);
     try {
-      // Prepare the data for API submission
-      const submissionData = {
-        ...formData,
-        // Clean up images for API - remove internal flags and ensure proper structure
-        property_images: formData.property_images.length > 0 
-          ? formData.property_images.map((img, index) => {
-              // Ensure we have at least one featured image
-              const hasFeaturedImage = formData.property_images.some(img => img.is_featured);
-              
-              return {
-                image: img.image, // This will be either URL (existing) or base64 (new)
-                is_featured: hasFeaturedImage ? img.is_featured : index === 0,
-                // Optional: Add metadata for backend processing
-                ...(img.isNew && { isNew: true }) // Flag new images for backend processing
-              };
-            })
-          : []
-      };
-
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      console.log("Updated Property Data being sent to API:", submissionData);
-      toast.success("Property updated successfully!");
-      navigate(`/view-property/${propertyId}`);
+      const submissionData = generateCompletePayload(false);
+      const response = await updateProperty(propertySlug, submissionData);
+      console.log(response);
+      if (response?.data?.status_code === "000" && !response?.data?.in_error) {
+        toast.success("Property updated successfully!");
+        navigate(`/view-property/${propertySlug}`);
+      } else {
+        toast.error(
+          response?.data?.reason ||
+            "Failed to update property. Please try again."
+        );
+      }
     } catch (error) {
       console.log(error);
       toast.error("Failed to update property. Please try again.");
@@ -400,13 +550,21 @@ const EditProperty = () => {
     }
   };
 
+  if (loading || !formData) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <AuthLayout>
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex items-center gap-4 mb-6">
             <button
-              onClick={() => navigate(`/view-property/${propertyId}`)}
+              onClick={() => navigate(`/view-property/${propertySlug}`)}
               className="p-2 hover:bg-white rounded-lg border border-gray-200"
             >
               <ArrowLeft size={20} />
@@ -419,11 +577,13 @@ const EditProperty = () => {
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center">
                 <div className="flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
-                    currentStep >= step.id
-                      ? "border-orange-500 bg-orange-500 text-white"
-                      : "border-gray-200 text-gray-400"
-                  }`}>
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
+                      currentStep >= step.id
+                        ? "border-orange-500 bg-orange-500 text-white"
+                        : "border-gray-200 text-gray-400"
+                    }`}
+                  >
                     {currentStep > step.id ? (
                       <Check size={20} />
                     ) : (
@@ -431,17 +591,23 @@ const EditProperty = () => {
                     )}
                   </div>
                   <div className="mt-2 text-center">
-                    <p className={`text-xs font-medium ${
-                      currentStep >= step.id ? "text-orange-600" : "text-gray-400"
-                    }`}>
+                    <p
+                      className={`text-xs font-medium ${
+                        currentStep >= step.id
+                          ? "text-orange-600"
+                          : "text-gray-400"
+                      }`}
+                    >
                       {step.title}
                     </p>
                   </div>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`flex-1 h-0.5 mx-4 ${
-                    currentStep > step.id ? "bg-orange-500" : "bg-gray-200"
-                  }`} />
+                  <div
+                    className={`flex-1 h-0.5 mx-4 ${
+                      currentStep > step.id ? "bg-orange-500" : "bg-gray-200"
+                    }`}
+                  />
                 )}
               </div>
             ))}
@@ -458,7 +624,7 @@ const EditProperty = () => {
                   className="space-y-6"
                 >
                   <h2 className="text-xl font-semibold">Basic Information</h2>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Property Title *
@@ -466,7 +632,9 @@ const EditProperty = () => {
                     <input
                       type="text"
                       value={formData.title}
-                      onChange={(e) => handleInputChange("title", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("title", e.target.value)
+                      }
                       className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
                         errors.title ? "border-red-500" : "border-gray-200"
                       }`}
@@ -488,7 +656,9 @@ const EditProperty = () => {
                         <button
                           key={type}
                           type="button"
-                          onClick={() => handleInputChange("property_type", type)}
+                          onClick={() =>
+                            handleInputChange("property_type", type)
+                          }
                           className={`p-3 border rounded-xl text-sm font-medium transition-all ${
                             formData.property_type === type
                               ? "border-orange-500 bg-orange-50 text-orange-700"
@@ -508,7 +678,9 @@ const EditProperty = () => {
                       </label>
                       <select
                         value={formData.region}
-                        onChange={(e) => handleInputChange("region", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("region", e.target.value)
+                        }
                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
                           errors.region ? "border-red-500" : "border-gray-200"
                         }`}
@@ -522,116 +694,130 @@ const EditProperty = () => {
                       </select>
                     </div>
 
-                                         <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                         Location *
-                       </label>
-                       <select
-                         value={formData.location}
-                         onChange={(e) => handleInputChange("location", e.target.value)}
-                         disabled={!formData.region}
-                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                           errors.location ? "border-red-500" : "border-gray-200"
-                         } ${!formData.region ? "bg-gray-100" : ""}`}
-                       >
-                         <option value="">Select Location</option>
-                         {formData.region && ghanaRegions[formData.region]?.map((location) => (
-                           <option key={location} value={location}>
-                             {location}
-                           </option>
-                         ))}
-                       </select>
-                       {errors.location && (
-                         <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                           <AlertCircle size={14} />
-                           {errors.location}
-                         </p>
-                       )}
-                     </div>
-                   </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Location *
+                      </label>
+                      <select
+                        value={formData.location}
+                        onChange={(e) =>
+                          handleInputChange("location", e.target.value)
+                        }
+                        disabled={!formData.region}
+                        className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
+                          errors.location ? "border-red-500" : "border-gray-200"
+                        } ${!formData.region ? "bg-gray-100" : ""}`}
+                      >
+                        <option value="">Select Location</option>
+                        {formData.region &&
+                          ghanaRegions[formData.region]?.map((location) => (
+                            <option key={location} value={location}>
+                              {location}
+                            </option>
+                          ))}
+                      </select>
+                      {errors.location && (
+                        <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                          <AlertCircle size={14} />
+                          {errors.location}
+                        </p>
+                      )}
+                    </div>
+                  </div>
 
-                   {/* Custom Location Input */}
-                   <AnimatePresence>
-                     {formData.location === "Other" && (
-                       <Motion.div
-                         initial={{ opacity: 0, height: 0 }}
-                         animate={{ opacity: 1, height: "auto" }}
-                         exit={{ opacity: 0, height: 0 }}
-                         className="overflow-hidden"
-                       >
-                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                           Specify Location *
-                         </label>
-                         <input
-                           type="text"
-                           value={formData.customLocation}
-                           onChange={(e) => handleInputChange("customLocation", e.target.value)}
-                           placeholder="Enter specific location"
-                           className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                             errors.customLocation ? "border-red-500" : "border-gray-200"
-                           }`}
-                         />
-                         {errors.customLocation && (
-                           <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                             <AlertCircle size={14} />
-                             {errors.customLocation}
-                           </p>
-                         )}
-                       </Motion.div>
-                     )}
-                   </AnimatePresence>
+                  {/* Custom Location Input */}
+                  <AnimatePresence>
+                    {formData.location === "Other" && (
+                      <Motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Specify Location *
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.customLocation}
+                          onChange={(e) =>
+                            handleInputChange("customLocation", e.target.value)
+                          }
+                          placeholder="Enter specific location"
+                          className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
+                            errors.customLocation
+                              ? "border-red-500"
+                              : "border-gray-200"
+                          }`}
+                        />
+                        {errors.customLocation && (
+                          <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                            <AlertCircle size={14} />
+                            {errors.customLocation}
+                          </p>
+                        )}
+                      </Motion.div>
+                    )}
+                  </AnimatePresence>
 
-                   {/* Suburb and Additional Location Details */}
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                         Suburb/Area *
-                       </label>
-                       <input
-                         type="text"
-                         value={formData.suburb}
-                         onChange={(e) => handleInputChange("suburb", e.target.value)}
-                         placeholder="e.g., American House"
-                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                           errors.suburb ? "border-red-500" : "border-gray-200"
-                         }`}
-                       />
-                       {errors.suburb && (
-                         <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                           <AlertCircle size={14} />
-                           {errors.suburb}
-                         </p>
-                       )}
-                     </div>
+                  {/* Suburb and Additional Location Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Suburb/Area *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.suburb}
+                        onChange={(e) =>
+                          handleInputChange("suburb", e.target.value)
+                        }
+                        placeholder="e.g., American House"
+                        className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
+                          errors.suburb ? "border-red-500" : "border-gray-200"
+                        }`}
+                      />
+                      {errors.suburb && (
+                        <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                          <AlertCircle size={14} />
+                          {errors.suburb}
+                        </p>
+                      )}
+                    </div>
 
-                     <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                         District <span className="text-gray-400">(Optional)</span>
-                       </label>
-                       <input
-                         type="text"
-                         value={formData.district}
-                         onChange={(e) => handleInputChange("district", e.target.value)}
-                         placeholder="e.g., Ayawaso West Municipal"
-                         className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
-                       />
-                     </div>
-                   </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        District{" "}
+                        <span className="text-gray-400">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.district}
+                        onChange={(e) =>
+                          handleInputChange("district", e.target.value)
+                        }
+                        placeholder="e.g., Ayawaso West Municipal"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
 
-                   {/* Landmark */}
-                   <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                       Landmark <span className="text-gray-400">(Optional)</span>
-                     </label>
-                     <input
-                       type="text"
-                       value={formData.landmark}
-                       onChange={(e) => handleInputChange("landmark", e.target.value)}
-                       placeholder="e.g., Near East Legon Police Station"
-                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
-                     />
-                   </div>
-                 </Motion.div>
+                  {/* Landmark */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Landmark <span className="text-gray-400">(Optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.landmark}
+                      onChange={(e) =>
+                        handleInputChange("landmark", e.target.value)
+                      }
+                      placeholder="e.g., Near East Legon Police Station"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                    />
+                  </div>
+                </Motion.div>
               )}
 
               {/* Step 2 - Specifications */}
@@ -642,8 +828,10 @@ const EditProperty = () => {
                   exit={{ opacity: 0, x: -20 }}
                   className="space-y-6"
                 >
-                  <h2 className="text-xl font-semibold">Property Specifications</h2>
-                  
+                  <h2 className="text-xl font-semibold">
+                    Property Specifications
+                  </h2>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -652,17 +840,27 @@ const EditProperty = () => {
                       <div className="flex items-center gap-3">
                         <button
                           type="button"
-                          onClick={() => handleInputChange("number_of_bedrooms", Math.max(0, formData.number_of_bedrooms - 1))}
+                          onClick={() =>
+                            handleInputChange(
+                              "number_of_rooms",
+                              Math.max(0, formData.number_of_rooms - 1)
+                            )
+                          }
                           className="w-10 h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-50"
                         >
                           <Minus size={16} />
                         </button>
                         <span className="text-xl font-semibold min-w-[2rem] text-center">
-                          {formData.number_of_bedrooms}
+                          {formData.number_of_rooms}
                         </span>
                         <button
                           type="button"
-                          onClick={() => handleInputChange("number_of_bedrooms", formData.number_of_bedrooms + 1)}
+                          onClick={() =>
+                            handleInputChange(
+                              "number_of_rooms",
+                              formData.number_of_rooms + 1
+                            )
+                          }
                           className="w-10 h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-50"
                         >
                           <Plus size={16} />
@@ -677,7 +875,12 @@ const EditProperty = () => {
                       <div className="flex items-center gap-3">
                         <button
                           type="button"
-                          onClick={() => handleInputChange("number_of_bathrooms", Math.max(0, formData.number_of_bathrooms - 1))}
+                          onClick={() =>
+                            handleInputChange(
+                              "number_of_bathrooms",
+                              Math.max(0, formData.number_of_bathrooms - 1)
+                            )
+                          }
                           className="w-10 h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-50"
                         >
                           <Minus size={16} />
@@ -687,35 +890,90 @@ const EditProperty = () => {
                         </span>
                         <button
                           type="button"
-                          onClick={() => handleInputChange("number_of_bathrooms", formData.number_of_bathrooms + 1)}
+                          onClick={() =>
+                            handleInputChange(
+                              "number_of_bathrooms",
+                              formData.number_of_bathrooms + 1
+                            )
+                          }
                           className="w-10 h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-50"
                         >
                           <Plus size={16} />
                         </button>
                       </div>
                     </div>
-                                     </div>
+                  </div>
 
-                   {/* Year Built */}
-                   <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                       Year Built <span className="text-gray-400">(Optional)</span>
-                     </label>
-                     <input
-                       type="number"
-                       value={formData.year_built}
-                       onChange={(e) => handleInputChange("year_built", e.target.value)}
-                       placeholder="e.g., 2020"
-                       min="1900"
-                       max={new Date().getFullYear()}
-                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
-                     />
-                   </div>
+                  {/* Bathroom and Kitchen Type */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Bathroom Type *
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {["private", "shared"].map((type) => (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => handleInputChange("bathroom_type", type)}
+                            className={`p-3 border rounded-xl text-sm font-medium transition-all ${
+                              formData.bathroom_type === type
+                                ? "border-orange-500 bg-orange-50 text-orange-700"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            {type}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                   <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-3">
-                       Amenities
-                     </label>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Kitchen Type *
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {["private", "shared"].map((type) => (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => handleInputChange("kitchen_type", type)}
+                            className={`p-3 border rounded-xl text-sm font-medium transition-all ${
+                              formData.kitchen_type === type
+                                ? "border-orange-500 bg-orange-50 text-orange-700"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            {type}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Year Built */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Year Built{" "}
+                      <span className="text-gray-400">(Optional)</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.year_built}
+                      onChange={(e) =>
+                        handleInputChange("year_built", e.target.value)
+                      }
+                      placeholder="e.g., 2020"
+                      min="1900"
+                      max={new Date().getFullYear()}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Amenities
+                    </label>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                       {amenitiesList.map((amenity) => (
                         <button
@@ -723,20 +981,24 @@ const EditProperty = () => {
                           type="button"
                           onClick={() => handleAmenityToggle(amenity)}
                           className={`p-3 border rounded-xl text-sm font-medium transition-all text-left ${
-                            formData.amenities.includes(amenity)
+                            formData.amenities.some((a) => a === amenity)
                               ? "border-orange-500 bg-orange-50 text-orange-700"
                               : "border-gray-200 hover:border-gray-300"
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                              formData.amenities.includes(amenity)
-                                ? "border-orange-500 bg-orange-500"
-                                : "border-gray-300"
-                            }`}>
-                              {formData.amenities.includes(amenity) && (
-                                <Check size={10} className="text-white" />
-                              )}
+                            <div
+                              className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                formData.amenities.some(
+                                  (a) => a === amenity
+                                )
+                                  ? "border-orange-500 bg-orange-500"
+                                  : "border-gray-300"
+                              }`}
+                            >
+                              {formData.amenities.some(
+                                (a) => a === amenity
+                              ) && <Check size={10} className="text-white" />}
                             </div>
                             <span>{amenity}</span>
                           </div>
@@ -751,10 +1013,14 @@ const EditProperty = () => {
                     </label>
                     <textarea
                       value={formData.description}
-                      onChange={(e) => handleInputChange("description", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("description", e.target.value)
+                      }
                       rows={5}
                       className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none resize-none ${
-                        errors.description ? "border-red-500" : "border-gray-200"
+                        errors.description
+                          ? "border-red-500"
+                          : "border-gray-200"
                       }`}
                     />
                     {errors.description && (
@@ -775,27 +1041,34 @@ const EditProperty = () => {
                   exit={{ opacity: 0, x: -20 }}
                   className="space-y-6"
                 >
-                  <h2 className="text-xl font-semibold">Pricing & Contact Information</h2>
-                  
+                  <h2 className="text-xl font-semibold">
+                    Pricing & Contact Information
+                  </h2>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Monthly Rent (GHS) *
                     </label>
                     <div className="relative">
-                      <DollarSign size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <DollarSign
+                        size={20}
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      />
                       <input
                         type="number"
-                        value={formData.per_month_amount}
-                        onChange={(e) => handleInputChange("per_month_amount", e.target.value)}
+                        value={formData.price}
+                        onChange={(e) =>
+                          handleInputChange("price", e.target.value)
+                        }
                         className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                          errors.per_month_amount ? "border-red-500" : "border-gray-200"
+                          errors.price ? "border-red-500" : "border-gray-200"
                         }`}
                       />
                     </div>
-                    {errors.per_month_amount && (
+                    {errors.price && (
                       <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
                         <AlertCircle size={14} />
-                        {errors.per_month_amount}
+                        {errors.price}
                       </p>
                     )}
                   </div>
@@ -807,7 +1080,12 @@ const EditProperty = () => {
                       </label>
                       <select
                         value={formData.rental_years}
-                        onChange={(e) => handleInputChange("rental_years", parseInt(e.target.value))}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "rental_years",
+                            parseInt(e.target.value)
+                          )
+                        }
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
                       >
                         <option value={1}>1 Year</option>
@@ -833,14 +1111,25 @@ const EditProperty = () => {
                       </div>
                       <button
                         type="button"
-                        onClick={() => handleInputChange("negotiable", !formData.negotiable)}
+                        onClick={() =>
+                          handleInputChange(
+                            "is_negotiable",
+                            !formData.is_negotiable
+                          )
+                        }
                         className={`w-12 h-6 rounded-full transition-all ${
-                          formData.negotiable ? "bg-orange-500" : "bg-gray-200"
+                          formData.is_negotiable
+                            ? "bg-orange-500"
+                            : "bg-gray-200"
                         }`}
                       >
-                        <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
-                          formData.negotiable ? "translate-x-6" : "translate-x-0.5"
-                        }`} />
+                        <div
+                          className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
+                            formData.is_negotiable
+                              ? "translate-x-6"
+                              : "translate-x-0.5"
+                          }`}
+                        />
                       </button>
                     </div>
 
@@ -851,19 +1140,29 @@ const EditProperty = () => {
                           Property is available for rent
                         </label>
                         <p className="text-xs text-gray-500 mt-1">
-                          Toggle this off if the property is temporarily unavailable
+                          Toggle this off if the property is temporarily
+                          unavailable
                         </p>
                       </div>
                       <button
                         type="button"
-                        onClick={() => handleInputChange("is_available", !formData.is_available)}
+                        onClick={() =>
+                          handleInputChange(
+                            "is_available",
+                            !formData.is_available
+                          )
+                        }
                         className={`w-12 h-6 rounded-full transition-all ${
                           formData.is_available ? "bg-green-500" : "bg-gray-200"
                         }`}
                       >
-                        <div className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
-                          formData.is_available ? "translate-x-6" : "translate-x-0.5"
-                        }`} />
+                        <div
+                          className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
+                            formData.is_available
+                              ? "translate-x-6"
+                              : "translate-x-0.5"
+                          }`}
+                        />
                       </button>
                     </div>
                   </div>
@@ -880,20 +1179,25 @@ const EditProperty = () => {
                         <input
                           type="text"
                           value={formData.contact_number}
-                          onChange={(e) => handlePhoneChange("contact_number", e.target.value)}
+                          onChange={(e) =>
+                            handlePhoneChange("contact_number", e.target.value)
+                          }
                           placeholder="244567890"
                           maxLength="9"
                           className={`flex-1 px-4 py-3 border border-gray-200 rounded-r-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                            errors.contact_number ? "border-red-500" : "border-gray-200"
+                            errors.contact_number
+                              ? "border-red-500"
+                              : "border-gray-200"
                           }`}
                         />
                       </div>
-                      {formData.contact_number && !validatePhoneNumber(formData.contact_number) && (
-                        <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                          <AlertCircle size={14} />
-                          Please enter exactly 9 digits after 233
-                        </p>
-                      )}
+                      {formData.contact_number &&
+                        !validatePhoneNumber(formData.contact_number) && (
+                          <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                            <AlertCircle size={14} />
+                            Please enter exactly 9 digits after 233
+                          </p>
+                        )}
                       {errors.contact_number && (
                         <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
                           <AlertCircle size={14} />
@@ -913,20 +1217,25 @@ const EditProperty = () => {
                         <input
                           type="text"
                           value={formData.whatsapp_number}
-                          onChange={(e) => handlePhoneChange("whatsapp_number", e.target.value)}
+                          onChange={(e) =>
+                            handlePhoneChange("whatsapp_number", e.target.value)
+                          }
                           placeholder="244567890"
                           maxLength="9"
                           className={`flex-1 px-4 py-3 border border-gray-200 rounded-r-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                            errors.whatsapp_number ? "border-red-500" : "border-gray-200"
+                            errors.whatsapp_number
+                              ? "border-red-500"
+                              : "border-gray-200"
                           }`}
                         />
                       </div>
-                      {formData.whatsapp_number && !validatePhoneNumber(formData.whatsapp_number) && (
-                        <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                          <AlertCircle size={14} />
-                          Please enter exactly 9 digits after 233
-                        </p>
-                      )}
+                      {formData.whatsapp_number &&
+                        !validatePhoneNumber(formData.whatsapp_number) && (
+                          <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                            <AlertCircle size={14} />
+                            Please enter exactly 9 digits after 233
+                          </p>
+                        )}
                       {errors.whatsapp_number && (
                         <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
                           <AlertCircle size={14} />
@@ -935,7 +1244,12 @@ const EditProperty = () => {
                       )}
                       <button
                         type="button"
-                        onClick={() => handleInputChange("whatsapp_number", formData.contact_number)}
+                        onClick={() =>
+                          handleInputChange(
+                            "whatsapp_number",
+                            formData.contact_number
+                          )
+                        }
                         className="text-orange-600 hover:text-orange-700 text-sm font-medium mt-2"
                       >
                         Use same number as contact
@@ -954,10 +1268,12 @@ const EditProperty = () => {
                   className="space-y-6"
                 >
                   <h2 className="text-xl font-semibold">Property Images</h2>
-                  
-                  <div 
+
+                  <div
                     className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-                      errors.property_images ? "border-red-500 bg-red-50" : "border-gray-200 hover:border-orange-300"
+                      errors.property_images
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-200 hover:border-orange-300"
                     }`}
                   >
                     <input
@@ -968,19 +1284,24 @@ const EditProperty = () => {
                       onChange={handleImageUpload}
                       className="hidden"
                     />
-                    <ImageIcon size={48} className="text-gray-400 mx-auto mb-4" />
+                    <ImageIcon
+                      size={48}
+                      className="text-gray-400 mx-auto mb-4"
+                    />
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      disabled={formData.property_images.length >= 5}
+                      disabled={(formData.property_images || []).length >= 5}
                       className={`px-6 py-3 rounded-xl font-semibold inline-flex items-center gap-2 transition-colors ${
-                        formData.property_images.length >= 5
+                        (formData.property_images || []).length >= 5
                           ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                           : "bg-orange-500 hover:bg-orange-600 text-white"
                       }`}
                     >
                       <Upload size={20} />
-                      {formData.property_images.length > 0 ? "Add More Images" : "Upload Images"}
+                      {(formData.property_images || []).length > 0
+                        ? "Add More Images"
+                        : "Upload Images"}
                     </button>
                     <p className="text-gray-500 text-sm mt-2">
                       Drop images here or click to browse (Max 5MB each)
@@ -988,9 +1309,9 @@ const EditProperty = () => {
                     <p className="text-gray-400 text-xs mt-1">
                       Supported formats: JPG, PNG, WebP
                     </p>
-                    {formData.property_images.length > 0 && (
+                    {(formData.property_images || []).length > 0 && (
                       <p className="text-sm text-gray-600 mt-2 font-medium">
-                        {formData.property_images.length}/5 images
+                        {(formData.property_images || []).length}/5 images
                       </p>
                     )}
                   </div>
@@ -1002,102 +1323,133 @@ const EditProperty = () => {
                     </p>
                   )}
 
-                  {formData.property_images.length > 0 && (
+                  {(formData.property_images || []).length > 0 && (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-gray-900">Property Images</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Property Images
+                        </h3>
                         <p className="text-sm text-gray-500">
                           Click the star to set featured image
                         </p>
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {formData.property_images.map((imageObj, index) => (
-                          <Motion.div
-                            key={`${imageObj.image}-${index}`}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="relative group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all"
-                          >
-                            <div className="aspect-video relative">
-                              <img
-                                src={getImageDisplayUrl(imageObj, index)}
-                                alt={`Property ${index + 1}`}
-                                className="w-full h-full object-cover"
-                              />
-                              
-                              {/* Featured Badge */}
-                              {imageObj.is_featured && (
-                                <div className="absolute top-2 left-2 bg-orange-500 text-white px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1">
-                                  <Star size={12} fill="currentColor" />
-                                  Featured
-                                </div>
-                              )}
 
-                              {/* New Image Badge */}
-                              {imageObj.isNew && (
-                                <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-lg text-xs font-semibold">
-                                  New
-                                </div>
-                              )}
-                              
-                              {/* Image Controls */}
-                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setFeaturedImage(index)}
-                                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
-                                    imageObj.is_featured
-                                      ? "bg-orange-500 text-white"
-                                      : "bg-white text-gray-800 hover:bg-gray-100"
-                                  }`}
-                                >
-                                  <Star size={14} fill={imageObj.is_featured ? "currentColor" : "none"} />
-                                  {imageObj.is_featured ? "Featured" : "Set Featured"}
-                                </button>
-                                
-                                <button
-                                  type="button"
-                                  onClick={() => removeImage(index)}
-                                  className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors flex items-center gap-1"
-                                >
-                                  <X size={14} />
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                            
-                            {/* Image Info */}
-                            <div className="p-3">
-                              <p className="text-sm font-medium text-gray-900">
-                                Image {index + 1}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {(formData.property_images || []).map(
+                          (imageObj, index) => (
+                            <Motion.div
+                              key={`${imageObj.image}-${index}`}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="relative group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all"
+                            >
+                              <div className="aspect-video relative">
+                                <img
+                                  src={getImageDisplayUrl(imageObj, index)}
+                                  alt={`Property ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+
+                                {/* Featured Badge */}
                                 {imageObj.is_featured && (
-                                  <span className="ml-2 text-orange-600">• Featured</span>
+                                  <div className="absolute top-2 left-2 bg-orange-500 text-white px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1">
+                                    <Star size={12} fill="currentColor" />
+                                    Featured
+                                  </div>
                                 )}
+
+                                {/* New Image Badge */}
                                 {imageObj.isNew && (
-                                  <span className="ml-2 text-green-600">• New Upload</span>
+                                  <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-lg text-xs font-semibold">
+                                    New
+                                  </div>
                                 )}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {isImageUrl(imageObj.image) ? "Existing image" : "New upload"}
-                                {imageFiles[index]?.size && ` • ${(imageFiles[index].size / 1024 / 1024).toFixed(2)} MB`}
-                              </p>
-                            </div>
-                          </Motion.div>
-                        ))}
+
+                                {/* Image Controls */}
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setFeaturedImage(index)}
+                                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
+                                      imageObj.is_featured
+                                        ? "bg-orange-500 text-white"
+                                        : "bg-white text-gray-800 hover:bg-gray-100"
+                                    }`}
+                                  >
+                                    <Star
+                                      size={14}
+                                      fill={
+                                        imageObj.is_featured
+                                          ? "currentColor"
+                                          : "none"
+                                      }
+                                    />
+                                    {imageObj.is_featured
+                                      ? "Featured"
+                                      : "Set Featured"}
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => removeImage(index)}
+                                    className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors flex items-center gap-1"
+                                  >
+                                    <X size={14} />
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Image Info */}
+                              <div className="p-3">
+                                <p className="text-sm font-medium text-gray-900">
+                                  Image {index + 1}
+                                  {imageObj.is_featured && (
+                                    <span className="ml-2 text-orange-600">
+                                      • Featured
+                                    </span>
+                                  )}
+                                  {imageObj.isNew && (
+                                    <span className="ml-2 text-green-600">
+                                      • New Upload
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {isImageUrl(imageObj.image)
+                                    ? "Existing image"
+                                    : "New upload"}
+                                  {imageFiles[index]?.size &&
+                                    ` • ${(
+                                      imageFiles[index].size /
+                                      1024 /
+                                      1024
+                                    ).toFixed(2)} MB`}
+                                </p>
+                              </div>
+                            </Motion.div>
+                          )
+                        )}
                       </div>
-                      
+
                       {/* Featured Image Info */}
                       <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
                         <div className="flex items-start gap-3">
-                          <Star size={20} className="text-orange-600 flex-shrink-0 mt-0.5" fill="currentColor" />
+                          <Star
+                            size={20}
+                            className="text-orange-600 flex-shrink-0 mt-0.5"
+                            fill="currentColor"
+                          />
                           <div>
-                            <h4 className="text-sm font-semibold text-orange-900">Featured Image</h4>
+                            <h4 className="text-sm font-semibold text-orange-900">
+                              Featured Image
+                            </h4>
                             <p className="text-sm text-orange-700 mt-1">
-                              {getFeaturedImageIndex() >= 0 
-                                ? `Image ${getFeaturedImageIndex() + 1} is set as featured and will be displayed on property cards.`
-                                : "The first image will be used as featured image by default."
-                              }
+                              {getFeaturedImageIndex() >= 0
+                                ? `Image ${
+                                    getFeaturedImageIndex() + 1
+                                  } is set as featured and will be displayed on property cards.`
+                                : "The first image will be used as featured image by default."}
                             </p>
                           </div>
                         </div>
@@ -1113,8 +1465,12 @@ const EditProperty = () => {
                           <Code size={16} className="text-white" />
                         </div>
                         <div>
-                          <h4 className="text-lg font-semibold text-blue-900">Complete API Payload</h4>
-                          <p className="text-sm text-blue-700">Ready to send to your backend for UPDATE</p>
+                          <h4 className="text-lg font-semibold text-blue-900">
+                            Complete API Payload
+                          </h4>
+                          <p className="text-sm text-blue-700">
+                            Ready to send to your backend for UPDATE
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1123,7 +1479,11 @@ const EditProperty = () => {
                           onClick={() => setShowFullPayload(!showFullPayload)}
                           className="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
                         >
-                          {showFullPayload ? <EyeOff size={14} /> : <Eye size={14} />}
+                          {showFullPayload ? (
+                            <EyeOff size={14} />
+                          ) : (
+                            <Eye size={14} />
+                          )}
                           {showFullPayload ? "Collapse" : "Expand"}
                         </button>
                         <button
@@ -1136,49 +1496,88 @@ const EditProperty = () => {
                         </button>
                       </div>
                     </div>
-                    
+
                     {/* Payload Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div className="bg-white/60 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-blue-600">{Object.keys(generateCompletePayload(false)).length}</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {Object.keys(generateCompletePayload(false)).length}
+                        </p>
                         <p className="text-xs text-blue-700">Total Fields</p>
                       </div>
                       <div className="bg-white/60 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-green-600">{formData.property_images.length}</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {(formData.property_images || []).length}
+                        </p>
                         <p className="text-xs text-green-700">Images</p>
                       </div>
                       <div className="bg-white/60 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-orange-600">{formData.amenities.length}</p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          {(formData.amenities || []).length}
+                        </p>
                         <p className="text-xs text-orange-700">Amenities</p>
                       </div>
                       <div className="bg-white/60 rounded-lg p-3 text-center">
                         <p className="text-2xl font-bold text-purple-600">
-                          {JSON.stringify(generateCompletePayload(false)).length}
+                          {
+                            JSON.stringify(generateCompletePayload(false))
+                              .length
+                          }
                         </p>
                         <p className="text-xs text-purple-700">Bytes</p>
                       </div>
                     </div>
 
                     {/* JSON Preview */}
-                    <div className={`transition-all duration-300 ${showFullPayload ? 'max-h-96' : 'max-h-40'} overflow-y-auto`}>
+                    <div
+                      className={`transition-all duration-300 ${
+                        showFullPayload ? "max-h-96" : "max-h-40"
+                      } overflow-y-auto`}
+                    >
                       <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm">
                         <pre className="text-green-400 whitespace-pre-wrap break-all">
-                          {JSON.stringify(generateCompletePayload(true), null, 2)}
+                          {JSON.stringify(
+                            generateCompletePayload(true),
+                            null,
+                            2
+                          )}
                         </pre>
                       </div>
                     </div>
-                    
+
                     {/* API Integration Guide */}
                     <div className="mt-4 p-4 bg-white/60 rounded-lg">
-                      <h5 className="font-semibold text-blue-900 mb-2">🔄 Backend Update Integration Guide</h5>
+                      <h5 className="font-semibold text-blue-900 mb-2">
+                        🔄 Backend Update Integration Guide
+                      </h5>
                       <div className="text-sm text-blue-800 space-y-1">
-                        <p>• <strong>Endpoint:</strong> PUT /api/properties/{propertyId}</p>
-                        <p>• <strong>Content-Type:</strong> application/json</p>
-                        <p>• <strong>Mixed Images:</strong> URLs (existing) + Base64 (new uploads)</p>
-                        <p>• <strong>New Image Flag:</strong> isNew: true for newly uploaded images</p>
-                        <p>• <strong>Featured Image:</strong> Only one image has is_featured: true</p>
-                        <p>• <strong>Response:</strong> Return updated property with new image URLs</p>
-                        <p>• <strong>Processing:</strong> Decode base64 for new images, keep URLs for existing</p>
+                        <p>
+                          • <strong>Endpoint:</strong> PUT /api/properties/
+                          {propertySlug}
+                        </p>
+                        <p>
+                          • <strong>Content-Type:</strong> application/json
+                        </p>
+                        <p>
+                          • <strong>Mixed Images:</strong> URLs (existing) +
+                          Base64 (new uploads)
+                        </p>
+                        <p>
+                          • <strong>New Image Flag:</strong> isNew: true for
+                          newly uploaded images
+                        </p>
+                        <p>
+                          • <strong>Featured Image:</strong> Only one image has
+                          is_featured: true
+                        </p>
+                        <p>
+                          • <strong>Response:</strong> Return updated property
+                          with new image URLs
+                        </p>
+                        <p>
+                          • <strong>Processing:</strong> Decode base64 for new
+                          images, keep URLs for existing
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1192,7 +1591,9 @@ const EditProperty = () => {
               onClick={prevStep}
               disabled={currentStep === 1}
               className={`px-6 py-3 border rounded-xl font-semibold ${
-                currentStep === 1 ? "border-gray-200 text-gray-400" : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                currentStep === 1
+                  ? "border-gray-200 text-gray-400"
+                  : "border-gray-200 text-gray-700 hover:bg-gray-50"
               }`}
             >
               <ArrowLeft size={20} className="inline mr-2" />
@@ -1233,4 +1634,4 @@ const EditProperty = () => {
   );
 };
 
-export default EditProperty; 
+export default EditProperty;
