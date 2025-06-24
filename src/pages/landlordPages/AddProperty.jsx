@@ -319,6 +319,12 @@ const AddProperty = () => {
           newErrors.number_of_bedrooms = "Invalid number of bedrooms";
         if (formData.number_of_bathrooms < 0)
           newErrors.number_of_bathrooms = "Invalid number of bathrooms";
+        if (!formData.year_built || formData.year_built.trim() === "")
+          newErrors.year_built = "Year built is required";
+        else if (parseInt(formData.year_built) > new Date().getFullYear())
+          newErrors.year_built = "Year built cannot be in the future";
+        if (formData.amenities.length === 0)
+          newErrors.amenities = "Please select at least one amenity";
         if (!formData.description.trim())
           newErrors.description = "Property description is required";
         break;
@@ -838,7 +844,7 @@ const AddProperty = () => {
             {/* Year Built */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Year Built <span className="text-gray-400">(Optional)</span>
+                Year Built *
               </label>
               <input
                 type="number"
@@ -849,16 +855,26 @@ const AddProperty = () => {
                 placeholder="e.g., 2020"
                 min="1900"
                 max={new Date().getFullYear()}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
+                  errors.year_built ? "border-red-500" : "border-gray-200"
+                }`}
               />
+              {errors.year_built && (
+                <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                  <AlertCircle size={14} />
+                  {errors.year_built}
+                </p>
+              )}
             </div>
 
             {/* Amenities */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Amenities
+                Amenities *
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 ${
+                errors.amenities ? "border border-red-500 rounded-xl p-3 bg-red-50" : ""
+              }`}>
                 {amenitiesList.map((amenity) => (
                   <button
                     key={amenity}
@@ -887,6 +903,12 @@ const AddProperty = () => {
                   </button>
                 ))}
               </div>
+              {errors.amenities && (
+                <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                  <AlertCircle size={14} />
+                  {errors.amenities}
+                </p>
+              )}
             </div>
 
             {/* Description */}
@@ -1319,7 +1341,7 @@ const AddProperty = () => {
             </div>
 
             {/* Complete API Payload Preview */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+            {/* <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -1354,7 +1376,6 @@ const AddProperty = () => {
                 </div>
               </div>
 
-              {/* Payload Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div className="bg-white/60 rounded-lg p-3 text-center">
                   <p className="text-2xl font-bold text-blue-600">
@@ -1382,7 +1403,6 @@ const AddProperty = () => {
                 </div>
               </div>
 
-              {/* JSON Preview */}
               <div
                 className={`transition-all duration-300 ${
                   showFullPayload ? "max-h-96" : "max-h-40"
@@ -1395,7 +1415,6 @@ const AddProperty = () => {
                 </div>
               </div>
 
-              {/* API Integration Guide */}
               <div className="mt-4 p-4 bg-white/60 rounded-lg">
                 <h5 className="font-semibold text-blue-900 mb-2">
                   📡 Backend Integration Guide
@@ -1424,7 +1443,7 @@ const AddProperty = () => {
                   </p>
                 </div>
               </div>
-            </div>
+            </div> */}
           </Motion.div>
         );
 

@@ -15,16 +15,27 @@ const apiClient = axios.create({
   withCredentials: false,
 });
 
-//Todo => Request interceptor for enhanced logging
+//Todo => Request interceptor for enhanced logging and dynamic token handling
 apiClient.interceptors.request.use(
   (config) => {
     config.metadata = { startTime: new Date() };
+
+    // Get token fresh from localStorage on each request
+    const token = localStorage.getItem("quick_landlord_token");
+    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // Remove Authorization header if no token
+      delete config.headers.Authorization;
+    }
 
     const logData = {
       method: config.method?.toUpperCase(),
       url: config.url,
       timestamp: new Date().toISOString(),
       hasPayload: !!config.data,
+      hasToken: !!token,
     };
     console.log("🔐 Landlord Profile Request:", logData);
 
@@ -64,6 +75,19 @@ apiClient.interceptors.response.use(
       errorType: error.code || "UNKNOWN",
     });
 
+    // Handle 401 Unauthorized responses
+    if (error.response?.status === 401) {
+      console.warn("🚨 Unauthorized request - token may be invalid or expired");
+      // Optionally clear invalid token
+      localStorage.removeItem("quick_landlord_token");
+      localStorage.removeItem("quick_landlord_token_expiry");
+      
+      // Redirect to login if needed
+      if (window.location.pathname !== "/landlord-login") {
+        window.location.href = "/landlord-login";
+      }
+    }
+
     return Promise.reject(error);
   }
 );
@@ -71,13 +95,7 @@ apiClient.interceptors.response.use(
 //Todo => Update landlord profile
 export const updateLandlordProfile = async (data) => {
   try {
-    const token = localStorage.getItem("quick_landlord_token");
-    console.log("Landlord token:", token);
-
-    if (!token) {
-      throw new Error("No authentication token found");
-    }
-
+    // Token is now handled by the request interceptor
     //Todo => Prepare payload according to the specified format
     const payload = {
       full_name: data.full_name,
@@ -97,11 +115,7 @@ export const updateLandlordProfile = async (data) => {
 
     console.log("Landlord profile update payload:", payload);
 
-    const response = await apiClient.post("/landlord/profile/update", payload, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await apiClient.post("/landlord/update/profile", payload);
 
     const responseData = response.data?.data;
 
@@ -162,12 +176,7 @@ export const updateLandlordProfile = async (data) => {
 //Todo => Change landlord password
 export const changeLandlordPassword = async (data) => {
   try {
-    const token = localStorage.getItem("quick_landlord_token");
-
-    if (!token) {
-      throw new Error("No authentication token found");
-    }
-
+    // Token is now handled by the request interceptor
     //Todo => Prepare payload according to the specified format
     const payload = {
       old_password: data.currentPassword,
@@ -182,15 +191,7 @@ export const changeLandlordPassword = async (data) => {
       password_confirmation: "***hidden***",
     });
 
-    const response = await apiClient.post(
-      "/landlord/change/password",
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await apiClient.post("/landlord/change/password", payload);
 
     const responseData = response.data?.data;
 

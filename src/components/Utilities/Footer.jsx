@@ -5,17 +5,11 @@ import Images from "../../utils/Images";
 
 const Footer = () => {
   const footerLinks = {
-    company: [
-      { name: "About Us", href: "#" },
-      { name: "Our Team", href: "#" },
-      { name: "Careers", href: "#" },
-      { name: "Press", href: "#" },
-    ],
     properties: [
-      { name: "For Rent", href: "#" },
-      { name: "For Sale", href: "#" },
-      { name: "New Projects", href: "#" },
-      { name: "Featured", href: "#" },
+      { name: "For Rent", href: "/properties" },
+      { name: "For Sale", href: "/properties" },
+      { name: "New Projects", href: "/properties" },
+      { name: "Featured", href: "/properties" },
     ],
     resources: [
       { name: "Blog", href: "#" },

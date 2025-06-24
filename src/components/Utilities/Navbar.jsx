@@ -147,7 +147,7 @@ const Navbar = () => {
 
     // Add common items
     baseItems.push(
-      { icon: <HelpCircle size={18} />, text: "Help Center", to: "/help", divider: false, color: "#8B5CF6" },
+      { icon: <HelpCircle size={18} />, text: "Help Center", to: "/contact-support", divider: false, color: "#8B5CF6" },
       { icon: <Settings size={18} />, text: "Settings", to: "/settings", divider: true, color: "#6B7280" },
       { icon: <LogOut size={18} />, text: "Logout", to: "/logout", divider: false, color: "#EF4444" }
     );
@@ -180,6 +180,7 @@ const Navbar = () => {
         <div className="hidden md:flex items-center gap-4">
           
           {/* Wishlist Link */}
+          {user.userType === 'renter' && (
           <Motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -202,7 +203,7 @@ const Navbar = () => {
               )}
             </Link>
           </Motion.div>
-          
+          )}          
           {/* Notifications Link */}
           <Motion.div
             whileHover={{ scale: 1.05 }}

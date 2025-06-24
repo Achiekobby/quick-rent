@@ -72,6 +72,9 @@ const EditProperty = () => {
               // Set location dropdown and custom location field based on whether it's a custom location
               location: isCustomLocation ? "Other" : location,
               customLocation: isCustomLocation ? location : "",
+              // Strip country code from phone numbers
+              contact_number: stripCountryCode(propertyData.contact_number),
+              whatsapp_number: stripCountryCode(propertyData.whatsapp_number),
               property_images: (() => {
                 const allImages = [];
 
@@ -237,6 +240,17 @@ const EditProperty = () => {
     return cleanPhone.length === 9 && /^\d{9}$/.test(cleanPhone);
   };
 
+  // Helper function to strip 233 prefix from phone numbers
+  const stripCountryCode = (phoneNumber) => {
+    if (!phoneNumber) return "";
+    const cleanPhone = phoneNumber.toString().replace(/\D/g, "");
+    // If it starts with 233 and has more than 9 digits, remove the 233
+    if (cleanPhone.startsWith("233") && cleanPhone.length > 9) {
+      return cleanPhone.substring(3);
+    }
+    return cleanPhone;
+  };
+
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -255,9 +269,13 @@ const EditProperty = () => {
   const handleAmenityToggle = (amenityName) => {
     setFormData((prev) => ({
       ...prev,
-      amenities: prev.amenities.some((a) => a.name === amenityName)
-        ? prev.amenities.filter((a) => a.name !== amenityName)
-        : [...prev.amenities, { name: amenityName }],
+      amenities: prev.amenities.some((a) => 
+        typeof a === 'string' ? a === amenityName : a.name === amenityName
+      )
+        ? prev.amenities.filter((a) => 
+            typeof a === 'string' ? a !== amenityName : a.name !== amenityName
+          )
+        : [...prev.amenities, amenityName],
     }));
   };
 
@@ -417,7 +435,7 @@ const EditProperty = () => {
       landmark: formData.landmark || "",
 
       number_of_bedrooms: formData.number_of_rooms,
-      number_of_bathrooms: formData.no_of_bathrooms,
+      number_of_bathrooms: formData.number_of_bathrooms || 0,
       bathroom_type: formData.bathroom_type,
       kitchen_type: formData.kitchen_type,
       year_built: formData.year_built ? parseInt(formData.year_built) : null,
@@ -476,6 +494,7 @@ const EditProperty = () => {
 
   const validateStep = (step) => {
     const newErrors = {};
+    
     switch (step) {
       case 1:
         if (!formData.title.trim())
@@ -490,6 +509,12 @@ const EditProperty = () => {
           newErrors.property_type = "Property type is required";
         break;
       case 2:
+        if (!formData.year_built || (typeof formData.year_built === 'string' && formData.year_built.trim() === ""))
+          newErrors.year_built = "Year built is required";
+        else if (parseInt(formData.year_built) > new Date().getFullYear())
+          newErrors.year_built = "Year built cannot be in the future";
+        if (formData.amenities.length === 0)
+          newErrors.amenities = "Please select at least one amenity";
         if (!formData.description.trim())
           newErrors.description = "Property description is required";
         break;
@@ -511,6 +536,7 @@ const EditProperty = () => {
         }
         break;
     }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -954,8 +980,7 @@ const EditProperty = () => {
                   {/* Year Built */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Year Built{" "}
-                      <span className="text-gray-400">(Optional)</span>
+                      Year Built *
                     </label>
                     <input
                       type="number"
@@ -966,22 +991,34 @@ const EditProperty = () => {
                       placeholder="e.g., 2020"
                       min="1900"
                       max={new Date().getFullYear()}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
+                        errors.year_built ? "border-red-500" : "border-gray-200"
+                      }`}
                     />
+                    {errors.year_built && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                        <AlertCircle size={14} />
+                        {errors.year_built}
+                      </p>
+                    )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Amenities
+                      Amenities *
                     </label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 ${
+                      errors.amenities ? "border border-red-500 rounded-xl p-3 bg-red-50" : ""
+                    }`}>
                       {amenitiesList.map((amenity) => (
                         <button
                           key={amenity}
                           type="button"
                           onClick={() => handleAmenityToggle(amenity)}
                           className={`p-3 border rounded-xl text-sm font-medium transition-all text-left ${
-                            formData.amenities.some((a) => a === amenity)
+                            formData.amenities.some((a) => 
+                              typeof a === 'string' ? a === amenity : a.name === amenity
+                            )
                               ? "border-orange-500 bg-orange-50 text-orange-700"
                               : "border-gray-200 hover:border-gray-300"
                           }`}
@@ -990,14 +1027,14 @@ const EditProperty = () => {
                             <div
                               className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                 formData.amenities.some(
-                                  (a) => a === amenity
+                                  (a) => typeof a === 'string' ? a === amenity : a.name === amenity
                                 )
                                   ? "border-orange-500 bg-orange-500"
                                   : "border-gray-300"
                               }`}
                             >
                               {formData.amenities.some(
-                                (a) => a === amenity
+                                (a) => typeof a === 'string' ? a === amenity : a.name === amenity
                               ) && <Check size={10} className="text-white" />}
                             </div>
                             <span>{amenity}</span>
@@ -1005,6 +1042,12 @@ const EditProperty = () => {
                         </button>
                       ))}
                     </div>
+                    {errors.amenities && (
+                      <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                        <AlertCircle size={14} />
+                        {errors.amenities}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -1458,7 +1501,7 @@ const EditProperty = () => {
                   )}
 
                   {/* Complete API Payload Preview */}
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+                  {/* <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -1497,7 +1540,6 @@ const EditProperty = () => {
                       </div>
                     </div>
 
-                    {/* Payload Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div className="bg-white/60 rounded-lg p-3 text-center">
                         <p className="text-2xl font-bold text-blue-600">
@@ -1528,7 +1570,6 @@ const EditProperty = () => {
                       </div>
                     </div>
 
-                    {/* JSON Preview */}
                     <div
                       className={`transition-all duration-300 ${
                         showFullPayload ? "max-h-96" : "max-h-40"
@@ -1545,7 +1586,6 @@ const EditProperty = () => {
                       </div>
                     </div>
 
-                    {/* API Integration Guide */}
                     <div className="mt-4 p-4 bg-white/60 rounded-lg">
                       <h5 className="font-semibold text-blue-900 mb-2">
                         🔄 Backend Update Integration Guide
@@ -1580,7 +1620,7 @@ const EditProperty = () => {
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </div> */}
                 </Motion.div>
               )}
             </AnimatePresence>

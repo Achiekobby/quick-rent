@@ -32,12 +32,6 @@ const propertyImages = [
   "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=500&h=400&q=80"
 ];
 
-// Array of Ghana locations
-const locations = ["East Legon", "Cantonments", "Airport Residential", "Osu", "Labone"];
-
-// Prices in Ghana Cedis
-const prices = [1200, 800, 900, 1000, 750];
-
 const CTASection = () => {
   return (
     <section className="relative py-12 sm:py-16 md:py-24 overflow-hidden">
@@ -141,22 +135,10 @@ const CTASection = () => {
                           <Star className="w-3 h-3 fill-yellow-400 stroke-yellow-400" />
                           Premium
                         </span>
-                        <span className="bg-black/30 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {locations[0]}
-                        </span>
                       </div>
-                      <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">Luxury Apartment Suite</h3>
+                      <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">Luxury Apartments Available</h3>
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-white/90 text-xs sm:text-sm">
-                        <span>3 Beds</span>
-                        <span>•</span>
-                        <span>2 Baths</span>
-                        <span>•</span>
-                        <span>1200 sqft</span>
                       </div>
-                    </div>
-                    <div className="bg-white/90 backdrop-blur-sm px-3 py-2 sm:px-4 sm:py-2 rounded-xl self-start sm:self-auto">
-                      <span className="text-xl sm:text-2xl font-bold text-primary-600">₵{prices[0]}/mo</span>
                     </div>
                   </div>
                 </div>
@@ -182,13 +164,6 @@ const CTASection = () => {
                   <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 z-20 bg-gradient-to-t from-black/80 to-transparent">
                     <h3 className="text-base sm:text-lg font-bold text-white">{index === 1 ? "Modern Studio" : "Luxury Villa"}</h3>
                     <div className="flex justify-between items-center mt-1">
-                      <div className="flex items-center gap-1 text-white/90 text-xs sm:text-sm">
-                        <MapPin className="w-3 h-3" />
-                        {locations[index]}
-                      </div>
-                      <div className="bg-white/90 backdrop-blur-sm px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg">
-                        <span className="text-sm sm:text-base font-bold text-primary-600">₵{prices[index]}/mo</span>
-                      </div>
                     </div>
                   </div>
                 </Motion.div>
@@ -260,13 +235,7 @@ const CTASection = () => {
                   <ArrowRight className="w-5 h-5" />
                 </Motion.button>
                         
-                        <Motion.button 
-                  className="w-full py-4 bg-white text-primary-600 rounded-xl font-semibold flex items-center justify-center hover:bg-neutral-50 transition-all duration-200 shadow-sm hover:shadow-md border border-neutral-200"
-                  whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                  View Demo
-                        </Motion.button>
+                     
               </div>
             </div>
           </Motion.div>

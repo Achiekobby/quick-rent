@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router";
-import { Menu, X, User, LogIn, UserPlus, Home, HelpCircle, PlusCircle, ChevronRight, Settings, Bell } from "lucide-react";
+import { Menu, X, User, LogIn, UserPlus, HelpCircle, PlusCircle, ChevronRight, Bell } from "lucide-react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import Images from "../../utils/Images";
 import Colors from "../../utils/Colors";
@@ -11,8 +11,6 @@ const TopNavbar = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [activeMenuItem, setActiveMenuItem] = useState(null);
   const userMenuRef = useRef(null);
-
-  // Mock unread notifications count - in a real app, this would come from an API or context
   const unreadCount = 2;
 
   useEffect(() => {
@@ -118,9 +116,9 @@ const TopNavbar = () => {
   const userMenuItems = [
           { icon: <LogIn size={18} />, text: "Login", to: "/select-user-type", divider: false, color: "#4F46E5" },
     { icon: <UserPlus size={18} />, text: "Register", to: "/register", divider: true, color: "#10B981" },
-    { icon: <Home size={18} />, text: "Host your property", to: "/list-property", divider: false, color: Colors.accent.orange },
-    { icon: <HelpCircle size={18} />, text: "Help Center", to: "/help", divider: false, color: "#8B5CF6" },
-    { icon: <Settings size={18} />, text: "Settings", to: "/settings", divider: false, color: "#6B7280" },
+    // { icon: <Home size={18} />, text: "Host your property", to: "/list-property", divider: false, color: Colors.accent.orange },
+    { icon: <HelpCircle size={18} />, text: "Help Center", to: "/contact-support", divider: false, color: "#8B5CF6" },
+    // { icon: <Settings size={18} />, text: "Settings", to: "/settings", divider: false, color: "#6B7280" },
   ];
 
   return (

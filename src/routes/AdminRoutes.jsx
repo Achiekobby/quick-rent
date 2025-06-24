@@ -4,6 +4,7 @@ import Profile from "../pages/authPages/Profile";
 import AdminDashboard from "../pages/adminPages/AdminDashboard";
 import PropertyDetails from "../pages/guestPages/PropertyDetails";
 import AllProperties from "../pages/guestPages/AllProperties";
+import ContactSupport from "../pages/guestPages/ContactSupport";
 import ProtectedRoute from "../components/ProtectedRoute";
 
 function AdminRoutes() {
@@ -154,6 +155,16 @@ function AdminRoutes() {
         element={
           <ProtectedRoute requiredRoles={["admin"]}>
             <div>Platform Analytics - Coming Soon</div>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Support */}
+      <Route
+        path="/contact-support"
+        element={
+          <ProtectedRoute>
+            <ContactSupport />
           </ProtectedRoute>
         }
       />

@@ -14,6 +14,7 @@ import LandlordLogin from "../pages/guestPages/LandlordLogin";
 import LandlordRegister from "../pages/guestPages/LandlordRegister";
 import LandlordForgotPassword from "../pages/guestPages/LandlordForgotPassword";
 import LandlordResetPassword from "../pages/guestPages/LandlordResetPassword";
+import ContactSupport from "../pages/guestPages/ContactSupport";
 import AuthRedirect from "../components/AuthRedirect";
 
 function GuestRoutes() {
@@ -108,6 +109,7 @@ function GuestRoutes() {
         element={<ScheduleViewing />}
       />
       <Route path="/properties" element={<AllProperties />} />
+      <Route path="/contact-support" element={<ContactSupport />} />
     </Routes>
   );
 }

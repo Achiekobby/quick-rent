@@ -12,18 +12,12 @@ const faqs = [
     question: "Are the properties verified?",
     answer: "Yes, all properties on Quick Rent are verified by our team. We conduct physical inspections of properties before they're listed to ensure they match the descriptions and photos provided. This helps prevent scams and ensures you get exactly what you're looking for."
   },
-  {
-    question: "How do I schedule a property viewing?",
-    answer: "Simply browse available properties, select one you're interested in, and click the 'Schedule a Viewing' button on the property details page. Choose your preferred date and time, and the landlord will confirm your request. You'll receive notifications via email and SMS."
-  },
+ 
   {
     question: "What fees does Quick Rent charge?",
-    answer: "Quick Rent is free for tenants to browse and schedule viewings. Landlords pay a small fee to list their properties. We don't charge any hidden fees or commissions on rental agreements made through our platform."
+    answer: "Quick Rent is free for tenants to browse. Landlords pay a small fee to list their properties. We don't charge any hidden fees or commissions on rental agreements made through our platform."
   },
-  {
-    question: "How are payments handled?",
-    answer: "We offer a secure payment gateway for processing rental deposits and monthly payments. Tenants can pay using mobile money, credit/debit cards, or bank transfers. All transactions are encrypted and protected by our secure payment system."
-  },
+ 
   {
     question: "Can I list my property on Quick Rent?",
     answer: "Absolutely! If you're a property owner or manager, you can create an account and list your properties on Quick Rent. We offer different subscription plans based on the number of properties you want to list. Visit our 'Landlord Registration' page to get started."
@@ -301,7 +295,8 @@ const FAQSection = () => {
                 </p>
               </div>
               
-              <Motion.button
+              <Motion.a
+                href="/contact-support"
                 className="whitespace-nowrap px-6 py-4 bg-white rounded-xl font-semibold shadow-lg hover:shadow-xl flex items-center gap-2"
                 style={{ color: Colors.primary[600] }}
                 whileHover={{ scale: 1.05 }}
@@ -309,7 +304,7 @@ const FAQSection = () => {
               >
                 <MessageCircle className="w-5 h-5" />
                 Contact Support
-              </Motion.button>
+              </Motion.a>
             </div>
           </div>
         </Motion.div>        

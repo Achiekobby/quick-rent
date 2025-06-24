@@ -1,10 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion as Motion } from 'framer-motion';
 import { 
   Home, 
   Plus, 
-  Users, 
-  TrendingUp, 
   ChevronRight, 
   MapPin, 
   Star, 
@@ -13,26 +11,105 @@ import {
   Calendar,
   DollarSign,
   Building,
-  UserCheck
+  CheckCircle2,
+  AlertCircle,
+  Edit3,
+  Trash2
 } from 'lucide-react';
 import Colors from '../../utils/Colors';
 import AuthLayout from '../../Layouts/AuthLayout';
 import { useNavigate } from 'react-router';
 import useAuthStore from '../../stores/authStore';
+import { getAllProperties } from '../../api/Landlord/General/PropertyRequest';
+import { toast } from 'react-toastify';
+import moment from 'moment';
 
 const LandlordDashboard = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [mockUser] = useState({
-    name: user?.full_name || "Thomas Mensah",
-    email: user?.email || "thomas.mensah@example.com",
-    totalProperties: 12,
-    activeRentals: 8,
-    pendingApplications: 5,
-    monthlyRevenue: 45600,
-    viewingRequests: 3
-  });
+  // Fetch actual properties data
+  useEffect(() => {
+    const fetchProperties = async () => {
+      setLoading(true);
+      try {
+        const response = await getAllProperties();
+        if (
+          response?.data?.status_code === "000" &&
+          !response?.data?.in_error
+        ) {
+          setProperties(response?.data?.data || []);
+        } else {
+          toast.error(
+            response?.data?.reason ||
+              "Failed to fetch properties. Please try again."
+          );
+        }
+      } catch (error) {
+        toast.error(
+          error?.response?.data?.reason ||
+            "Failed to fetch properties. Please try again."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProperties();
+  }, []);
+
+  // Calculate actual statistics from real data
+  const getPropertyStats = () => {
+    const totalProperties = properties.length;
+    const verifiedProperties = properties.filter(p => p.approval_status === 'verified').length;
+    const pendingProperties = properties.filter(p => p.approval_status === 'unverified').length;
+    const availableProperties = properties.filter(p => p.is_available).length;
+    
+    return {
+      totalProperties,
+      verifiedProperties,
+      pendingProperties,
+      availableProperties
+    };
+  };
+
+  const stats = getPropertyStats();
+
+  // Get recent properties (last 3 added)
+  const getRecentProperties = () => {
+    return [...properties]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 3);
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-GH", {
+      style: "currency",
+      currency: "GHS",
+      minimumFractionDigits: 0,
+    }).format(amount || 0);
+  };
+
+  const getStatusBadge = (status) => {
+    if (status === "verified") {
+      return (
+        <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+          <CheckCircle2 size={12} />
+          <span>Verified</span>
+        </div>
+      );
+    }
+    if (status === "unverified") {
+      return (
+        <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+          <AlertCircle size={12} />
+          <span>Pending</span>
+        </div>
+      );
+    }
+    return null;
+  };
 
   // Animation variants
   const containerVariants = {
@@ -58,6 +135,16 @@ const LandlordDashboard = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <AuthLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full"></div>
+        </div>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout>
       <div className="px-4 md:px-8 py-6 max-w-7xl mx-auto">
@@ -69,16 +156,16 @@ const LandlordDashboard = () => {
           transition={{ duration: 0.5 }}
         >
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
-            Welcome back, {mockUser.name}!
+            Welcome back, {user?.full_name || user?.business_name || "Landlord"}!
           </h1>
           <p className="text-gray-600">
-            Manage your properties and track your rental business performance.
+            Manage your property listings and track their performance.
           </p>
         </Motion.div>
 
         {/* Quick Actions */}
         <Motion.div 
-          className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
+          className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -92,7 +179,7 @@ const LandlordDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold mb-1">Add New Property</h3>
-                <p className="text-orange-100 text-sm">List a new rental property</p>
+                <p className="text-orange-100 text-sm">Create a new property listing</p>
               </div>
               <Plus className="w-8 h-8 text-orange-100" />
             </div>
@@ -102,34 +189,19 @@ const LandlordDashboard = () => {
             variants={itemVariants}
             whileHover={{ y: -5, scale: 1.02 }}
             className="bg-blue-500 text-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 text-left"
-            onClick={() => navigate('/viewing-requests')}
+            onClick={() => navigate('/my-properties')}
           >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold mb-1">Viewing Requests</h3>
-                <p className="text-blue-100 text-sm">{mockUser.viewingRequests} pending requests</p>
+                <h3 className="text-lg font-semibold mb-1">Manage Properties</h3>
+                <p className="text-blue-100 text-sm">View and edit your listings</p>
               </div>
-              <Calendar className="w-8 h-8 text-blue-100" />
-            </div>
-          </Motion.button>
-
-          <Motion.button
-            variants={itemVariants}
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="bg-green-500 text-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 text-left"
-            onClick={() => navigate('/tenant-applications')}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold mb-1">Applications</h3>
-                <p className="text-green-100 text-sm">{mockUser.pendingApplications} pending reviews</p>
-              </div>
-              <UserCheck className="w-8 h-8 text-green-100" />
+              <Building className="w-8 h-8 text-blue-100" />
             </div>
           </Motion.button>
         </Motion.div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - Real Data */}
         <Motion.div 
           className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"
           variants={containerVariants}
@@ -145,7 +217,7 @@ const LandlordDashboard = () => {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-gray-500 text-sm mb-1">Total Properties</p>
-                <h3 className="text-2xl font-bold text-gray-800">{mockUser.totalProperties}</h3>
+                <h3 className="text-2xl font-bold text-gray-800">{stats.totalProperties}</h3>
                 <p className="text-xs text-gray-500 mt-1">Properties listed</p>
               </div>
               <div className="p-2 rounded-full" style={{ backgroundColor: `${Colors.accent.orange}15` }}>
@@ -154,7 +226,7 @@ const LandlordDashboard = () => {
             </div>
           </Motion.div>
 
-          {/* Active Rentals */}
+          {/* Verified Properties */}
           <Motion.div 
             variants={itemVariants}
             whileHover={{ y: -5, transition: { duration: 0.2 } }}
@@ -162,111 +234,169 @@ const LandlordDashboard = () => {
           >
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-500 text-sm mb-1">Active Rentals</p>
-                <h3 className="text-2xl font-bold text-gray-800">{mockUser.activeRentals}</h3>
-                <p className="text-xs text-gray-500 mt-1">Currently rented</p>
+                <p className="text-gray-500 text-sm mb-1">Verified</p>
+                <h3 className="text-2xl font-bold text-gray-800">{stats.verifiedProperties}</h3>
+                <p className="text-xs text-gray-500 mt-1">Live properties</p>
+              </div>
+              <div className="p-2 rounded-full" style={{ backgroundColor: `${Colors.accent.green}15` }}>
+                <CheckCircle2 size={20} color={Colors.accent.green} />
+              </div>
+            </div>
+          </Motion.div>
+
+          {/* Pending Properties */}
+          <Motion.div 
+            variants={itemVariants}
+            whileHover={{ y: -5, transition: { duration: 0.2 } }}
+            className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-all duration-300"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-gray-500 text-sm mb-1">Pending Review</p>
+                <h3 className="text-2xl font-bold text-gray-800">{stats.pendingProperties}</h3>
+                <p className="text-xs text-gray-500 mt-1">Awaiting approval</p>
+              </div>
+              <div className="p-2 rounded-full" style={{ backgroundColor: `${Colors.accent.yellow}15` }}>
+                <Clock size={20} color={Colors.accent.yellow} />
+              </div>
+            </div>
+          </Motion.div>
+
+          {/* Available Properties */}
+          <Motion.div 
+            variants={itemVariants}
+            whileHover={{ y: -5, transition: { duration: 0.2 } }}
+            className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-all duration-300"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-gray-500 text-sm mb-1">Available</p>
+                <h3 className="text-2xl font-bold text-gray-800">{stats.availableProperties}</h3>
+                <p className="text-xs text-gray-500 mt-1">Ready to rent</p>
               </div>
               <div className="p-2 rounded-full" style={{ backgroundColor: `${Colors.primary[400]}15` }}>
                 <Home size={20} color={Colors.primary[500]} />
               </div>
             </div>
           </Motion.div>
-
-          {/* Monthly Revenue */}
-          <Motion.div 
-            variants={itemVariants}
-            whileHover={{ y: -5, transition: { duration: 0.2 } }}
-            className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-all duration-300"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-gray-500 text-sm mb-1">Monthly Revenue</p>
-                <h3 className="text-2xl font-bold text-gray-800">GH₵{mockUser.monthlyRevenue.toLocaleString()}</h3>
-                <p className="text-xs text-gray-500 mt-1">This month</p>
-              </div>
-              <div className="p-2 rounded-full" style={{ backgroundColor: `${Colors.accent.pink}15` }}>
-                <DollarSign size={20} color={Colors.accent.pink} />
-              </div>
-            </div>
-          </Motion.div>
-
-          {/* Pending Applications */}
-          <Motion.div 
-            variants={itemVariants}
-            whileHover={{ y: -5, transition: { duration: 0.2 } }}
-            className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-all duration-300"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-gray-500 text-sm mb-1">Applications</p>
-                <h3 className="text-2xl font-bold text-gray-800">{mockUser.pendingApplications}</h3>
-                <p className="text-xs text-gray-500 mt-1">Pending review</p>
-              </div>
-              <div className="p-2 rounded-full" style={{ backgroundColor: `${Colors.accent.purple}15` }}>
-                <Users size={20} color={Colors.accent.purple} />
-              </div>
-            </div>
-          </Motion.div>
         </Motion.div>
 
-        {/* Recent Activity & Quick Links */}
+        {/* Recent Properties & Quick Links */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Activity */}
+          {/* Recent Properties */}
           <Motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
             className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
           >
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Activity</h2>
-            <div className="space-y-4">
-              <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                  <UserCheck size={20} className="text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-800">New application received</p>
-                  <p className="text-xs text-gray-500">Modern Apartment in East Legon - 2 hours ago</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                  <Calendar size={20} className="text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-800">Viewing scheduled</p>
-                  <p className="text-xs text-gray-500">Luxury Villa in Cantonments - Tomorrow 3:00 PM</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-3">
-                  <DollarSign size={20} className="text-orange-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-800">Payment received</p>
-                  <p className="text-xs text-gray-500">Apartment 3B - GH₵2,500 - Yesterday</p>
-                </div>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800">Recent Properties</h2>
+              <button
+                onClick={() => navigate('/my-properties')}
+                className="text-orange-500 hover:text-orange-600 text-sm font-medium"
+              >
+                View All
+              </button>
             </div>
+            
+            {getRecentProperties().length > 0 ? (
+              <div className="space-y-4">
+                {getRecentProperties().map((property) => (
+                  <div key={property.property_slug} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                    <div className="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0 mr-3 overflow-hidden">
+                      {property.featured_image?.url ? (
+                        <img
+                          src={property.featured_image.url}
+                          alt={property.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Home size={16} className="text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{property.title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-gray-500 truncate">{property.location}, {property.region}</p>
+                        {getStatusBadge(property.approval_status)}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Added {moment(property.created_at).format("MMM DD, YYYY")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 ml-2">
+                      <button
+                        onClick={() => navigate(`/view-property/${property.property_slug}`)}
+                        className="p-1.5 bg-white rounded-full hover:bg-gray-100 transition-colors"
+                      >
+                        <Eye size={14} className="text-gray-600" />
+                      </button>
+                      <button
+                        onClick={() => navigate(`/edit-property/${property.property_slug}`)}
+                        className="p-1.5 bg-white rounded-full hover:bg-gray-100 transition-colors"
+                      >
+                        <Edit3 size={14} className="text-gray-600" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Home size={48} className="text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 mb-4">No properties yet</p>
+                <button
+                  onClick={() => navigate('/add-property')}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                >
+                  Add Your First Property
+                </button>
+              </div>
+            )}
           </Motion.div>
 
-          {/* Quick Links */}
+          {/* Quick Links - Only Available Features */}
           <Motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
             className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
           >
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Quick Links</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Quick Actions</h2>
             <div className="space-y-3">
               {[
-                { title: "My Properties", description: "View and manage all properties", path: "/my-properties", icon: <Building size={20} /> },
-                { title: "Tenant Management", description: "Manage current tenants", path: "/tenant-management", icon: <Users size={20} /> },
-                { title: "Payment History", description: "Track rental payments", path: "/payment-history", icon: <DollarSign size={20} /> },
-                { title: "Property Analytics", description: "View performance metrics", path: "/property-analytics", icon: <TrendingUp size={20} /> }
-              ].map((link, index) => (
+                { 
+                  title: "My Properties", 
+                  description: "View and manage all properties", 
+                  path: "/my-properties", 
+                  icon: <Building size={20} />,
+                  available: true
+                },
+                { 
+                  title: "Add Property", 
+                  description: "Create a new property listing", 
+                  path: "/add-property", 
+                  icon: <Plus size={20} />,
+                  available: true
+                },
+                { 
+                  title: "Profile Settings", 
+                  description: "Update your profile information", 
+                  path: "/profile", 
+                  icon: <Star size={20} />,
+                  available: true
+                },
+                { 
+                  title: "Contact Support", 
+                  description: "Get help with your account", 
+                  path: "/contact-support", 
+                  icon: <Eye size={20} />,
+                  available: true
+                }
+              ].filter(link => link.available).map((link, index) => (
                 <Motion.button
                   key={index}
                   onClick={() => navigate(link.path)}
@@ -293,4 +423,4 @@ const LandlordDashboard = () => {
   );
 };
 
-export default LandlordDashboard; 
+export default LandlordDashboard;

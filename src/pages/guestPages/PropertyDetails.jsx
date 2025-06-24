@@ -49,6 +49,8 @@ import PropertyCard from "../../components/Utilities/PropertyCard";
 import { toast } from "react-toastify";
 import { showPropertyDetails } from "../../api/Renter/General/DashboardRequests";
 import EmptyState from "../../components/Utilities/EmptyState";
+import useAuthStore from "../../stores/authStore";
+import { storeWishlistItem } from "../../api/Renter/General/WishlistRequests";
 
 const PropertyDetails = () => {
   const { propertySlug } = useParams();
@@ -64,6 +66,43 @@ const PropertyDetails = () => {
   const [fullscreenActiveImage, setFullscreenActiveImage] = useState(0);
   const [isHoveringMainImage, setIsHoveringMainImage] = useState(false);
   const [relatedProperties, setRelatedProperties] = useState([]);
+  const {user} = useAuthStore();
+  const [isWishlisting, setIsWishlisting] = useState(false);
+  const [wishlistItems, setWishlistItems] = useState([]);
+  // Function to mask phone number for unauthenticated users
+  const maskPhoneNumber = (phoneNumber) => {
+    if (!phoneNumber) return "N/A";
+    if (user) return phoneNumber; // Show full number if user is authenticated
+    
+    const phone = phoneNumber.toString();
+    if (phone.length <= 6) return phone; // Don't mask very short numbers
+    
+    const start = phone.slice(0, 3);
+    const end = phone.slice(-2);
+    const middle = "*".repeat(phone.length - 5);
+    
+    return `${start}${middle}${end}`;
+  };
+  
+  const handleWishlist = async()=>{
+    try{
+      setIsWishlisting(true);
+      const response = await storeWishlistItem({propertySlug});
+      if(response?.data?.status_code === "000" && !response?.data?.in_error){
+        setIsLiked(true);
+        localStorage.setItem(`wishlist_${propertySlug}`, "true");
+        toast.success(response?.data?.reason || "Property added to wishlist");
+        setWishlistItems(prevItems => [...prevItems, property]);
+      }
+      else{
+        toast.error(response?.data?.reason || "An error occurred");
+      }
+    }catch(error){
+      toast.error(error?.response?.data?.reason || "An error occurred");
+    }finally{
+      setIsWishlisting(false);
+    }
+  }
 
   // Animation variants
   const fadeIn = {
@@ -103,6 +142,40 @@ const PropertyDetails = () => {
     };
   }, [showFullscreenGallery]);
 
+  // Define functions before any early returns
+  const handleCallLandlord = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    if (property?.contact_number) {
+      window.location.href = `tel:+233${property.contact_number}`;
+    }
+  };
+
+  const handleWhatsAppLandlord = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    if (property?.landlord?.whatsapp_number) {
+      window.location.href = `https://wa.me/${property.landlord.whatsapp_number.replace(
+        /\s+/g,
+        ""
+      )}`;
+    }
+  };
+
+  const handleGoBack = () => {
+    try {
+      navigate(-1);
+    } catch {
+      navigate("/");
+    }
+  };
+
   useEffect(() => {
     const fetchPropertyDetails = async () => {
       setLoading(true);
@@ -140,13 +213,20 @@ const PropertyDetails = () => {
     );
   }
 
-  const handleCallLandlord = () => {
-    window.location.href = `tel:+233${property.contact_number}`;
-  };
-
-  const handleGoBack = () => {
-    navigate(-1);
-  };
+  if (!property) {
+    return (
+      <GuestLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <EmptyState
+            title="Property Not Found"
+            description="The property you're looking for doesn't exist or has been removed."
+            actionText="Go Back"
+            onAction={handleGoBack}
+          />
+        </div>
+      </GuestLayout>
+    );
+  }
 
   const handleScrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -162,15 +242,19 @@ const PropertyDetails = () => {
   };
 
   const handlePrevImage = () => {
-    setFullscreenActiveImage((prev) =>
-      prev === 0 ? property.images.length - 1 : prev - 1
-    );
+    if (property?.images?.length) {
+      setFullscreenActiveImage((prev) =>
+        prev === 0 ? property.images.length - 1 : prev - 1
+      );
+    }
   };
 
   const handleNextImage = () => {
-    setFullscreenActiveImage((prev) =>
-      prev === property.images.length - 1 ? 0 : prev + 1
-    );
+    if (property?.images?.length) {
+      setFullscreenActiveImage((prev) =>
+        prev === property.images.length - 1 ? 0 : prev + 1
+      );
+    }
   };
 
   const handleThumbnailClick = (index) => {
@@ -178,9 +262,11 @@ const PropertyDetails = () => {
     setActiveImage(index);
   };
 
-  const displayedAmenities = showAllAmenities
-    ? property.amenities
-    : property.amenities.slice(0, 6);
+  const displayedAmenities = property?.amenities
+    ? showAllAmenities
+      ? property.amenities
+      : property.amenities.slice(0, 6)
+    : [];
 
   // Function to render the appropriate icon for each amenity
   const renderAmenityIcon = (iconName) => {
@@ -195,7 +281,7 @@ const PropertyDetails = () => {
       case "Security":
         return <Shield {...iconProps} />;
       case "Swimming Pool":
-        return <Swim {...iconProps} />;
+        return <Waves {...iconProps} />;
       case "Gym":
         return <Dumbbell {...iconProps} />;
       case "Dumbbell":
@@ -276,13 +362,17 @@ const PropertyDetails = () => {
             <Motion.button
               className="p-2 rounded-full bg-white shadow-md hover:bg-neutral-50 transition-colors"
               whileTap={{ scale: 0.97 }}
-              onClick={() => setIsLiked(!isLiked)}
+              onClick={handleWishlist}
             >
+            {isWishlisting ? (
+              <Loader2 className="w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors duration-200 text-neutral-600" />
+            ) : (
               <Heart
-                className={`w-5 h-5 ${
+                className={`w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors duration-200 ${
                   isLiked ? "fill-red-500 text-red-500" : "text-neutral-600"
                 }`}
               />
+            )}
             </Motion.button>
 
             <Motion.button
@@ -298,18 +388,18 @@ const PropertyDetails = () => {
         <Motion.div className="mb-6" variants={fadeIn}>
           <div className="flex flex-wrap items-start gap-2 mb-2">
             <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 mr-auto">
-              {property.title}
+              {property?.title || "Property Title"}
             </h1>
 
             <div className="flex items-center">
-              {property.isFeatured && (
+              {property?.isFeatured && (
                 <span className="bg-yellow-100 text-yellow-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full flex items-center">
                   <Star className="w-3 h-3 mr-1 fill-yellow-500 text-yellow-500" />
                   Featured
                 </span>
               )}
 
-              {property.isVerified && (
+              {property?.isVerified && (
                 <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center">
                   <Check className="w-3 h-3 mr-1" />
                   Verified
@@ -320,16 +410,18 @@ const PropertyDetails = () => {
 
           <div className="flex items-center text-neutral-600 mb-4">
             <MapPin className="w-4 h-4 mr-1" />
-            <span className="text-sm">{property.location}</span>
+            <span className="text-sm">
+              {property?.location || "Location not specified"}
+            </span>
           </div>
 
           <div className="flex items-center gap-4">
             <div>
               <span className="text-2xl font-bold text-neutral-900">
-                ₵{property.price.toLocaleString()}
+                ₵{property?.price?.toLocaleString() || "0"}
               </span>
               <span className="text-sm text-neutral-500 ml-1">/month</span>
-              {property.isNegotiable && (
+              {property?.isNegotiable && (
                 <span className="block text-xs text-neutral-500">
                   Negotiable
                 </span>
@@ -348,7 +440,10 @@ const PropertyDetails = () => {
               onMouseLeave={() => setIsHoveringMainImage(false)}
             >
               <Motion.img
-                src={property.images[activeImage].url}
+                src={
+                  property.images?.[activeImage]?.url ||
+                  "/placeholder-image.jpg"
+                }
                 alt={`Property view ${activeImage + 1}`}
                 className="w-full h-full object-cover cursor-pointer"
                 initial={{ scale: 1.05, opacity: 0 }}
@@ -375,15 +470,15 @@ const PropertyDetails = () => {
               </AnimatePresence>
 
               <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
-                {activeImage + 1} / {property.images.length}
+                {activeImage + 1} / {property.images?.length || 0}
               </div>
             </div>
 
             {/* Thumbnail grid (right side) - Top Row */}
             {property.images
-              .filter((_, index) => index !== activeImage)
-              .slice(0, 2)
-              .map((image, idx) => {
+              ?.filter((_, index) => index !== activeImage)
+              ?.slice(0, 2)
+              ?.map((image, idx) => {
                 const originalIndex = property.images.findIndex(
                   (img, i) =>
                     i !== activeImage &&
@@ -410,9 +505,9 @@ const PropertyDetails = () => {
 
             {/* Thumbnail grid (right side) - Bottom Row */}
             {property.images
-              .filter((_, index) => index !== activeImage)
-              .slice(2, 4)
-              .map((image, idx) => {
+              ?.filter((_, index) => index !== activeImage)
+              ?.slice(2, 4)
+              ?.map((image, idx) => {
                 const originalIndex = property.images.findIndex(
                   (img, i) =>
                     i !== activeImage &&
@@ -439,8 +534,8 @@ const PropertyDetails = () => {
               })}
 
             {/* Empty placeholders if needed */}
-            {property.images.length <= 4 &&
-              Array(4 - (property.images.length - 1))
+            {(property.images?.length || 0) <= 4 &&
+              Array(4 - ((property.images?.length || 0) - 1))
                 .fill(0)
                 .map((_, index) => (
                   <div
@@ -476,7 +571,7 @@ const PropertyDetails = () => {
               {/* Header */}
               <div className="flex justify-between items-center p-4 text-white">
                 <div className="text-sm">
-                  {fullscreenActiveImage + 1} / {property.images.length}
+                  {fullscreenActiveImage + 1} / {property.images?.length || 0}
                 </div>
                 <Motion.button
                   className="p-2 rounded-full hover:bg-white/10"
@@ -492,7 +587,10 @@ const PropertyDetails = () => {
               <div className="flex-1 flex items-center justify-center relative max-h-[70vh]">
                 <Motion.img
                   key={fullscreenActiveImage}
-                  src={property.images[fullscreenActiveImage].url}
+                  src={
+                    property.images?.[fullscreenActiveImage]?.url ||
+                    "/placeholder-image.jpg"
+                  }
                   alt={`Property view ${fullscreenActiveImage + 1}`}
                   className="max-h-full max-w-full object-contain h-auto w-auto mx-auto"
                   style={{ maxHeight: "70vh", maxWidth: "90vw" }}
@@ -525,7 +623,7 @@ const PropertyDetails = () => {
               {/* Thumbnails */}
               <div className="p-4 overflow-x-auto no-scrollbar">
                 <div className="flex gap-2 justify-center">
-                  {property.images.map((image, index) => (
+                  {property.images?.map((image, index) => (
                     <Motion.button
                       key={index}
                       onClick={() => setFullscreenActiveImage(index)}
@@ -562,27 +660,27 @@ const PropertyDetails = () => {
             >
               <div>
                 <h2 className="font-bold text-neutral-900 mb-1 text-[15px] lg:text-base">
-                  {property.title}
+                  {property?.title || "Property Title"}
                 </h2>
                 <div className="flex items-center gap-3 text-neutral-600">
                   <div className="flex items-center">
                     <Bed className="w-4 h-4 mr-1" />
                     <span className="text-[10.5px] lg:text-base">
-                      {property.number_of_rooms} rooms
+                      {property?.number_of_rooms || 0} rooms
                     </span>
                   </div>
                   <span className="text-neutral-300">•</span>
                   <div className="flex items-center">
                     <Bath className="w-4 h-4 mr-1" />
                     <span className="text-[10.5px] lg:text-base">
-                      {property.number_of_bathrooms} bathrooms
+                      {property?.number_of_bathrooms || 0} bathrooms
                     </span>
                   </div>
                   <span className="text-neutral-300">•</span>
                   <div className="flex items-center">
                     <MapPin className="w-4 h-4 mr-1" />
                     <span className="text-[10.5px] lg:text-base">
-                      {property.location}
+                      {property?.location || "Location not specified"}
                     </span>
                   </div>
                 </div>
@@ -592,15 +690,15 @@ const PropertyDetails = () => {
                 <div className="w-12 h-12 rounded-full bg-neutral-200 flex items-center justify-center mr-3 overflow-hidden">
                   <img
                     src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                      property.landlord.full_name
+                      property?.landlord?.full_name || "Landlord"
                     )}&background=random`}
-                    alt={property.landlord.full_name}
+                    alt={property?.landlord?.full_name || "Landlord"}
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div>
                   <h3 className="font-medium text-neutral-900 text-sm lg:text-base">
-                    Hosted by {property.landlord.full_name}
+                    Hosted by {property?.landlord?.full_name || "Landlord"}
                   </h3>
                   <p className="text-[10px] lg:text-xs text-neutral-500">
                     Response time: 24 hours
@@ -621,26 +719,26 @@ const PropertyDetails = () => {
                 About this space
               </h2>
               <p className="text-neutral-700 leading-relaxed text-[13px] lg:text-base">
-                {property.description}
+                {property?.description || "No description available"}
               </p>
 
               <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div className="bg-neutral-50 p-3 rounded-lg">
                   <p className="text-xs text-neutral-500">Property Type</p>
                   <p className="font-medium text-neutral-800">
-                    {property.property_type}
+                    {property?.property_type || "Not specified"}
                   </p>
                 </div>
                 <div className="bg-neutral-50 p-3 rounded-lg">
                   <p className="text-xs text-neutral-500">Rooms</p>
                   <p className="font-medium text-neutral-800">
-                    {property.number_of_rooms}
+                    {property?.number_of_rooms || 0}
                   </p>
                 </div>
                 <div className="bg-neutral-50 p-3 rounded-lg">
                   <p className="text-xs text-neutral-500">Year Built</p>
                   <p className="font-medium text-neutral-800">
-                    {property.year_built}
+                    {property?.year_built || "Not specified"}
                   </p>
                 </div>
               </div>
@@ -679,7 +777,7 @@ const PropertyDetails = () => {
                 ))}
               </Motion.div>
 
-              {property.amenities.length > 6 && (
+              {(property?.amenities?.length || 0) > 6 && (
                 <Motion.button
                   className="mt-6 text-sm font-medium px-4 py-2 rounded-lg border border-neutral-300 hover:bg-neutral-50 transition-colors flex items-center"
                   onClick={() => setShowAllAmenities(!showAllAmenities)}
@@ -689,7 +787,7 @@ const PropertyDetails = () => {
                 >
                   {showAllAmenities
                     ? "Show Less"
-                    : `Show all ${property.amenities.length} amenities`}
+                    : `Show all ${property?.amenities?.length || 0} amenities`}
                   {!showAllAmenities && <ArrowRight className="w-4 h-4 ml-1" />}
                 </Motion.button>
               )}
@@ -708,10 +806,10 @@ const PropertyDetails = () => {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <span className="text-2xl font-bold text-neutral-900">
-                    ₵{property.price.toLocaleString()}
+                    ₵{property?.price?.toLocaleString() || "0"}
                   </span>
                   <span className="text-sm text-neutral-500 ml-1">/month</span>
-                  {property.is_negotiable && (
+                  {property?.is_negotiable && (
                     <span className="block text-xs text-neutral-500 mt-1">
                       Price is negotiable
                     </span>
@@ -722,35 +820,33 @@ const PropertyDetails = () => {
               <div className="border border-neutral-200 rounded-lg p-4 mb-4">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="font-medium">
-                    Contact {property.landlord.full_name}
+                    Contact {property?.landlord?.full_name || "Landlord"}
                   </h3>
                   <div className="w-8 h-8 rounded-full bg-neutral-200 overflow-hidden">
                     <img
                       src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                        property.landlord.full_name
+                        property?.landlord?.full_name || "Landlord"
                       )}&background=random`}
-                      alt={property.landlord.full_name}
+                      alt={property?.landlord?.full_name || "Landlord"}
                       className="w-full h-full object-cover"
                     />
                   </div>
                 </div>
                 <div className="flex items-center text-sm mb-2">
                   <Phone className="w-4 h-4 text-neutral-500 mr-2" />
-                  <span>+233{property.contact_number}</span>
+                  <span>+{maskPhoneNumber(property?.contact_number)}</span>
                 </div>
                 <div className="flex items-center text-sm">
                   <MessageSquare className="w-4 h-4 text-neutral-500 mr-2" />
                   <span>
                     Response Rate:{" "}
-                    {property.landlord.response_rate || "24 hours"}
+                    {property?.landlord?.response_rate || "24 hours"}
                   </span>
                 </div>
               </div>
 
               <Motion.button
-                onClick={() =>
-                  (window.location.href = `tel:+233${property.landlord.contact_number}`)
-                }
+                onClick={handleCallLandlord}
                 className="w-full py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all duration-300 mb-3"
                 style={{
                   backgroundColor: Colors.accent.orange,
@@ -760,16 +856,11 @@ const PropertyDetails = () => {
                 whileTap={{ scale: 0.97 }}
               >
                 <PhoneCall className="w-5 h-5" />
-                Call Landlord
+                {user ? 'Call Landlord' : 'Login to Call'}
               </Motion.button>
 
               <Motion.button
-                onClick={() =>
-                  (window.location.href = `https://wa.me/${property.landlord.whatsapp_number.replace(
-                    /\s+/g,
-                    ""
-                  )}`)
-                }
+                onClick={handleWhatsAppLandlord}
                 className="w-full py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all duration-300"
                 style={{
                   backgroundColor: "#25D366",
@@ -791,7 +882,7 @@ const PropertyDetails = () => {
                 >
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                 </svg>
-                WhatsApp Landlord
+                {user ? 'WhatsApp Landlord' : 'Login to WhatsApp'}
               </Motion.button>
             </Motion.div>
           </Motion.div>

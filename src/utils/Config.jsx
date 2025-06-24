@@ -8,7 +8,6 @@ const Config = {
   },
   renterHeaders: {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("quick_renter_token")}`,
   },
 };
 

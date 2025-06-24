@@ -2,16 +2,57 @@ import axios from "axios";
 import Config from "../../../utils/Config";
 
 const BASE_URL = Config.baseUrl;
+
+// Create API client without static Authorization header
 const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
-    "Authorization": `Bearer ${localStorage.getItem("quick_landlord_token")}`,
   },
   timeout: 30000,
-  withCredentials: false,
 });
+
+// Add request interceptor to dynamically include token
+apiClient.interceptors.request.use(
+  (config) => {
+    // Get token fresh from localStorage on each request
+    const token = localStorage.getItem("quick_landlord_token");
+    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // Remove Authorization header if no token
+      delete config.headers.Authorization;
+    }
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle token-related errors
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Handle 401 Unauthorized responses
+    if (error.response?.status === 401) {
+      console.warn("🚨 Unauthorized request - token may be invalid or expired");
+      localStorage.removeItem("quick_landlord_token");
+      localStorage.removeItem("quick_landlord_token_expiry");
+      
+      if (window.location.pathname !== "/landlord-login") {
+        window.location.href = "/landlord-login";
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
 
 export const createProperty = async (data) => {
   try {

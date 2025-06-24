@@ -6,6 +6,7 @@ import Profile from "../pages/authPages/Profile";
 import PropertyDetails from "../pages/guestPages/PropertyDetails";
 import AllProperties from "../pages/guestPages/AllProperties";
 import ScheduleViewing from "../pages/guestPages/ScheduleViewing";
+import ContactSupport from "../pages/guestPages/ContactSupport";
 import ProtectedRoute from "../components/ProtectedRoute";
 
 function RentorRoutes() {
@@ -54,7 +55,7 @@ function RentorRoutes() {
 
       {/* //TODO Property routes for rentors */}
       <Route
-        path="/properties/:propertyId"
+        path="/properties/:propertySlug"
         element={
           <ProtectedRoute>
             <PropertyDetails />
@@ -116,6 +117,16 @@ function RentorRoutes() {
         element={
           <ProtectedRoute requiredRoles={["rentor"]}>
             <div>Viewing History - Coming Soon</div>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Support */}
+      <Route
+        path="/contact-support"
+        element={
+          <ProtectedRoute>
+            <ContactSupport />
           </ProtectedRoute>
         }
       />

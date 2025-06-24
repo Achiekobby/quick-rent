@@ -804,8 +804,8 @@ const LandlordRegister = () => {
         >
           {/* Form Container - Scrollable */}
           <div className="flex-1 overflow-y-auto">
-            <div className="min-h-full flex items-start justify-center p-6 lg:p-8 py-12">
-              <div className="w-full max-w-md">
+            <div className="min-h-full flex flex-col justify-center p-6 lg:p-8 py-12">
+              <div className="w-full max-w-md mx-auto flex-1 flex flex-col justify-center min-h-0">
                 {/* Logo and Header */}
                 <Motion.div
                   className="text-center mb-8"
@@ -876,7 +876,7 @@ const LandlordRegister = () => {
                         { step: 1, title: "Personal Info", icon: User },
                         { step: 2, title: "Business Details", icon: Building },
                         { step: 3, title: "Security", icon: Shield },
-                      ].map(({ step, title, icon: IconComponent }) => (
+                      ].map(({ step, title, icon: Icon }) => (
                         <Motion.div
                           key={step}
                           className="flex flex-col items-center relative z-10"
@@ -913,7 +913,7 @@ const LandlordRegister = () => {
                                 <Check className="w-4 h-4" />
                               </Motion.div>
                             ) : (
-                              <IconComponent className="w-4 h-4" />
+                              <Icon className="w-4 h-4" />
                             )}
                           </Motion.div>
 
@@ -974,20 +974,22 @@ const LandlordRegister = () => {
                 </div>
 
                 {/* Form Steps */}
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <AnimatePresence mode="wait">
-                    {currentStep === 1 && renderStep1()}
-                    {currentStep === 2 && renderStep2()}
-                    {currentStep === 3 && renderStep3()}
-                  </AnimatePresence>
+                <form onSubmit={handleSubmit} className="space-y-6 flex-1 flex flex-col">
+                  <div className="flex-1 min-h-0">
+                    <AnimatePresence mode="wait">
+                      {currentStep === 1 && renderStep1()}
+                      {currentStep === 2 && renderStep2()}
+                      {currentStep === 3 && renderStep3()}
+                    </AnimatePresence>
+                  </div>
 
-                  {/* Navigation Buttons */}
-                  <div className="flex justify-between pt-6">
+                  {/* Navigation Buttons - Fixed at bottom */}
+                  <div className="flex justify-between pt-6 mt-auto sticky bottom-0 bg-gradient-to-t from-orange-50 via-amber-50 to-transparent backdrop-blur-sm pb-2 -mx-6 px-6 lg:-mx-8 lg:px-8">
                     <button
                       type="button"
                       onClick={prevStep}
                       disabled={currentStep === 1}
-                      className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+                      className={`px-4 sm:px-6 py-3 rounded-xl font-medium transition-all duration-300 text-sm sm:text-base min-w-[80px] sm:min-w-[100px] ${
                         currentStep === 1
                           ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                           : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -1000,18 +1002,19 @@ const LandlordRegister = () => {
                       <Motion.button
                         type="button"
                         onClick={nextStep}
-                        className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-medium hover:from-orange-600 hover:to-amber-600 transition-all duration-300 flex items-center"
+                        className="px-4 sm:px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-medium hover:from-orange-600 hover:to-amber-600 transition-all duration-300 flex items-center text-sm sm:text-base min-w-[100px] sm:min-w-[120px]"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
-                        Next Step
+                        <span className="hidden sm:inline">Next Step</span>
+                        <span className="sm:hidden">Next</span>
                         <ArrowRight className="ml-2 w-4 h-4" />
                       </Motion.button>
                     ) : (
                       <Motion.button
                         type="submit"
                         disabled={isRegistering}
-                        className="px-8 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-medium hover:from-orange-600 hover:to-amber-600 transition-all duration-300 flex items-center disabled:opacity-70"
+                        className="px-4 sm:px-8 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-medium hover:from-orange-600 hover:to-amber-600 transition-all duration-300 flex items-center disabled:opacity-70 text-sm sm:text-base min-w-[120px] sm:min-w-[140px]"
                         whileHover={!isRegistering ? { scale: 1.02 } : {}}
                         whileTap={!isRegistering ? { scale: 0.98 } : {}}
                       >
@@ -1019,7 +1022,8 @@ const LandlordRegister = () => {
                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                         ) : (
                           <>
-                            Create Account
+                            <span className="hidden sm:inline">Create Account</span>
+                            <span className="sm:hidden">Create</span>
                             <ArrowRight className="ml-2 w-4 h-4" />
                           </>
                         )}

@@ -8,6 +8,7 @@ import ViewProperty from "../pages/landlordPages/ViewProperty";
 import EditProperty from "../pages/landlordPages/EditProperty";
 import PropertyDetails from "../pages/guestPages/PropertyDetails";
 import AllProperties from "../pages/guestPages/AllProperties";
+import ContactSupport from "../pages/guestPages/ContactSupport";
 import ProtectedRoute from "../components/ProtectedRoute";
 
 function LandlordRoutes() {
@@ -100,6 +101,13 @@ function LandlordRoutes() {
       <Route path="/tenant-management" element={
         <ProtectedRoute requiredRoles={['landlord']}>
           <div>Tenant Management - Coming Soon</div>
+        </ProtectedRoute>
+      } />
+
+      {/* Support */}
+      <Route path="/contact-support" element={
+        <ProtectedRoute>
+          <ContactSupport />
         </ProtectedRoute>
       } />
 
