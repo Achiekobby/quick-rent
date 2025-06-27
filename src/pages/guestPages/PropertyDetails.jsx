@@ -86,6 +86,10 @@ const PropertyDetails = () => {
   
   const handleWishlist = async()=>{
     try{
+      if(!user){
+        navigate("/login");
+        return;
+      }
       setIsWishlisting(true);
       const response = await storeWishlistItem({propertySlug});
       if(response?.data?.status_code === "000" && !response?.data?.in_error){
@@ -375,12 +379,12 @@ const PropertyDetails = () => {
             )}
             </Motion.button>
 
-            <Motion.button
+            {/* <Motion.button
               className="p-2 rounded-full bg-white shadow-md hover:bg-neutral-50 transition-colors"
               whileTap={{ scale: 0.97 }}
             >
               <Share2 className="w-5 h-5 text-neutral-600" />
-            </Motion.button>
+            </Motion.button> */}
           </div>
         </div>
 

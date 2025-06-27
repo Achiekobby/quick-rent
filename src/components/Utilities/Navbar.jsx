@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
-import { Menu, X, User, Home, HelpCircle, Heart, Settings, Bell, LogOut, ChevronRight, PlusCircle } from "lucide-react";
+import { Menu, X, User, Home, HelpCircle, Heart, Settings, Bell, LogOut, ChevronRight, PlusCircle, Building2 } from "lucide-react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import Images from "../../utils/Images";
 import Colors from "../../utils/Colors";
@@ -131,24 +131,26 @@ const Navbar = () => {
     // Add user type specific items
     if (userType === 'renter') {
       baseItems.push(
-        { icon: <Heart size={18} />, text: "Wishlist", to: "/wishlist", badge: userStats.wishlistCount, divider: false, color: "#EC4899" }
+        { icon: <HelpCircle size={18} />, text: "Help Center", to: "/contact-support", divider: false, color: "#8B5CF6" },
+        { icon: <Heart size={18} />, text: "Wishlist", to: "/wishlist", badge: userStats.wishlistCount, divider: false, color: "#EC4899" },
+        { icon: <Settings size={18} />, text: "Settings", to: "/settings", divider: true, color: "#6B7280" },
       );
     } else if (userType === 'landlord') {
       baseItems.push(
+        { icon: <HelpCircle size={18} />, text: "Help Center", to: "/contact-support", divider: false, color: "#8B5CF6" },
         { icon: <PlusCircle size={18} />, text: "My Properties", to: "/my-properties", divider: false, color: Colors.accent.orange },
-        { icon: <PlusCircle size={18} />, text: "Add Property", to: "/add-property", divider: false, color: "#10B981" }
+        { icon: <PlusCircle size={18} />, text: "Add Property", to: "/add-property", divider: false, color: "#10B981" },
+        { icon: <PlusCircle size={18} />, text: "Settings", to: "/settings", divider: true, color: "#6B7280" },
       );
     } else if (userType === 'admin') {
       baseItems.push(
-        { icon: <PlusCircle size={18} />, text: "User Management", to: "/users", divider: false, color: Colors.accent.orange },
-        { icon: <PlusCircle size={18} />, text: "System Settings", to: "/system-settings", divider: false, color: "#10B981" }
+        { icon: <PlusCircle size={18} />, text: "Landlord Management", to: "/landlord-management", divider: false, color: Colors.accent.orange },
+        { icon: <Building2 size={18} />, text: "Property Management", to: "/property-management", divider: false, color: "#10B981" },
       );
     }
 
     // Add common items
     baseItems.push(
-      { icon: <HelpCircle size={18} />, text: "Help Center", to: "/contact-support", divider: false, color: "#8B5CF6" },
-      { icon: <Settings size={18} />, text: "Settings", to: "/settings", divider: true, color: "#6B7280" },
       { icon: <LogOut size={18} />, text: "Logout", to: "/logout", divider: false, color: "#EF4444" }
     );
 

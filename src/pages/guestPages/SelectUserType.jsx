@@ -10,6 +10,7 @@ import {
   Sparkles,
   Users,
   TrendingUp,
+  Shield,
 } from "lucide-react";
 import Images from "../../utils/Images";
 import useAuthStore from "../../stores/authStore";
@@ -58,6 +59,8 @@ const SelectUserType = () => {
     if (selectedType) {
       if (selectedType === "landlord") {
         navigate("/landlord-login");
+      } else if (selectedType === "admin") {
+        navigate("/admin-login");
       } else {
         navigate("/login", { 
           state: { 
@@ -93,6 +96,18 @@ const SelectUserType = () => {
       stats: "2,000+ Landlords",
       badge: "Trending",
       features: ["Smart Pricing", "Quality Tenants", "Easy Management"],
+    },
+    {
+      id: "admin",
+      title: "Administrator",
+      subtitle: "Platform Management",
+      description: "Access administrative tools and manage platform operations",
+      icon: Shield,
+      gradient: "from-slate-600 via-blue-700 to-indigo-800",
+      hoverGradient: "from-slate-500 via-blue-600 to-indigo-700",
+      stats: "Admin Access",
+      badge: "Secure",
+      features: ["User Management", "Analytics", "System Settings"],
     },
   ];
 
@@ -149,7 +164,7 @@ const SelectUserType = () => {
         </Motion.div>
 
         {/* Enhanced User Type Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
           {userTypes.map((type, index) => {
             const Icon = type.icon;
             const isSelected = selectedType === type.id;

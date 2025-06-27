@@ -14,6 +14,7 @@ import LandlordLogin from "../pages/guestPages/LandlordLogin";
 import LandlordRegister from "../pages/guestPages/LandlordRegister";
 import LandlordForgotPassword from "../pages/guestPages/LandlordForgotPassword";
 import LandlordResetPassword from "../pages/guestPages/LandlordResetPassword";
+import AdminLogin from "../pages/guestPages/AdminLogin";
 import ContactSupport from "../pages/guestPages/ContactSupport";
 import AuthRedirect from "../components/AuthRedirect";
 
@@ -75,6 +76,14 @@ function GuestRoutes() {
         element={
           <AuthRedirect>
             <LandlordResetPassword />
+          </AuthRedirect>
+        }
+      />
+      <Route
+        path="/admin-login"
+        element={
+          <AuthRedirect>
+            <AdminLogin />
           </AuthRedirect>
         }
       />

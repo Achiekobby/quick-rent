@@ -5,8 +5,10 @@ import { useLocation, useNavigate } from "react-router";
 import Colors from "../../utils/Colors";
 import { storeWishlistItem } from "../../api/Renter/General/WishlistRequests";
 import { toast } from "react-toastify";
+import useAuthStore from "../../stores/authStore";
 
 const PropertyCard = ({ property }) => {
+  const { user } = useAuthStore();
   const pageLocation = useLocation();
   const isWishlistPage = pageLocation.pathname === "/wishlist";
   const [isLiked, setIsLiked] = useState(false);
@@ -25,6 +27,10 @@ const PropertyCard = ({ property }) => {
 
   const handleWishlist = async()=>{
     try{
+      if(!user){
+        navigate("/login");
+        return;
+      }
       setIsWishlisting(true);
       const response = await storeWishlistItem({property_slug});
       if(response?.data?.status_code === "000" && !response?.data?.in_error){

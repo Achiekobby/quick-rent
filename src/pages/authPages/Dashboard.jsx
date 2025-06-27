@@ -131,7 +131,7 @@ const Dashboard = () => {
           animate="visible"
         >
           {/* Wishlist Card */}
-          <Motion.div
+          {/* <Motion.div
             variants={itemVariants}
             whileHover={{ y: -5, transition: { duration: 0.2 } }}
             className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-all duration-300"
@@ -159,10 +159,10 @@ const Dashboard = () => {
                 View all <ChevronRight size={14} className="ml-1" />
               </a>
             </div>
-          </Motion.div>
+          </Motion.div> */}
 
           {/* Notifications Card */}
-          <Motion.div
+          {/* <Motion.div
             variants={itemVariants}
             whileHover={{ y: -5, transition: { duration: 0.2 } }}
             className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-all duration-300"
@@ -192,10 +192,10 @@ const Dashboard = () => {
                 View all <ChevronRight size={14} className="ml-1" />
               </a>
             </div>
-          </Motion.div>
+          </Motion.div> */}
 
           {/* Property Alerts Card */}
-          <Motion.div
+          {/* <Motion.div
             variants={itemVariants}
             whileHover={{ y: -5, transition: { duration: 0.2 } }}
             className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-all duration-300"
@@ -223,10 +223,10 @@ const Dashboard = () => {
                 View all <ChevronRight size={14} className="ml-1" />
               </a>
             </div>
-          </Motion.div>
+          </Motion.div> */}
 
           {/* Viewed Properties Card */}
-          <Motion.div
+          {/* <Motion.div
             variants={itemVariants}
             whileHover={{ y: -5, transition: { duration: 0.2 } }}
             className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-md transition-all duration-300"
@@ -254,89 +254,92 @@ const Dashboard = () => {
                 View all <ChevronRight size={14} className="ml-1" />
               </a>
             </div>
-          </Motion.div>
+          </Motion.div> */}
         </Motion.div>
 
         {/* Recommended Properties Section */}
-        <Motion.section
-          className="mb-12"
-          variants={sectionVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-        >
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-800">
-              Featured Properties
-            </h2>
-            <Motion.button
-              onClick={() => navigate("/all-properties?category=featured")}
-              className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center"
-              whileHover={{ x: 3 }}
-            >
-              View all <ChevronRight size={16} className="ml-1" />
-            </Motion.button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {featuredProperties.map((property) => (
-              <PropertyCard key={property.property_slug} property={property} />
-            ))}
-          </div>
-        </Motion.section>
+        {featuredProperties?.length > 0 && (
+          <Motion.section
+            className="mb-12"
+            variants={sectionVariants}
+            initial="hidden"
+            animate={!loading && featuredProperties?.length > 0 ? "visible" : "hidden"}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+                Featured Properties
+              </h2>
+              <Motion.button
+                onClick={() => navigate("/all-properties?category=featured")}
+                className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center"
+                whileHover={{ x: 3 }}
+              >
+                View all <ChevronRight size={16} className="ml-1" />
+              </Motion.button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {featuredProperties.map((property) => (
+                <PropertyCard key={property.property_slug} property={property} />
+              ))}
+            </div>
+          </Motion.section>
+        )}
 
         {/* Top Searched Properties Section */}
-        <Motion.section
-          className="mb-12"
-          variants={sectionVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-        >
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-800">
-              Top Searched Properties
-            </h2>
-            <Motion.button
-              onClick={() => navigate("/all-properties?category=popular")}
-              className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center"
-              whileHover={{ x: 3 }}
-            >
-              View all <ChevronRight size={16} className="ml-1" />
-            </Motion.button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {popularProperties.map((property) => (
-              <PropertyCard key={property.property_slug} property={property} />
-            ))}
-          </div>
-        </Motion.section>
+        {popularProperties?.length > 0 && (
+          <Motion.section
+            className="mb-12"
+            variants={sectionVariants}
+            initial="hidden"
+            animate={!loading && popularProperties?.length > 0 ? "visible" : "hidden"}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+                Top Searched Properties
+              </h2>
+              <Motion.button
+                onClick={() => navigate("/all-properties?category=popular")}
+                className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center"
+                whileHover={{ x: 3 }}
+              >
+                View all <ChevronRight size={16} className="ml-1" />
+              </Motion.button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {popularProperties.map((property) => (
+                <PropertyCard key={property.property_slug} property={property} />
+              ))}
+            </div>
+          </Motion.section>
+        )}
 
         {/* Recently Viewed Properties Section */}
-        <Motion.section
-          className="mb-12"
-          variants={sectionVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-        >
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-800">
-              Top Selling Properties
-            </h2>
-            <Motion.button
-              onClick={() => navigate("/viewed-properties")}
-              className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center"
-              whileHover={{ x: 3 }}
-            >
-              View all <ChevronRight size={16} className="ml-1" />
-            </Motion.button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {luxuryProperties.map((property) => (
-              <PropertyCard key={property.property_slug} property={property} />
-            ))}
-          </div>
-        </Motion.section>
+        {luxuryProperties?.length > 0 && (
+          <Motion.section
+            className="mb-12"
+            variants={sectionVariants}
+            initial="hidden"
+            animate={!loading && luxuryProperties?.length > 0 ? "visible" : "hidden"}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+                Top Selling Properties
+              </h2>
+              <Motion.button
+                onClick={() => navigate("/viewed-properties")}
+                className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center"
+                whileHover={{ x: 3 }}
+              >
+                View all <ChevronRight size={16} className="ml-1" />
+              </Motion.button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {luxuryProperties.map((property) => (
+                <PropertyCard key={property.property_slug} property={property} />
+              ))}
+            </div>
+          </Motion.section>
+        )}
       </div>
     </AuthLayout>
   );

@@ -2,10 +2,14 @@ import { Routes, Route, Navigate } from "react-router";
 import Notifications from "../pages/authPages/Notifications";
 import Profile from "../pages/authPages/Profile";
 import AdminDashboard from "../pages/adminPages/AdminDashboard";
+import LandlordManagement from "../pages/adminPages/LandlordManagement";
+import LandlordProperties from "../pages/adminPages/LandlordProperties";
+import RenterManagement from "../pages/adminPages/RenterManagement";
 import PropertyDetails from "../pages/guestPages/PropertyDetails";
 import AllProperties from "../pages/guestPages/AllProperties";
 import ContactSupport from "../pages/guestPages/ContactSupport";
 import ProtectedRoute from "../components/ProtectedRoute";
+import PropertyManagement from "../pages/adminPages/PropertyManagement";
 
 function AdminRoutes() {
   return (
@@ -79,6 +83,30 @@ function AdminRoutes() {
 
       {/* //TODO Admin specific routes */}
       <Route
+        path="/landlords/:landlordSlug/properties"
+        element={
+          <ProtectedRoute>
+            <LandlordProperties />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/landlords"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <LandlordManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/renters"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <RenterManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/users"
         element={
           <ProtectedRoute requiredRoles={["admin"]}>
@@ -131,6 +159,14 @@ function AdminRoutes() {
         element={
           <ProtectedRoute requiredRoles={["admin"]}>
             <div>Support Tickets - Coming Soon</div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/property-management"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <PropertyManagement />
           </ProtectedRoute>
         }
       />

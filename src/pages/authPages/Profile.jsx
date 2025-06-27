@@ -410,8 +410,8 @@ const Profile = () => {
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
-    { id: "security", label: "Security", icon: Shield },
-  ];
+    userType !== "admin" && { id: "security", label: "Security", icon: Shield },
+  ].filter(Boolean);
 
   return (
     <AuthLayout>
@@ -542,6 +542,8 @@ const Profile = () => {
                 </div>
 
                 {/*//Todo => Action Buttons */}
+                {
+                  userType !== "admin" && (     
                 <div className="flex gap-3 w-full sm:w-auto justify-center sm:justify-end">
                   <Motion.button
                     className="px-4 sm:px-6 py-2 text-white rounded-xl font-medium hover:shadow-lg transition-all duration-300 text-sm sm:text-base"
@@ -556,6 +558,8 @@ const Profile = () => {
                     {isEditing ? "Cancel" : "Edit Profile"}
                   </Motion.button>
                 </div>
+                  )
+                }
               </div>
 
               {/*//Todo => User Stats */}
@@ -1053,7 +1057,7 @@ const Profile = () => {
                     </Motion.div>
                   )}
 
-                  {activeTab === "security" && (
+                  {activeTab === "security" && userType !== "admin" && (
                     <Motion.div
                       key="security"
                       initial={{ opacity: 0, x: 20 }}

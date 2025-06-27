@@ -301,7 +301,7 @@ const TopNavbar = () => {
               </div>
             
               {/* List Property Button for Mobile */}
-              <Motion.div
+              {/* <Motion.div
                 custom={0}
                 variants={menuItemVariants}
                 className="my-3"
@@ -318,10 +318,10 @@ const TopNavbar = () => {
                   <PlusCircle size={18} />
                   <span>List Property</span>
                 </Link>
-              </Motion.div>
+              </Motion.div> */}
               
               {/* Notifications Link for Mobile */}
-              <Motion.div
+              {/* <Motion.div
                 custom={1}
                 variants={menuItemVariants}
                 className="my-3"
@@ -346,7 +346,7 @@ const TopNavbar = () => {
                     </span>
                   )}
                 </Link>
-              </Motion.div>
+              </Motion.div> */}
               
               {/* Divider */}
               <div className="border-b border-gray-100 my-3"></div>
