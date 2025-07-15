@@ -1,6 +1,9 @@
 import { motion as Motion } from "framer-motion";
 import { ArrowRight, Home, Shield, Clock, Users, Star, MapPin } from "lucide-react";
 import Colors from "../../utils/Colors";
+import Images from "../../utils/Images";
+import { useNavigate } from "react-router";
+import useAuthStore from "../../stores/authStore";
 
 const features = [
   {
@@ -27,12 +30,26 @@ const features = [
 
 // Reduced set of high-quality property images
 const propertyImages = [
-  "https://images.unsplash.com/photo-1577552568192-467a12a7f376?auto=format&fit=crop&w=800&h=600&q=90",
-  "https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=500&h=400&q=80",
-  "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=500&h=400&q=80"
+  Images.luxury_apartment,
+  Images.studio_apartment,
+  Images.luxury_villa,
 ];
 
 const CTASection = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated, getRedirectPath, getUserType } = useAuthStore();
+  
+  const handleGetStarted = () => {
+    if (isAuthenticated()) {
+      // If user is authenticated, redirect to their dashboard
+      const redirectPath = getRedirectPath();
+      navigate(redirectPath);
+    } else {
+      // If not authenticated, redirect to user type selection
+      navigate("/select-user-type");
+    }
+  };
+
   return (
     <section className="relative py-12 sm:py-16 md:py-24 overflow-hidden">
       {/* Modern Gradient Background */}
@@ -222,6 +239,7 @@ const CTASection = () => {
               
               <div className="space-y-3 relative z-10">
                 <Motion.button
+                  onClick={handleGetStarted}
                   className="w-full py-4 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:shadow-lg transition-all duration-300"
                   style={{ 
                     background: `linear-gradient(to right, ${Colors.primary[600]}, ${Colors.primary[500]})`,
@@ -231,8 +249,17 @@ const CTASection = () => {
                   }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  Get Started Now
-                  <ArrowRight className="w-5 h-5" />
+                  {isAuthenticated() ? (
+                    <>
+                      Go to Dashboard
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  ) : (
+                    <>
+                      Get Started Now
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
                 </Motion.button>
                         
                      

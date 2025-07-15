@@ -37,14 +37,55 @@ const EditProperty = () => {
   const fileInputRef = useRef(null);
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState([]);
-  const [showFullPayload, setShowFullPayload] = useState(false);
   const [formData, setFormData] = useState(null);
   const [property, setProperty] = useState(null);
+
+  // Refs for error fields to enable smooth scrolling
+  const errorFieldRefs = useRef({});
+
+  // Helper function to scroll to first error field
+  const scrollToFirstError = (newErrors) => {
+    const firstErrorField = Object.keys(newErrors)[0];
+    if (firstErrorField && errorFieldRefs.current[firstErrorField]) {
+      const element = errorFieldRefs.current[firstErrorField];
+      const elementRect = element.getBoundingClientRect();
+      const absoluteElementTop = elementRect.top + window.pageYOffset;
+      const offset = 120; // Offset from top for better visibility
+      
+      window.scrollTo({
+        top: absoluteElementTop - offset,
+        behavior: "smooth"
+      });
+      
+      // Add a subtle shake animation to draw attention
+      element.style.animation = "shake 0.5s ease-in-out";
+      setTimeout(() => {
+        element.style.animation = "";
+      }, 500);
+    }
+  };
 
   //Todo => Scroll to top on step change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentStep]);
+
+  // Add shake animation styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   //Todo => Fetch property data
   useEffect(() => {
@@ -481,16 +522,7 @@ const EditProperty = () => {
     return payload;
   };
 
-  // Copy payload to clipboard
-  const copyPayloadToClipboard = async () => {
-    try {
-      const payload = generateCompletePayload(true); // Use truncated version for copy too
-      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
-      toast.success("API payload copied to clipboard!");
-    } catch {
-      toast.error("Failed to copy to clipboard");
-    }
-  };
+
 
   const validateStep = (step) => {
     const newErrors = {};
@@ -538,7 +570,14 @@ const EditProperty = () => {
     }
     
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    // Scroll to first error if validation fails
+    if (Object.keys(newErrors).length > 0) {
+      setTimeout(() => scrollToFirstError(newErrors), 100);
+      return false;
+    }
+    
+    return true;
   };
 
   const nextStep = () => {
@@ -656,13 +695,14 @@ const EditProperty = () => {
                       Property Title *
                     </label>
                     <input
+                      ref={(el) => errorFieldRefs.current.title = el}
                       type="text"
                       value={formData.title}
                       onChange={(e) =>
                         handleInputChange("title", e.target.value)
                       }
-                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                        errors.title ? "border-red-500" : "border-gray-200"
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
+                        errors.title ? "border-red-500 bg-red-50" : "border-gray-200"
                       }`}
                     />
                     {errors.title && (
@@ -677,7 +717,10 @@ const EditProperty = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Property Type *
                     </label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div 
+                      ref={(el) => errorFieldRefs.current.property_type = el}
+                      className="grid grid-cols-2 md:grid-cols-3 gap-3"
+                    >
                       {propertyTypes.map((type) => (
                         <button
                           key={type}
@@ -695,6 +738,12 @@ const EditProperty = () => {
                         </button>
                       ))}
                     </div>
+                    {errors.property_type && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                        <AlertCircle size={14} />
+                        {errors.property_type}
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -703,12 +752,13 @@ const EditProperty = () => {
                         Region *
                       </label>
                       <select
+                        ref={(el) => errorFieldRefs.current.region = el}
                         value={formData.region}
                         onChange={(e) =>
                           handleInputChange("region", e.target.value)
                         }
                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                          errors.region ? "border-red-500" : "border-gray-200"
+                          errors.region ? "border-red-500 bg-red-50" : "border-gray-200"
                         }`}
                       >
                         <option value="">Select Region</option>
@@ -718,6 +768,12 @@ const EditProperty = () => {
                           </option>
                         ))}
                       </select>
+                      {errors.region && (
+                        <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                          <AlertCircle size={14} />
+                          {errors.region}
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -725,13 +781,14 @@ const EditProperty = () => {
                         Location *
                       </label>
                       <select
+                        ref={(el) => errorFieldRefs.current.location = el}
                         value={formData.location}
                         onChange={(e) =>
                           handleInputChange("location", e.target.value)
                         }
                         disabled={!formData.region}
                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                          errors.location ? "border-red-500" : "border-gray-200"
+                          errors.location ? "border-red-500 bg-red-50" : "border-gray-200"
                         } ${!formData.region ? "bg-gray-100" : ""}`}
                       >
                         <option value="">Select Location</option>
@@ -764,6 +821,7 @@ const EditProperty = () => {
                           Specify Location *
                         </label>
                         <input
+                          ref={(el) => errorFieldRefs.current.customLocation = el}
                           type="text"
                           value={formData.customLocation}
                           onChange={(e) =>
@@ -772,7 +830,7 @@ const EditProperty = () => {
                           placeholder="Enter specific location"
                           className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
                             errors.customLocation
-                              ? "border-red-500"
+                              ? "border-red-500 bg-red-50"
                               : "border-gray-200"
                           }`}
                         />
@@ -793,6 +851,7 @@ const EditProperty = () => {
                         Suburb/Area *
                       </label>
                       <input
+                        ref={(el) => errorFieldRefs.current.suburb = el}
                         type="text"
                         value={formData.suburb}
                         onChange={(e) =>
@@ -800,7 +859,7 @@ const EditProperty = () => {
                         }
                         placeholder="e.g., American House"
                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                          errors.suburb ? "border-red-500" : "border-gray-200"
+                          errors.suburb ? "border-red-500 bg-red-50" : "border-gray-200"
                         }`}
                       />
                       {errors.suburb && (
@@ -983,6 +1042,7 @@ const EditProperty = () => {
                       Year Built *
                     </label>
                     <input
+                      ref={(el) => errorFieldRefs.current.year_built = el}
                       type="number"
                       value={formData.year_built}
                       onChange={(e) =>
@@ -992,7 +1052,7 @@ const EditProperty = () => {
                       min="1900"
                       max={new Date().getFullYear()}
                       className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                        errors.year_built ? "border-red-500" : "border-gray-200"
+                        errors.year_built ? "border-red-500 bg-red-50" : "border-gray-200"
                       }`}
                     />
                     {errors.year_built && (
@@ -1007,9 +1067,12 @@ const EditProperty = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Amenities *
                     </label>
-                    <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 ${
-                      errors.amenities ? "border border-red-500 rounded-xl p-3 bg-red-50" : ""
-                    }`}>
+                    <div 
+                      ref={(el) => errorFieldRefs.current.amenities = el}
+                      className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 ${
+                        errors.amenities ? "border border-red-500 rounded-xl p-3 bg-red-50" : ""
+                      }`}
+                    >
                       {amenitiesList.map((amenity) => (
                         <button
                           key={amenity}
@@ -1055,14 +1118,15 @@ const EditProperty = () => {
                       Property Description *
                     </label>
                     <textarea
+                      ref={(el) => errorFieldRefs.current.description = el}
                       value={formData.description}
                       onChange={(e) =>
                         handleInputChange("description", e.target.value)
                       }
                       rows={5}
-                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none resize-none ${
+                      className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none resize-none transition-all ${
                         errors.description
-                          ? "border-red-500"
+                          ? "border-red-500 bg-red-50"
                           : "border-gray-200"
                       }`}
                     />
@@ -1098,13 +1162,14 @@ const EditProperty = () => {
                         className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                       />
                       <input
+                        ref={(el) => errorFieldRefs.current.price = el}
                         type="number"
                         value={formData.price}
                         onChange={(e) =>
                           handleInputChange("price", e.target.value)
                         }
-                        className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                          errors.price ? "border-red-500" : "border-gray-200"
+                        className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
+                          errors.price ? "border-red-500 bg-red-50" : "border-gray-200"
                         }`}
                       />
                     </div>
@@ -1220,6 +1285,7 @@ const EditProperty = () => {
                           +233
                         </div>
                         <input
+                          ref={(el) => errorFieldRefs.current.contact_number = el}
                           type="text"
                           value={formData.contact_number}
                           onChange={(e) =>
@@ -1227,9 +1293,9 @@ const EditProperty = () => {
                           }
                           placeholder="244567890"
                           maxLength="9"
-                          className={`flex-1 px-4 py-3 border border-gray-200 rounded-r-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
+                          className={`flex-1 px-4 py-3 border border-gray-200 rounded-r-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
                             errors.contact_number
-                              ? "border-red-500"
+                              ? "border-red-500 bg-red-50"
                               : "border-gray-200"
                           }`}
                         />
@@ -1258,6 +1324,7 @@ const EditProperty = () => {
                           +233
                         </div>
                         <input
+                          ref={(el) => errorFieldRefs.current.whatsapp_number = el}
                           type="text"
                           value={formData.whatsapp_number}
                           onChange={(e) =>
@@ -1265,9 +1332,9 @@ const EditProperty = () => {
                           }
                           placeholder="244567890"
                           maxLength="9"
-                          className={`flex-1 px-4 py-3 border border-gray-200 rounded-r-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
+                          className={`flex-1 px-4 py-3 border border-gray-200 rounded-r-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
                             errors.whatsapp_number
-                              ? "border-red-500"
+                              ? "border-red-500 bg-red-50"
                               : "border-gray-200"
                           }`}
                         />
@@ -1313,6 +1380,7 @@ const EditProperty = () => {
                   <h2 className="text-xl font-semibold">Property Images</h2>
 
                   <div
+                    ref={(el) => errorFieldRefs.current.property_images = el}
                     className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
                       errors.property_images
                         ? "border-red-500 bg-red-50"

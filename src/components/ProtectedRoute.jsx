@@ -61,14 +61,12 @@ const ProtectedRoute = ({
 
   //Todo => Check role-based access
   if (requiredRoles.length > 0 && !canAccessRoute(requiredRoles)) {
-    //Todo => Redirect to appropriate dashboard based on user type
+    //Todo => Redirect based on user type
     const userType = getUserType();
-    if (userType === "landlord") {
-      return <Navigate to="/landlord-dashboard" replace />;
-    } else if (userType === "admin") {
-      return <Navigate to="/admin-dashboard" replace />;
-    }
-    return <Navigate to="/dashboard" replace />;
+    const redirectPath = userType === 'renter' ? '/home' : 
+                        userType === 'landlord' ? '/landlord-dashboard' : 
+                        userType === 'admin' ? '/admin-dashboard' : '/home';
+    return <Navigate to={redirectPath} replace />;
   }
 
   return children;

@@ -7,11 +7,30 @@ import PropertyDetails from "../pages/guestPages/PropertyDetails";
 import AllProperties from "../pages/guestPages/AllProperties";
 import ScheduleViewing from "../pages/guestPages/ScheduleViewing";
 import ContactSupport from "../pages/guestPages/ContactSupport";
+import Landing from "../pages/guestPages/Landing";
 import ProtectedRoute from "../components/ProtectedRoute";
 
 function RentorRoutes() {
   return (
     <Routes>
+      {/* Landing page access for authenticated users */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Landing />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/home"
+        element={
+          <ProtectedRoute>
+            <Landing />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/dashboard"
         element={
@@ -131,8 +150,8 @@ function RentorRoutes() {
         }
       />
 
-      {/* //TODO Catch-all route - redirects any unmatched authenticated routes to dashboard */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      {/* //TODO Catch-all route - redirects any unmatched authenticated routes to home */}
+      <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
   );
 }

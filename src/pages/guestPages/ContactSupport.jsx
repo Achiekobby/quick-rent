@@ -48,7 +48,7 @@ const ContactSupport = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errors, setErrors] = useState({});
-  const [activeTab, setActiveTab] = useState('contact');
+  const [activeTab, setActiveTab] = useState('info');
 
   // Support categories
   const supportCategories = [
@@ -333,7 +333,7 @@ const ContactSupport = () => {
             <div className="bg-white rounded-2xl p-2 shadow-lg">
               <div className="flex space-x-2">
                 {[
-                  { id: 'contact', label: 'Contact Form', icon: MessageCircle },
+                  // { id: 'contact', label: 'Contact Form', icon: MessageCircle },
                   { id: 'info', label: 'Contact Info', icon: Phone },
                   { id: 'faq', label: 'Quick Help', icon: HelpCircle }
                 ].map((tab) => {

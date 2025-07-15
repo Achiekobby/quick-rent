@@ -15,13 +15,12 @@ const AuthRedirect = ({ children, redirectTo = null }) => {
         return <Navigate to={redirectTo} replace />;
       }
 
+      // Redirect based on user type
       const userType = getUserType();
-      if (userType === "landlord") {
-        return <Navigate to="/landlord-dashboard" replace />;
-      } else if (userType === "admin") {
-        return <Navigate to="/admin-dashboard" replace />;
-      }
-      return <Navigate to="/dashboard" replace />;
+      const redirectPath = userType === 'renter' ? '/home' : 
+                          userType === 'landlord' ? '/landlord-dashboard' : 
+                          userType === 'admin' ? '/admin-dashboard' : '/home';
+      return <Navigate to={redirectPath} replace />;
     }
 
     //Todo => If user needs verification, redirect to verify account

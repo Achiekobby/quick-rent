@@ -16,10 +16,10 @@ const Navbar = () => {
   const { user, logout, getUserType } = useAuthStore();
 
   // Mock data - in a real app, this would come from API
-  const userStats = {
-    unreadNotifications: 5,
-    wishlistCount: 3
-  };
+  // const userStats = {
+  //   unreadNotifications: 5,
+  //   wishlistCount: 3
+  // };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -129,10 +129,10 @@ const Navbar = () => {
     ];
 
     // Add user type specific items
-    if (userType === 'renter') {
+    if (userType === 'rentor' || userType === 'renter') {
       baseItems.push(
         { icon: <HelpCircle size={18} />, text: "Help Center", to: "/contact-support", divider: false, color: "#8B5CF6" },
-        { icon: <Heart size={18} />, text: "Wishlist", to: "/wishlist", badge: userStats.wishlistCount, divider: false, color: "#EC4899" },
+        { icon: <Heart size={18} />, text: "Wishlist", to: "/wishlist", divider: false, color: "#EC4899" },
         { icon: <Settings size={18} />, text: "Settings", to: "/settings", divider: true, color: "#6B7280" },
       );
     } else if (userType === 'landlord') {
@@ -162,7 +162,7 @@ const Navbar = () => {
   const handleLogout = () => {
     logout();
     localStorage.removeItem("access_token");
-    navigate("/login");
+    navigate("/");
   };
 
   return (
@@ -173,7 +173,7 @@ const Navbar = () => {
     >
       <div className="flex items-center justify-between px-4 sm:px-6 py-3">
         <div className="flex items-center">
-          <Link to="/dashboard">
+          <Link to="/">
             <img src={Images.logo} alt="Quick Rent Logo" className="h-10 md:h-14" />
           </Link>
         </div>
@@ -244,8 +244,8 @@ const Navbar = () => {
             >
               <Menu size={16} className="text-gray-600" />
               <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                {user.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                {user.profile_picture ? (
+                  <img src={user.profile_picture} alt={user.name} className="h-full w-full object-cover" />
                 ) : (
                   <User size={18} className="text-gray-600" />
                 )}
@@ -271,14 +271,14 @@ const Navbar = () => {
                     <div className="px-5 pb-4 mb-2 border-b border-gray-100">
                       <div className="flex items-center mb-3">
                         <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden mr-3">
-                          {user.avatar ? (
-                            <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                          {user.profile_picture ? (
+                            <img src={user.profile_picture} alt={user.name} className="h-full w-full object-cover" />
                           ) : (
                             <User size={24} className="text-gray-600" />
                           )}
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-800">{user.name}</h3>
+                          <h3 className="text-lg font-semibold text-gray-800">{user.full_name.length > 10 ? user.full_name.slice(0, 10) + "..." : user.full_name}</h3>
                           <p className="text-sm text-gray-500">{user.email}</p>
                         </div>
                       </div>
@@ -420,14 +420,14 @@ const Navbar = () => {
               <div className="pb-3 mb-2 border-b border-gray-100">
                 <div className="flex items-center">
                   <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden mr-3">
-                    {user.avatar ? (
-                      <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                    {user.profile_picture ? (
+                      <img src={user.profile_picture} alt={user.name} className="h-full w-full object-cover" />
                     ) : (
                       <User size={24} className="text-gray-600" />
                     )}
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800">{user.name}</h3>
+                    <h3 className="text-lg font-semibold text-gray-800">{user.full_name.length > 10 ? user.full_name.slice(0, 10) + "..." : user.full_name}</h3>
                     <p className="text-sm text-gray-500">{user.email}</p>
                   </div>
                 </div>

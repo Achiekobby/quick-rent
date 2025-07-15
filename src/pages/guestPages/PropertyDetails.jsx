@@ -41,6 +41,7 @@ import {
   Dog,
   UtilityPole,
   Sun,
+  Loader2,
 } from "lucide-react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import GuestLayout from "../../Layouts/GuestLayout";
@@ -68,7 +69,7 @@ const PropertyDetails = () => {
   const [relatedProperties, setRelatedProperties] = useState([]);
   const {user} = useAuthStore();
   const [isWishlisting, setIsWishlisting] = useState(false);
-  const [wishlistItems, setWishlistItems] = useState([]);
+  const [, setWishlistItems] = useState([]);
   // Function to mask phone number for unauthenticated users
   const maskPhoneNumber = (phoneNumber) => {
     if (!phoneNumber) return "N/A";
@@ -164,8 +165,8 @@ const PropertyDetails = () => {
       return;
     }
     
-    if (property?.landlord?.whatsapp_number) {
-      window.location.href = `https://wa.me/${property.landlord.whatsapp_number.replace(
+    if (property?.whatsapp_number) {
+      window.location.href = `https://wa.me/${property.whatsapp_number.replace(
         /\s+/g,
         ""
       )}`;

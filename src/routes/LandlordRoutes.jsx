@@ -9,11 +9,30 @@ import EditProperty from "../pages/landlordPages/EditProperty";
 import PropertyDetails from "../pages/guestPages/PropertyDetails";
 import AllProperties from "../pages/guestPages/AllProperties";
 import ContactSupport from "../pages/guestPages/ContactSupport";
+import Landing from "../pages/guestPages/Landing";
 import ProtectedRoute from "../components/ProtectedRoute";
 
 function LandlordRoutes() {
   return (
     <Routes>
+      {/* Landing page access for authenticated landlords */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Landing />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/home"
+        element={
+          <ProtectedRoute>
+            <Landing />
+          </ProtectedRoute>
+        }
+      />
+      
       <Route path="/landlord-dashboard" element={
         <ProtectedRoute requiredRoles={['landlord']}>
           <LandlordDashboard />
@@ -111,7 +130,7 @@ function LandlordRoutes() {
         </ProtectedRoute>
       } />
 
-      {/* //TODO Catch-all route - redirects any unmatched authenticated routes to landlord dashboard */}
+      {/* Catch-all route - redirects any unmatched authenticated routes to landlord dashboard */}
       <Route path="*" element={<Navigate to="/landlord-dashboard" replace />} />
     </Routes>
   );

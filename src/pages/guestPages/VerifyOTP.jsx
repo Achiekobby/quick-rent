@@ -144,7 +144,7 @@ const VerifyOTP = () => {
 
         // Redirect after showing success message
         setTimeout(() => {
-          navigate("/dashboard");
+          navigate("/home");
         }, 2000);
       } else {
         setError("Invalid verification code. Please try again.");

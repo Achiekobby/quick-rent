@@ -563,7 +563,7 @@ const Profile = () => {
               </div>
 
               {/*//Todo => User Stats */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-gray-100">
+              {/* <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-gray-100">
                 {getUserStats().map((stat) => (
                   <Motion.div
                     key={stat.label}
@@ -588,7 +588,7 @@ const Profile = () => {
                     </div>
                   </Motion.div>
                 ))}
-              </div>
+              </div> */}
             </div>
           </Motion.div>
 

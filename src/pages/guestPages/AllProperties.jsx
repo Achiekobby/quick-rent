@@ -18,7 +18,9 @@ import {
   Map,
   X,
   Loader2,
+  Home,
 } from "lucide-react";
+import { useLocation, useNavigate } from "react-router";
 import PropertyCard from "../../components/Utilities/PropertyCard";
 import Colors from "../../utils/Colors";
 import GuestLayout from "../../Layouts/GuestLayout";
@@ -29,10 +31,11 @@ import { toast } from "react-toastify";
 const propertyCategories = [
   { id: 1, name: "All", icon: "🏠" },
   { id: 2, name: "Single Room", icon: "🏢" },
-  { id: 3, name: "Chamber & Hall", icon: "🏡" },
-  { id: 4, name: "2/3 Bedroom Apartment", icon: "🛏️" },
-  { id: 5, name: "Office Space", icon: "🪟" },
-  { id: 6, name: "Short Stay", icon: "🏠" },
+  { id: 3, name: "Chamber and Hall", icon: "🏡" },
+  { id: 4, name: "2 Bedroom Apartment", icon: "🛏️" },
+  { id: 5, name: "3 Bedroom Apartment", icon: "🏠" },
+  { id: 6, name: "Office Space", icon: "🪟" },
+  { id: 7, name: "Short Stay", icon: "🏠" },
 ];
 
 const amenitiesList = [
@@ -79,6 +82,52 @@ const AllProperties = () => {
   const shouldReduceMotion = useReducedMotion();
   const [properties, setProperties] = useState([]);
   const itemsPerPage = 12;
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Apply URL parameters on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const locationParam = urlParams.get('location');
+    const categoryParam = urlParams.get('category');
+    
+    // Apply location filter to search query
+    if (locationParam) {
+      setSearchQuery(locationParam);
+    }
+    
+    // Apply category filter
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
+    
+    // Show toast notification if filters are applied from Hero
+    if (locationParam || categoryParam) {
+      const filterMessages = [];
+      if (locationParam) filterMessages.push(`Location: ${locationParam}`);
+      if (categoryParam) filterMessages.push(`Category: ${categoryParam}`);
+      
+      // toast.success(`Filters applied: ${filterMessages.join(', ')}`, {
+      //   position: "top-right",
+      //   autoClose: 3000,
+      //   hideProgressBar: false,
+      //   closeOnClick: true,
+      //   pauseOnHover: true,
+      //   draggable: true,
+      // });
+      
+      // Smooth scroll to properties section after a short delay
+      setTimeout(() => {
+        if (topRef.current) {
+          window.scrollTo({
+            top: topRef.current.offsetTop + 100,
+            behavior: 'smooth'
+          });
+        }
+      }, 500);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -106,6 +155,13 @@ const AllProperties = () => {
 
   // Filter properties based on selected category and search query
   const filteredProperties = properties.filter((property) => {
+    // Debug logging
+    if (selectedCategory === "Single Room" && properties.length > 0) {
+      console.log("Debug - Property:", property);
+      console.log("Debug - Property Type:", property.property_type);
+      console.log("Debug - Selected Category:", selectedCategory);
+    }
+    
     // Category filter
     let categoryMatch = true;
     if (selectedCategory !== "All") {
@@ -116,11 +172,25 @@ const AllProperties = () => {
         case "single room":
           categoryMatch =
             propertyType.includes("single room") ||
-            propertyType.includes("single-room");
+            propertyType.includes("single-room") ||
+            propertyType === "single room";
           break;
-        case "chamber & hall":
+        case "chamber and hall":
           categoryMatch =
-            propertyType.includes("chamber") && propertyType.includes("hall");
+            propertyType.includes("chamber") && propertyType.includes("hall") ||
+            propertyType === "chamber and hall";
+          break;
+        case "2 bedroom apartment":
+          categoryMatch =
+            propertyType.includes("2 bedroom") ||
+            propertyType.includes("2-bedroom") ||
+            propertyType === "2 bedroom apartment";
+          break;
+        case "3 bedroom apartment":
+          categoryMatch =
+            propertyType.includes("3 bedroom") ||
+            propertyType.includes("3-bedroom") ||
+            propertyType === "3 bedroom apartment";
           break;
         case "2/3 bedroom apartment":
           categoryMatch =
@@ -128,25 +198,33 @@ const AllProperties = () => {
             propertyType.includes("3 bedroom") ||
             propertyType.includes("2-bedroom") ||
             propertyType.includes("3-bedroom") ||
-            (propertyType.includes("apartment") &&
-              (propertyType.includes("2") || propertyType.includes("3")));
+            propertyType === "2 bedroom apartment" ||
+            propertyType === "3 bedroom apartment";
           break;
         case "office space":
-          categoryMatch = propertyType.includes("office");
+          categoryMatch = 
+            propertyType.includes("office") ||
+            propertyType === "office space";
           break;
         case "short stay":
           categoryMatch =
             propertyType.includes("short stay") ||
             propertyType.includes("short-stay") ||
             propertyType.includes("airbnb") ||
-            propertyType.includes("vacation");
+            propertyType.includes("vacation") ||
+            propertyType === "short stay";
           break;
         default:
           categoryMatch = propertyType.includes(selectedCategoryLower);
       }
     }
 
-    // Search query filter
+    // Debug logging for category match
+    if (selectedCategory === "Single Room" && properties.length > 0) {
+      console.log("Debug - Category Match:", categoryMatch);
+    }
+
+    // Search query filter (enhanced to include location matching)
     let searchMatch = true;
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -160,6 +238,13 @@ const AllProperties = () => {
         property.description?.toLowerCase() || "",
       ];
       searchMatch = searchableFields.some((field) => field.includes(query));
+      
+      // Debug logging for search
+      if (searchQuery === "Kumasi" && properties.length > 0) {
+        console.log("Debug - Search Query:", searchQuery);
+        console.log("Debug - Searchable Fields:", searchableFields);
+        console.log("Debug - Search Match:", searchMatch);
+      }
     }
 
     // Price range filter
@@ -595,10 +680,83 @@ const AllProperties = () => {
           variants={fadeInVariants}
         >
           <div className="container mx-auto px-3 sm:px-6 lg:px-8">
+            {/* Applied Filters Indicator */}
+            {(location.search && (new URLSearchParams(location.search).get('location') || new URLSearchParams(location.search).get('category'))) && (
+              <Motion.div
+                className="mb-4 flex flex-wrap items-center gap-2"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <span className="text-sm text-neutral-600 font-medium">Applied filters:</span>
+                {new URLSearchParams(location.search).get('location') && (
+                  <Motion.span
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <MapPin size={14} />
+                    {new URLSearchParams(location.search).get('location')}
+                    <button
+                      onClick={() => {
+                        const params = new URLSearchParams(location.search);
+                        params.delete('location');
+                        const newSearch = params.toString();
+                        navigate(`/properties${newSearch ? `?${newSearch}` : ''}`, { replace: true });
+                        setSearchQuery("");
+                      }}
+                      className="ml-1 hover:bg-orange-200 rounded-full p-0.5"
+                    >
+                      <X size={12} />
+                    </button>
+                  </Motion.span>
+                )}
+                {new URLSearchParams(location.search).get('category') && (
+                  <Motion.span
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <Home size={14} />
+                    {new URLSearchParams(location.search).get('category')}
+                    <button
+                      onClick={() => {
+                        const params = new URLSearchParams(location.search);
+                        params.delete('category');
+                        const newSearch = params.toString();
+                        navigate(`/properties${newSearch ? `?${newSearch}` : ''}`, { replace: true });
+                        setSelectedCategory("All");
+                      }}
+                      className="ml-1 hover:bg-blue-200 rounded-full p-0.5"
+                    >
+                      <X size={12} />
+                    </button>
+                  </Motion.span>
+                )}
+                <Motion.button
+                  className="text-sm text-neutral-500 hover:text-neutral-700 underline"
+                  onClick={() => {
+                    navigate('/properties', { replace: true });
+                    setSearchQuery("");
+                    setSelectedCategory("All");
+                  }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  Clear all
+                </Motion.button>
+              </Motion.div>
+            )}
+
             {/* Search Bar */}
             <div className="relative max-w-2xl mx-auto">
               <Motion.div
-                className="flex items-center bg-white rounded-full shadow-md border border-neutral-200 overflow-hidden"
+                className={`flex items-center bg-white rounded-full shadow-md border overflow-hidden ${
+                  searchQuery ? 'border-orange-300 ring-2 ring-orange-100' : 'border-neutral-200'
+                }`}
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.1, duration: 0.4 }}
@@ -606,7 +764,7 @@ const AllProperties = () => {
                 <div className="flex-grow px-3 md:px-4 py-2 md:py-3 flex items-center">
                   <Search
                     size={isMobileView ? 16 : 18}
-                    className="text-neutral-400 mr-2"
+                    className={`mr-2 ${searchQuery ? 'text-orange-500' : 'text-neutral-400'}`}
                   />
                   <input
                     type="text"
@@ -619,6 +777,14 @@ const AllProperties = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="ml-2 p-1 hover:bg-neutral-100 rounded-full"
+                    >
+                      <X size={14} className="text-neutral-400" />
+                    </button>
+                  )}
                 </div>
                 <Motion.button
                   className="h-full px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white flex items-center justify-center rounded-r-full shadow-sm"
@@ -695,30 +861,57 @@ const AllProperties = () => {
               )}
 
               <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-grow">
-                {propertyCategories.map((category, index) => (
-                  <Motion.button
-                    key={category.id}
-                    className={`flex cursor-pointer flex-col items-center px-2 md:px-4 py-1 md:py-2 rounded-lg whitespace-nowrap text-xs md:text-sm ${
-                      selectedCategory === category.name
-                        ? "bg-neutral-100 font-medium"
-                        : "hover:bg-neutral-50"
-                    }`}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      delay: shouldReduceMotion ? 0 : index * 0.03,
-                      duration: 0.4,
-                    }}
-                    whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
-                    whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
-                    onClick={() => setSelectedCategory(category.name)}
-                  >
-                    <span className="text-lg md:text-xl mb-0.5 md:mb-1">
-                      {category.icon}
-                    </span>
-                    <span>{category.name}</span>
-                  </Motion.button>
-                ))}
+                {propertyCategories.map((category, index) => {
+                  const isActiveFromUrl = new URLSearchParams(location.search).get('category') === category.name;
+                  const isSelected = selectedCategory === category.name;
+                  const isHighlighted = isActiveFromUrl || isSelected;
+                  
+                  return (
+                    <Motion.button
+                      key={category.id}
+                      className={`flex cursor-pointer flex-col items-center px-2 md:px-4 py-1 md:py-2 rounded-lg whitespace-nowrap text-xs md:text-sm transition-all duration-200 ${
+                        isHighlighted
+                          ? isActiveFromUrl 
+                            ? "bg-orange-100 text-orange-800 font-medium border border-orange-200" 
+                            : "bg-neutral-100 font-medium"
+                          : "hover:bg-neutral-50"
+                      }`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        delay: shouldReduceMotion ? 0 : index * 0.03,
+                        duration: 0.4,
+                      }}
+                      whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+                      whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
+                      onClick={() => {
+                        setSelectedCategory(category.name);
+                        // Update URL to reflect category change
+                        const params = new URLSearchParams(location.search);
+                        if (category.name === "All") {
+                          params.delete('category');
+                        } else {
+                          params.set('category', category.name);
+                        }
+                        const newSearch = params.toString();
+                        navigate(`/properties${newSearch ? `?${newSearch}` : ''}`, { replace: true });
+                      }}
+                    >
+                      <span className="text-lg md:text-xl mb-0.5 md:mb-1">
+                        {category.icon}
+                      </span>
+                      <span>{category.name}</span>
+                      {isActiveFromUrl && (
+                        <Motion.div
+                          className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.2 }}
+                        />
+                      )}
+                    </Motion.button>
+                  );
+                })}
               </div>
               <AnimatePresence>
                 <Motion.button
@@ -981,7 +1174,7 @@ const AllProperties = () => {
                   </div>
 
                   {/* Amenities */}
-                  <div>
+                  {/* <div>
                     <h3 className="text-base md:text-lg font-medium mb-2 md:mb-3">
                       Amenities
                     </h3>
@@ -1031,7 +1224,7 @@ const AllProperties = () => {
                         </Motion.div>
                       ))}
                     </div>
-                  </div>
+                  </div> */}
                 </div>
 
                 <div className="sticky bottom-0 bg-white border-t border-neutral-200 p-3 md:p-4 flex gap-3">

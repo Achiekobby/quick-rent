@@ -18,16 +18,11 @@ import PropertyCard from "../../components/Utilities/PropertyCard";
 import { useNavigate } from "react-router";
 import { getAllProperties } from "../../api/Renter/General/DashboardRequests";
 import { toast } from "react-toastify";
+import useAuthStore from "../../stores/authStore";
 
 const Dashboard = () => {
-  const [user] = useState({
-    name: "John Doe",
-    wishlistCount: 3,
-    notifications: 5,
-    propertyAlerts: 4,
-    viewedProperties: 12,
-  });
-
+  const { user } = useAuthStore();
+  console.log(user);
   const [loading, setLoading] = useState(true);
   const [properties, setProperties] = useState([]);
   const [featuredProperties, setFeaturedProperties] = useState([]);
@@ -73,19 +68,6 @@ const Dashboard = () => {
     },
   };
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 24,
-      },
-    },
-  };
-
   const sectionVariants = {
     hidden: { opacity: 0, y: 30 },
     visible: {
@@ -97,31 +79,31 @@ const Dashboard = () => {
     },
   };
 
-  if(loading){
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 size={40} className="animate-spin" />
       </div>
-    )
+    );
   }
 
   return (
     <AuthLayout>
       <div className="px-4 md:px-8 py-6 max-w-7xl mx-auto">
         {/* Welcome Section */}
-        <Motion.div
+        {/* <Motion.div
           className="mb-8"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
-            Welcome back, {user.name}!
+            Welcome back, {user.full_name}!
           </h1>
           <p className="text-gray-600">
             Continue exploring properties or pick up where you left off.
           </p>
-        </Motion.div>
+        </Motion.div> */}
 
         {/* Stats Cards */}
         <Motion.div
@@ -263,7 +245,9 @@ const Dashboard = () => {
             className="mb-12"
             variants={sectionVariants}
             initial="hidden"
-            animate={!loading && featuredProperties?.length > 0 ? "visible" : "hidden"}
+            animate={
+              !loading && featuredProperties?.length > 0 ? "visible" : "hidden"
+            }
           >
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl md:text-2xl font-bold text-gray-800">
@@ -279,7 +263,10 @@ const Dashboard = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {featuredProperties.map((property) => (
-                <PropertyCard key={property.property_slug} property={property} />
+                <PropertyCard
+                  key={property.property_slug}
+                  property={property}
+                />
               ))}
             </div>
           </Motion.section>
@@ -291,7 +278,9 @@ const Dashboard = () => {
             className="mb-12"
             variants={sectionVariants}
             initial="hidden"
-            animate={!loading && popularProperties?.length > 0 ? "visible" : "hidden"}
+            animate={
+              !loading && popularProperties?.length > 0 ? "visible" : "hidden"
+            }
           >
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl md:text-2xl font-bold text-gray-800">
@@ -307,7 +296,10 @@ const Dashboard = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {popularProperties.map((property) => (
-                <PropertyCard key={property.property_slug} property={property} />
+                <PropertyCard
+                  key={property.property_slug}
+                  property={property}
+                />
               ))}
             </div>
           </Motion.section>
@@ -319,7 +311,9 @@ const Dashboard = () => {
             className="mb-12"
             variants={sectionVariants}
             initial="hidden"
-            animate={!loading && luxuryProperties?.length > 0 ? "visible" : "hidden"}
+            animate={
+              !loading && luxuryProperties?.length > 0 ? "visible" : "hidden"
+            }
           >
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl md:text-2xl font-bold text-gray-800">
@@ -335,7 +329,10 @@ const Dashboard = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {luxuryProperties.map((property) => (
-                <PropertyCard key={property.property_slug} property={property} />
+                <PropertyCard
+                  key={property.property_slug}
+                  property={property}
+                />
               ))}
             </div>
           </Motion.section>

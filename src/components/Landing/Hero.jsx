@@ -1,21 +1,35 @@
 import { useState, useEffect } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { Search, MapPin, Home, Building, Star } from "lucide-react";
+import { useNavigate } from "react-router";
 import Colors from "../../utils/Colors";
+import Images from "../../utils/Images";
+import useAuthStore from "../../stores/authStore";
 
 const Hero = () => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [direction, setDirection] = useState(1);
+  const [selectedLocation, setSelectedLocation] = useState("");
+  const [selectedPropertyType, setSelectedPropertyType] = useState("");
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
   
   const propertyImages = [
-    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=1920&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1920&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?q=80&w=1920&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1600585152220-90363fe7e115?q=80&w=1920&auto=format&fit=crop"
+    Images.rental_hero_one,
+    Images.rental_hero_two,
+    Images.rental_hero_three,
+    Images.rental_hero_four
   ];
 
   const locations = ["Accra", "Kumasi", "Takoradi", "Tamale", "Cape Coast"];
-  const propertyTypes = ["Apartments", "Houses", "Office Spaces", "Land", "Short Stays"];
+  const propertyTypes = [
+    { value: "Single Room", label: "Single Room" },
+    { value: "Chamber and Hall", label: "Chamber and Hall" },
+    { value: "2 Bedroom Apartment", label: "2 Bedroom Apartment" },
+    { value: "3 Bedroom Apartment", label: "3 Bedroom Apartment" },
+    { value: "Office Space", label: "Office Space" },
+    { value: "Short Stay", label: "Short Stay" }
+  ];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -73,6 +87,30 @@ const Hero = () => {
   const handleSlideChange = (newIndex) => {
     setDirection(newIndex > activeSlide ? 1 : -1);
     setActiveSlide(newIndex);
+  };
+
+  const handleSearch = () => {
+    // Create URL parameters based on selected filters
+    const params = new URLSearchParams();
+    
+    if (selectedLocation) {
+      params.append('location', selectedLocation);
+    }
+    
+    if (selectedPropertyType) {
+      params.append('category', selectedPropertyType);
+    }
+    
+    // Navigate to All Properties page with filters
+    const queryString = params.toString();
+    
+    if (isAuthenticated()) {
+      // For authenticated users, use the authenticated route
+      navigate(`/properties${queryString ? `?${queryString}` : ''}`);
+    } else {
+      // For guests, use the guest route  
+      navigate(`/properties${queryString ? `?${queryString}` : ''}`);
+    }
   };
 
   return (
@@ -146,6 +184,8 @@ const Hero = () => {
                 <select 
                   className="w-full py-3 px-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300"
                   style={{ borderColor: Colors.neutral[200] }}
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
                 >
                   <option value="">Select Location</option>
                   {locations.map(location => (
@@ -159,10 +199,12 @@ const Hero = () => {
                 <select 
                   className="w-full py-3 px-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-300"
                   style={{ borderColor: Colors.neutral[200] }}
+                  value={selectedPropertyType}
+                  onChange={(e) => setSelectedPropertyType(e.target.value)}
                 >
                   <option value="">Property Type</option>
                   {propertyTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
+                    <option key={type.value} value={type.value}>{type.label}</option>
                   ))}
                 </select>
               </div>
@@ -172,6 +214,7 @@ const Hero = () => {
                 style={{ backgroundColor: Colors.accent.orange }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={handleSearch}
               >
                 <Search size={20} />
                 Find Properties

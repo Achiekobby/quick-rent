@@ -117,16 +117,7 @@ const AdminDashboard = () => {
           
           <div className="flex items-center gap-3 mt-4 md:mt-0">
            
-            {/* <Motion.button
-              onClick={refreshData}
-              disabled={isRefreshing}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
-            </Motion.button> */}
+            
           </div>
         </Motion.div>
 
@@ -200,7 +191,7 @@ const AdminDashboard = () => {
             <h2 className="text-xl font-bold text-gray-800 mb-6">Management Tools</h2>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { title: "User Management", path: "/users", icon: Users, count: dashboardData.stats.totalUsers },
+                // { title: "User Management", path: "/users", icon: Users, count: dashboardData.stats.totalUsers },
                 { title: "Landlord Management", path: "/landlords", icon: UserCheck, count: dashboardData.stats.totalLandlords },
                 { title: "Renter Management", path: "/renters", icon: Users, count: dashboardData.stats.totalRenters },
                 { title: "Property Management", path: "/property-management", icon: Building, count: dashboardData.stats.totalProperties },

@@ -317,11 +317,15 @@ const useAuthStore = create(
         if (!store.user) return "/home";
         if (store.requiresVerification()) return "/verify-account";
         if (store.isAuthenticated()) {
-          const userType = store.getUserType();
-          if (userType === "landlord") return "/landlord-dashboard";
-          if (userType === "admin") return "/admin-dashboard";
-          if (userType === "rentor") return "/dashboard";
-          return "/dashboard";
+          // Only redirect renters to home page, keep original redirects for landlords and admins
+          if (store.user.user_type === 'renter') {
+            return "/home";
+          } else if (store.user.user_type === 'landlord') {
+            return "/landlord-dashboard";
+          } else if (store.user.user_type === 'admin') {
+            return "/admin-dashboard";
+          }
+          return "/home"; // fallback
         }
         //Todo => If user exists but not authenticated (inactive), redirect to login
         return "/login";

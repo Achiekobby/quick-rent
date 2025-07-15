@@ -4,21 +4,6 @@ import Colors from "../../utils/Colors";
 import Images from "../../utils/Images";
 
 const Footer = () => {
-  const footerLinks = {
-    properties: [
-      { name: "For Rent", href: "/properties" },
-      { name: "For Sale", href: "/properties" },
-      { name: "New Projects", href: "/properties" },
-      { name: "Featured", href: "/properties" },
-    ],
-    resources: [
-      { name: "Blog", href: "#" },
-      { name: "Guides", href: "#" },
-      { name: "FAQ", href: "#" },
-      { name: "Help Center", href: "#" },
-    ],
-  };
-
   const socialLinks = [
     { icon: <Facebook className="w-5 h-5" />, href: "#" },
     { icon: <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -31,64 +16,73 @@ const Footer = () => {
     <footer className="bg-[#0f172a] text-white border-t border-neutral-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer Content */}
-        <div className="py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="py-12 grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Company Info */}
-          <div>
-            <img src={Images.logo} alt="Quick Rent Logo" className="h-12 mb-6" />
-            <p className="text-neutral-300 text-sm mb-6">
+          <div className="space-y-6">
+            <img src={Images.logo_alt} alt="Quick Rent Logo" className="h-12" />
+            <p className="text-neutral-300 text-lg leading-relaxed">
               Your trusted partner in finding the perfect home in Ghana. We make property hunting simple, secure, and enjoyable.
             </p>
+            <div className="pt-4">
+              <h4 className="text-white font-semibold mb-4">Follow Us</h4>
+              <div className="flex items-center gap-3">
+                {socialLinks.map((link, index) => (
+                  <Motion.a
+                    key={index}
+                    href={link.href}
+                    className="p-3 rounded-full bg-neutral-800 text-white hover:bg-primary-600 hover:text-white transition-colors"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    {link.icon}
+                  </Motion.a>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Quick Links - First Two Sections */}
-          {Object.entries(footerLinks).slice(0, 2).map(([title, links]) => (
-            <div key={title}>
-              <h3 className="text-white font-semibold mb-4 capitalize">{title}</h3>
-              <ul className="space-y-2">
-                {links.map((link) => (
-                  <li key={link.name}>
-                    <a
-                      href={link.href}
-                      className="text-sm text-neutral-300 hover:text-primary-300 transition-colors"
-                    >
-                      {link.name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {/* Contact Information */}
+          <div className="space-y-6">
+            <h3 className="text-white font-semibold text-xl">Get In Touch</h3>
+            <div className="space-y-4">
+              <a 
+                href="tel:+233500000000" 
+                className="flex items-center gap-3 text-neutral-300 hover:text-primary-300 transition-colors group"
+              >
+                <div className="p-2 rounded-full bg-neutral-800 group-hover:bg-primary-600 transition-colors">
+                  <Phone className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm text-neutral-400">Call Us</p>
+                  <p className="text-white">+233 50 000 0000</p>
+                </div>
+              </a>
 
-          {/* Contact & Social */}
-          <div>
-            <h3 className="text-white font-semibold mb-4">Contact & Social</h3>
-            <div className="space-y-3 mb-6">
-              <a href="tel:+233500000000" className="flex items-center gap-2 text-sm text-neutral-300 hover:text-primary-300">
-                <Phone className="w-4 h-4" />
-                +233 50 000 0000
+              <a 
+                href="mailto:info@quickrent.com" 
+                className="flex items-center gap-3 text-neutral-300 hover:text-primary-300 transition-colors group"
+              >
+                <div className="p-2 rounded-full bg-neutral-800 group-hover:bg-primary-600 transition-colors">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm text-neutral-400">Email Us</p>
+                  <p className="text-white">info@quickrent.com</p>
+                </div>
               </a>
-              <a href="mailto:info@quickrent.com" className="flex items-center gap-2 text-sm text-neutral-300 hover:text-primary-300">
-                <Mail className="w-4 h-4" />
-                info@quickrent.com
-              </a>
-              <p className="flex items-center gap-2 text-sm text-neutral-300">
-                <MapPin className="w-4 h-4" />
-                123 Independence Avenue<br />
-                Accra, Ghana
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {socialLinks.map((link, index) => (
-                <Motion.a
-                  key={index}
-                  href={link.href}
-                  className="p-2 rounded-full bg-neutral-800 text-white hover:bg-primary-600 hover:text-white transition-colors"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  {link.icon}
-                </Motion.a>
-              ))}
+
+              <div className="flex items-start gap-3 text-neutral-300">
+                <div className="p-2 rounded-full bg-neutral-800">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm text-neutral-400">Visit Us</p>
+                  <p className="text-white">
+                    123 Independence Avenue<br />
+                    Accra, Ghana
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -98,6 +92,7 @@ const Footer = () => {
           <p className="text-sm text-neutral-300">
             © {new Date().getFullYear()} Quick Rent. All rights reserved.
           </p>
+          
         </div>
       </div>
     </footer>

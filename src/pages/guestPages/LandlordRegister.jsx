@@ -148,6 +148,32 @@ const LandlordRegister = () => {
     }
   }, [formData.city, formData.customLocation]);
 
+  const validateEmail = (email) => {
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+    if (!email) return { isValid: false, message: "Email is required" };
+    if (email.length > 254) return { isValid: false, message: "Email is too long" };
+    if (!emailRegex.test(email)) return { isValid: false, message: "Please enter a valid email address" };
+    if (email.includes('..')) return { isValid: false, message: "Email cannot contain consecutive dots" };
+    if (email.startsWith('.') || email.endsWith('.')) return { isValid: false, message: "Email cannot start or end with a dot" };
+    if (email.includes('@.') || email.includes('.@')) return { isValid: false, message: "Invalid format around @ symbol" };
+    
+    // Additional check for proper domain structure
+    const parts = email.split('@');
+    if (parts.length !== 2) return { isValid: false, message: "Email must contain exactly one @ symbol" };
+    
+    const [localPart, domain] = parts;
+    if (!localPart || !domain) return { isValid: false, message: "Email must have both local and domain parts" };
+    
+    // Check if domain has at least one dot and ends with valid TLD
+    if (!domain.includes('.')) return { isValid: false, message: "Email must have a valid domain (e.g., gmail.com)" };
+    
+    const domainParts = domain.split('.');
+    const tld = domainParts[domainParts.length - 1];
+    if (tld.length < 2) return { isValid: false, message: "Email must have a valid domain extension" };
+    
+    return { isValid: true, message: null };
+  };
+
   // Animation variants
   const stepVariants = {
     hidden: { opacity: 0, x: 50 },
@@ -157,9 +183,41 @@ const LandlordRegister = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    // Filter full name to only allow letters, spaces, and common name characters
+    let filteredValue = value;
+    if (name === 'fullName') {
+      // Allow letters (including accented characters), spaces, apostrophes, and hyphens
+      filteredValue = value.replace(/[^a-zA-ZÀ-ÿ\s'-]/g, '');
+      // Prevent multiple consecutive spaces
+      filteredValue = filteredValue.replace(/\s+/g, ' ');
+      // Prevent starting with space
+      if (filteredValue.startsWith(' ')) {
+        filteredValue = filteredValue.trimStart();
+      }
+    }
+    
+    // Real-time email validation
+    if (name === 'email') {
+      const emailValidation = validateEmail(value.trim().toLowerCase());
+      if (value.trim() && !emailValidation.isValid) {
+        setErrors((prev) => ({
+          ...prev,
+          [name]: emailValidation.message,
+        }));
+      } else if (value.trim() && emailValidation.isValid) {
+        setErrors((prev) => ({
+          ...prev,
+          [name]: null,
+        }));
+      }
+      // Convert email to lowercase for consistency
+      filteredValue = value.trim().toLowerCase();
+    }
+    
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === "checkbox" ? checked : filteredValue,
     }));
 
     // Handle custom location input
@@ -171,8 +229,8 @@ const LandlordRegister = () => {
       }));
     }
 
-    // Clear error when user types
-    if (errors[name]) {
+    // Clear error when user types (except for email which has real-time validation)
+    if (errors[name] && name !== 'email') {
       setErrors((prev) => ({
         ...prev,
         [name]: null,
@@ -208,12 +266,19 @@ const LandlordRegister = () => {
     if (step === 1) {
       if (!formData.fullName.trim()) {
         newErrors.fullName = "Full name is required";
+      } else if (formData.fullName.trim().length < 2) {
+        newErrors.fullName = "Full name must be at least 2 characters";
+      } else if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(formData.fullName.trim())) {
+        newErrors.fullName = "Full name can only contain letters, spaces, apostrophes, and hyphens";
+      } else if (formData.fullName.trim().length > 50) {
+        newErrors.fullName = "Full name must be less than 50 characters";
       }
-      if (!formData.email) {
-        newErrors.email = "Email is required";
-      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-        newErrors.email = "Email is invalid";
+      
+      const emailValidation = validateEmail(formData.email);
+      if (!emailValidation.isValid) {
+        newErrors.email = emailValidation.message;
       }
+      
       if (!formData.phone) {
         newErrors.phone = "Phone number is required";
       } else if (!/^233\d{9}$/.test(formData.phone)) {
@@ -378,12 +443,15 @@ const LandlordRegister = () => {
             name="fullName"
             value={formData.fullName}
             onChange={handleInputChange}
+            maxLength={50}
+            pattern="[a-zA-ZÀ-ÿ\s'-]+"
+            title="Full name can only contain letters, spaces, apostrophes, and hyphens"
             className={`w-full pl-12 pr-4 py-4 rounded-xl border-2 transition-all duration-300 ${
               errors.fullName
                 ? "border-red-400"
                 : "border-gray-200 focus:border-orange-400"
             } focus:outline-none focus:ring-4 focus:ring-orange-100 bg-white`}
-            placeholder="Enter your full name"
+            placeholder="Enter your full name (letters only)"
           />
         </div>
         {errors.fullName && (
@@ -403,12 +471,26 @@ const LandlordRegister = () => {
             name="email"
             value={formData.email}
             onChange={handleInputChange}
+            onBlur={(e) => {
+              if (e.target.value.trim()) {
+                const emailValidation = validateEmail(e.target.value.trim().toLowerCase());
+                if (!emailValidation.isValid) {
+                  setErrors((prev) => ({
+                    ...prev,
+                    email: emailValidation.message,
+                  }));
+                }
+              }
+            }}
+            maxLength={254}
+            pattern="[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*"
+            title="Please enter a valid email address"
             className={`w-full pl-12 pr-4 py-4 rounded-xl border-2 transition-all duration-300 ${
               errors.email
                 ? "border-red-400"
                 : "border-gray-200 focus:border-orange-400"
             } focus:outline-none focus:ring-4 focus:ring-orange-100 bg-white`}
-            placeholder="your.business@example.com"
+            placeholder="Enter your business email address"
           />
         </div>
         {errors.email && (

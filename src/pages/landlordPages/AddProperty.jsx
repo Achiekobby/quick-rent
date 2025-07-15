@@ -35,10 +35,52 @@ const AddProperty = () => {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Refs for error fields to enable smooth scrolling
+  const errorFieldRefs = useRef({});
+
+  // Helper function to scroll to first error field
+  const scrollToFirstError = (newErrors) => {
+    const firstErrorField = Object.keys(newErrors)[0];
+    if (firstErrorField && errorFieldRefs.current[firstErrorField]) {
+      const element = errorFieldRefs.current[firstErrorField];
+      const elementRect = element.getBoundingClientRect();
+      const absoluteElementTop = elementRect.top + window.pageYOffset;
+      const offset = 120; // Offset from top for better visibility
+      
+      window.scrollTo({
+        top: absoluteElementTop - offset,
+        behavior: "smooth"
+      });
+      
+      // Add a subtle shake animation to draw attention
+      element.style.animation = "shake 0.5s ease-in-out";
+      setTimeout(() => {
+        element.style.animation = "";
+      }, 500);
+    }
+  };
+
   // Scroll to top on step change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentStep]);
+
+  // Add shake animation styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   // Ghana regions and their major locations
   const ghanaRegions = {
@@ -141,7 +183,6 @@ const AddProperty = () => {
   const [errors, setErrors] = useState({});
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState([]);
-  const [showFullPayload, setShowFullPayload] = useState(false);
 
   const steps = [
     {
@@ -345,7 +386,14 @@ const AddProperty = () => {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    // Scroll to first error if validation fails
+    if (Object.keys(newErrors).length > 0) {
+      setTimeout(() => scrollToFirstError(newErrors), 100);
+      return false;
+    }
+    
+    return true;
   };
 
   const nextStep = () => {
@@ -411,80 +459,9 @@ const AddProperty = () => {
     handleInputChange(field, cleanValue);
   };
 
-  // Generate complete API payload for preview
-  const generateCompletePayload = (forPreview = false) => {
-    const payload = {
-      // Basic Information
-      title: formData.title,
-      property_type: formData.property_type,
 
-      // Location Details
-      region: formData.region,
-      location:
-        formData.location === "Other"
-          ? formData.customLocation
-          : formData.location,
-      suburb: formData.suburb,
-      district: formData.district || null,
-      landmark: formData.landmark || null,
 
-      // Property Specifications
-      number_of_bedrooms: formData.number_of_bedrooms,
-      number_of_bathrooms: formData.number_of_bathrooms,
-      bathroom_type: formData.bathroom_type,
-      kitchen_type: formData.kitchen_type,
-      year_built: formData.year_built ? parseInt(formData.year_built) : null,
-      description: formData.description,
-      amenities: formData.amenities,
 
-      // Pricing & Availability
-      per_month_amount: parseFloat(formData.per_month_amount) || 0,
-      rental_years: formData.rental_years,
-      negotiable: formData.negotiable,
-      is_available: formData.is_available,
-
-      // Contact Information
-      contact_number: `+233${formData.contact_number}`,
-      whatsapp_number: `+233${formData.whatsapp_number}`,
-
-      // System Fields
-      approval_status: formData.approval_status,
-
-      // Property Images
-      property_images:
-        formData.property_images.length > 0
-          ? formData.property_images.map((img, index) => {
-              const hasFeaturedImage = formData.property_images.some(
-                (img) => img.is_featured
-              );
-              return {
-                image:
-                  forPreview && img.image.startsWith("data:")
-                    ? `${img.image.substring(0, 20)}...`
-                    : img.image, // Truncate base64 for preview, keep full for actual submission
-                is_featured: hasFeaturedImage ? img.is_featured : index === 0,
-              };
-            })
-          : [],
-
-      // Metadata
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    return payload;
-  };
-
-  // Copy payload to clipboard
-  const copyPayloadToClipboard = async () => {
-    try {
-      const payload = generateCompletePayload(true); // Use truncated version for copy too
-      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
-      toast.success("API payload copied to clipboard!");
-    } catch {
-      toast.error("Failed to copy to clipboard");
-    }
-  };
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -502,12 +479,13 @@ const AddProperty = () => {
                 Property Title *
               </label>
               <input
+                ref={(el) => errorFieldRefs.current.title = el}
                 type="text"
                 value={formData.title}
                 onChange={(e) => handleInputChange("title", e.target.value)}
                 placeholder="e.g., Modern 3-Bedroom Apartment in East Legon"
                 className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                  errors.title ? "border-red-500" : "border-gray-200"
+                  errors.title ? "border-red-500 bg-red-50" : "border-gray-200"
                 }`}
               />
               {errors.title && (
@@ -523,7 +501,10 @@ const AddProperty = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Property Type *
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div 
+                ref={(el) => errorFieldRefs.current.property_type = el}
+                className="grid grid-cols-2 md:grid-cols-3 gap-3"
+              >
                 {propertyTypes.map((type) => (
                   <button
                     key={type}
@@ -555,13 +536,14 @@ const AddProperty = () => {
                   Region *
                 </label>
                 <select
+                  ref={(el) => errorFieldRefs.current.region = el}
                   value={formData.region}
                   onChange={(e) => {
                     handleInputChange("region", e.target.value);
                     handleInputChange("location", ""); // Reset location when region changes
                   }}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                    errors.region ? "border-red-500" : "border-gray-200"
+                    errors.region ? "border-red-500 bg-red-50" : "border-gray-200"
                   }`}
                 >
                   <option value="">Select Region</option>
@@ -585,13 +567,14 @@ const AddProperty = () => {
                   Location *
                 </label>
                 <select
+                  ref={(el) => errorFieldRefs.current.location = el}
                   value={formData.location}
                   onChange={(e) =>
                     handleInputChange("location", e.target.value)
                   }
                   disabled={!formData.region}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                    errors.location ? "border-red-500" : "border-gray-200"
+                    errors.location ? "border-red-500 bg-red-50" : "border-gray-200"
                   } ${!formData.region ? "bg-gray-100" : ""}`}
                 >
                   <option value="">Select Location</option>
@@ -624,6 +607,7 @@ const AddProperty = () => {
                     Specify Location *
                   </label>
                   <input
+                    ref={(el) => errorFieldRefs.current.customLocation = el}
                     type="text"
                     value={formData.customLocation}
                     onChange={(e) =>
@@ -632,7 +616,7 @@ const AddProperty = () => {
                     placeholder="Enter specific location"
                     className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
                       errors.customLocation
-                        ? "border-red-500"
+                        ? "border-red-500 bg-red-50"
                         : "border-gray-200"
                     }`}
                   />
@@ -653,12 +637,13 @@ const AddProperty = () => {
                   Suburb/Area *
                 </label>
                 <input
+                  ref={(el) => errorFieldRefs.current.suburb = el}
                   type="text"
                   value={formData.suburb}
                   onChange={(e) => handleInputChange("suburb", e.target.value)}
                   placeholder="e.g., American House"
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                    errors.suburb ? "border-red-500" : "border-gray-200"
+                    errors.suburb ? "border-red-500 bg-red-50" : "border-gray-200"
                   }`}
                 />
                 {errors.suburb && (
@@ -847,6 +832,7 @@ const AddProperty = () => {
                 Year Built *
               </label>
               <input
+                ref={(el) => errorFieldRefs.current.year_built = el}
                 type="number"
                 value={formData.year_built}
                 onChange={(e) =>
@@ -856,7 +842,7 @@ const AddProperty = () => {
                 min="1900"
                 max={new Date().getFullYear()}
                 className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                  errors.year_built ? "border-red-500" : "border-gray-200"
+                  errors.year_built ? "border-red-500 bg-red-50" : "border-gray-200"
                 }`}
               />
               {errors.year_built && (
@@ -872,9 +858,12 @@ const AddProperty = () => {
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Amenities *
               </label>
-              <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 ${
-                errors.amenities ? "border border-red-500 rounded-xl p-3 bg-red-50" : ""
-              }`}>
+              <div 
+                ref={(el) => errorFieldRefs.current.amenities = el}
+                className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 ${
+                  errors.amenities ? "border border-red-500 rounded-xl p-3 bg-red-50" : ""
+                }`}
+              >
                 {amenitiesList.map((amenity) => (
                   <button
                     key={amenity}
@@ -917,6 +906,7 @@ const AddProperty = () => {
                 Property Description *
               </label>
               <textarea
+                ref={(el) => errorFieldRefs.current.description = el}
                 value={formData.description}
                 onChange={(e) =>
                   handleInputChange("description", e.target.value)
@@ -924,7 +914,7 @@ const AddProperty = () => {
                 placeholder="Describe your property in detail. Include what makes it special, nearby amenities, transportation links, etc."
                 rows={5}
                 className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all resize-none ${
-                  errors.description ? "border-red-500" : "border-gray-200"
+                  errors.description ? "border-red-500 bg-red-50" : "border-gray-200"
                 }`}
               />
               <div className="flex justify-between items-center mt-1">
@@ -962,6 +952,7 @@ const AddProperty = () => {
                     className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                   />
                   <input
+                    ref={(el) => errorFieldRefs.current.per_month_amount = el}
                     type="number"
                     value={formData.per_month_amount}
                     onChange={(e) =>
@@ -971,7 +962,7 @@ const AddProperty = () => {
                     min="0"
                     className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
                       errors.per_month_amount
-                        ? "border-red-500"
+                        ? "border-red-500 bg-red-50"
                         : "border-gray-200"
                     }`}
                   />
@@ -1074,6 +1065,7 @@ const AddProperty = () => {
                     +233
                   </div>
                   <input
+                    ref={(el) => errorFieldRefs.current.contact_number = el}
                     type="text"
                     value={formData.contact_number}
                     onChange={(e) =>
@@ -1083,7 +1075,7 @@ const AddProperty = () => {
                     maxLength="9"
                     className={`flex-1 px-4 py-3 border border-gray-200 rounded-r-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
                       errors.contact_number
-                        ? "border-red-500"
+                        ? "border-red-500 bg-red-50"
                         : "border-gray-200"
                     }`}
                   />
@@ -1112,6 +1104,7 @@ const AddProperty = () => {
                     +233
                   </div>
                   <input
+                    ref={(el) => errorFieldRefs.current.whatsapp_number = el}
                     type="text"
                     value={formData.whatsapp_number}
                     onChange={(e) =>
@@ -1121,7 +1114,7 @@ const AddProperty = () => {
                     maxLength="9"
                     className={`flex-1 px-4 py-3 border border-gray-200 rounded-r-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
                       errors.whatsapp_number
-                        ? "border-red-500"
+                        ? "border-red-500 bg-red-50"
                         : "border-gray-200"
                     }`}
                   />
@@ -1172,6 +1165,7 @@ const AddProperty = () => {
 
               {/* Upload Button */}
               <div
+                ref={(el) => errorFieldRefs.current.property_images = el}
                 className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
                   errors.property_images
                     ? "border-red-500 bg-red-50"

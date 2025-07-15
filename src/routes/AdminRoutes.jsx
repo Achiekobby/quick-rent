@@ -8,12 +8,31 @@ import RenterManagement from "../pages/adminPages/RenterManagement";
 import PropertyDetails from "../pages/guestPages/PropertyDetails";
 import AllProperties from "../pages/guestPages/AllProperties";
 import ContactSupport from "../pages/guestPages/ContactSupport";
+import Landing from "../pages/guestPages/Landing";
 import ProtectedRoute from "../components/ProtectedRoute";
 import PropertyManagement from "../pages/adminPages/PropertyManagement";
 
 function AdminRoutes() {
   return (
     <Routes>
+      {/* Landing page access for authenticated admins */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Landing />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/home"
+        element={
+          <ProtectedRoute>
+            <Landing />
+          </ProtectedRoute>
+        }
+      />
+      
       <Route
         path="/admin-dashboard"
         element={
@@ -205,7 +224,7 @@ function AdminRoutes() {
         }
       />
 
-      {/* //TODO Catch-all route - redirects any unmatched authenticated routes to admin dashboard */}
+      {/* Catch-all route - redirects any unmatched authenticated routes to admin dashboard */}
       <Route path="*" element={<Navigate to="/admin-dashboard" replace />} />
     </Routes>
   );

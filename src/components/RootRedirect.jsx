@@ -12,16 +12,13 @@ const RootRedirect = () => {
     return <Navigate to="/home" replace />;
   }
 
-  //Todo => If user is fully authenticated, redirect to appropriate dashboard
+  //Todo => If user is fully authenticated, redirect based on user type
   if (isAuthenticated()) {
     const userType = getUserType();
-    if (userType === "landlord") {
-      return <Navigate to="/landlord-dashboard" replace />;
-    } else if (userType === "admin") {
-      return <Navigate to="/admin-dashboard" replace />;
-    }
-    //Todo => For renters and default case
-    return <Navigate to="/dashboard" replace />;
+    const redirectPath = userType === 'renter' ? '/home' : 
+                        userType === 'landlord' ? '/landlord-dashboard' : 
+                        userType === 'admin' ? '/admin-dashboard' : '/home';
+    return <Navigate to={redirectPath} replace />;
   }
 
   //Todo => If user needs verification

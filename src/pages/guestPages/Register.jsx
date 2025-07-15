@@ -122,15 +122,131 @@ const Register = () => {
     }
   }, [isAuthenticated, getRedirectPath, navigate]);
 
+  const validateEmail = (email) => {
+    // More comprehensive email validation regex that requires a proper domain with TLD
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+    
+    if (!email) return { isValid: false, message: "Email is required" };
+    if (email.length > 254) return { isValid: false, message: "Email is too long" };
+    if (!emailRegex.test(email)) return { isValid: false, message: "Please enter a valid email address" };
+    if (email.includes('..')) return { isValid: false, message: "Email cannot contain consecutive dots" };
+    if (email.startsWith('.') || email.endsWith('.')) return { isValid: false, message: "Email cannot start or end with a dot" };
+    if (email.includes('@.') || email.includes('.@')) return { isValid: false, message: "Invalid format around @ symbol" };
+    
+    // Additional check for proper domain structure
+    const parts = email.split('@');
+    if (parts.length !== 2) return { isValid: false, message: "Email must contain exactly one @ symbol" };
+    
+    const [localPart, domain] = parts;
+    if (!localPart || !domain) return { isValid: false, message: "Email must have both local and domain parts" };
+    
+    // Check if domain has at least one dot and ends with valid TLD
+    if (!domain.includes('.')) return { isValid: false, message: "Email must have a valid domain (e.g., gmail.com)" };
+    
+    const domainParts = domain.split('.');
+    const tld = domainParts[domainParts.length - 1];
+    if (tld.length < 2) return { isValid: false, message: "Email must have a valid domain extension" };
+    
+    return { isValid: true, message: null };
+  };
+
+  const validateDateOfBirth = (dateString) => {
+    if (!dateString) return { isValid: false, message: "Date of birth is required" };
+    
+    const inputDate = new Date(dateString);
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    
+    // Check if date is valid
+    if (isNaN(inputDate.getTime())) {
+      return { isValid: false, message: "Please enter a valid date" };
+    }
+    
+    // Check if date is in the future
+    if (inputDate > today) {
+      return { isValid: false, message: "Date of birth cannot be in the future" };
+    }
+    
+    // Check if date is today
+    const todayString = today.toISOString().split('T')[0];
+    if (dateString === todayString) {
+      return { isValid: false, message: "Date of birth cannot be today" };
+    }
+    
+    // Check minimum age (must be at least 13 years old for legal reasons)
+    const minAge = 13;
+    const minAgeDate = new Date(currentYear - minAge, today.getMonth(), today.getDate());
+    if (inputDate > minAgeDate) {
+      return { isValid: false, message: `You must be at least ${minAge} years old to register` };
+    }
+    
+    // Check maximum age (reasonable limit of 120 years)
+    const maxAge = 120;
+    const maxAgeDate = new Date(currentYear - maxAge, today.getMonth(), today.getDate());
+    if (inputDate < maxAgeDate) {
+      return { isValid: false, message: "Please enter a valid date of birth" };
+    }
+    
+    return { isValid: true, message: null };
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Filter full name to only allow letters, spaces, and common name characters
+    let filteredValue = value;
+    if (name === 'fullName') {
+      // Allow letters (including accented characters), spaces, apostrophes, and hyphens
+      filteredValue = value.replace(/[^a-zA-ZÀ-ÿ\s'-]/g, '');
+      // Prevent multiple consecutive spaces
+      filteredValue = filteredValue.replace(/\s+/g, ' ');
+      // Prevent starting with space
+      if (filteredValue.startsWith(' ')) {
+        filteredValue = filteredValue.trimStart();
+      }
+    }
+    
+    // Real-time email validation
+    if (name === 'email' && value.trim()) {
+      const emailValidation = validateEmail(value.trim().toLowerCase());
+      if (!emailValidation.isValid) {
+        setErrors((prev) => ({
+          ...prev,
+          [name]: emailValidation.message,
+        }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          [name]: null,
+        }));
+      }
+      // Convert email to lowercase for consistency
+      filteredValue = value.trim().toLowerCase();
+    }
+    
+    // Real-time date of birth validation
+    if (name === 'dateOfBirth' && value) {
+      const dateValidation = validateDateOfBirth(value);
+      if (!dateValidation.isValid) {
+        setErrors((prev) => ({
+          ...prev,
+          [name]: dateValidation.message,
+        }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          [name]: null,
+        }));
+      }
+    }
+    
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: filteredValue,
     }));
 
-    // Clear error when user types
-    if (errors[name]) {
+    // Clear error when user types (except for email and dateOfBirth which have real-time validation)
+    if (errors[name] && name !== 'email' && name !== 'dateOfBirth') {
       setErrors((prev) => ({
         ...prev,
         [name]: null,
@@ -212,12 +328,15 @@ const Register = () => {
         newErrors.fullName = "Full name is required";
       } else if (formData.fullName.trim().length < 2) {
         newErrors.fullName = "Full name must be at least 2 characters";
+      } else if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(formData.fullName.trim())) {
+        newErrors.fullName = "Full name can only contain letters, spaces, apostrophes, and hyphens";
+      } else if (formData.fullName.trim().length > 50) {
+        newErrors.fullName = "Full name must be less than 50 characters";
       }
 
-      if (!formData.email) {
-        newErrors.email = "Email is required";
-      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-        newErrors.email = "Email is invalid";
+      const emailValidation = validateEmail(formData.email);
+      if (!emailValidation.isValid) {
+        newErrors.email = emailValidation.message;
       }
 
       if (!formData.phone) {
@@ -229,6 +348,11 @@ const Register = () => {
 
     if (currentStep === 2) {
       // Step 2: Profile & Gender
+      const dateValidation = validateDateOfBirth(formData.dateOfBirth);
+      if (!dateValidation.isValid) {
+        newErrors.dateOfBirth = dateValidation.message;
+      }
+      
       if (!formData.gender) {
         newErrors.gender = "Gender is required";
       }
@@ -732,10 +856,13 @@ const Register = () => {
                 name="fullName"
                 type="text"
                 required
+                maxLength={50}
+                pattern="[a-zA-ZÀ-ÿ\s'-]+"
+                title="Full name can only contain letters, spaces, apostrophes, and hyphens"
                 className={`block w-full pl-12 pr-4 py-4 border-2 ${
                   errors.fullName ? "border-red-500 bg-red-50" : "border-neutral-200 focus:border-orange-500"
                 } rounded-2xl focus:outline-none focus:ring-4 focus:ring-orange-500/20 shadow-sm hover:shadow-md transition-all duration-300 bg-white`}
-                placeholder="What should we call you?"
+                placeholder="Enter your full name (letters only)"
                 value={formData.fullName}
                 onChange={handleInputChange}
               />
@@ -772,12 +899,26 @@ const Register = () => {
                 type="email"
                 autoComplete="email"
                 required
+                maxLength={254}
+                pattern="[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*"
+                title="Please enter a valid email address"
                 className={`block w-full pl-12 pr-4 py-4 border-2 ${
                   errors.email ? "border-red-500 bg-red-50" : "border-neutral-200 focus:border-orange-500"
                 } rounded-2xl focus:outline-none focus:ring-4 focus:ring-orange-500/20 shadow-sm hover:shadow-md transition-all duration-300 bg-white`}
-                placeholder="your.email@example.com"
+                placeholder="Enter your email address"
                 value={formData.email}
                 onChange={handleInputChange}
+                onBlur={(e) => {
+                  if (e.target.value.trim()) {
+                    const emailValidation = validateEmail(e.target.value.trim().toLowerCase());
+                    if (!emailValidation.isValid) {
+                      setErrors((prev) => ({
+                        ...prev,
+                        email: emailValidation.message,
+                      }));
+                    }
+                  }
+                }}
               />
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500/5 to-pink-500/5 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none" />
             </div>
@@ -1044,6 +1185,19 @@ const Register = () => {
                     name="dateOfBirth"
                     type="date"
                     required
+                    min={(() => {
+                      const today = new Date();
+                      const maxAge = 120;
+                      const minDate = new Date(today.getFullYear() - maxAge, today.getMonth(), today.getDate());
+                      return minDate.toISOString().split('T')[0];
+                    })()}
+                    max={(() => {
+                      const today = new Date();
+                      const minAge = 13;
+                      const maxDate = new Date(today.getFullYear() - minAge, today.getMonth(), today.getDate());
+                      return maxDate.toISOString().split('T')[0];
+                    })()}
+                    title="You must be between 13 and 120 years old to register"
                     className={`block w-full pl-12 pr-4 py-4 border-2 ${
                       errors.dateOfBirth ? "border-red-500 bg-red-50" : "border-neutral-200 focus:border-orange-500"
                     } rounded-2xl focus:outline-none focus:ring-4 focus:ring-orange-500/20 shadow-sm hover:shadow-md transition-all duration-300 bg-white`}
