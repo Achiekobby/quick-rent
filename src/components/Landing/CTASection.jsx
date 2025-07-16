@@ -37,7 +37,7 @@ const propertyImages = [
 
 const CTASection = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, getRedirectPath, getUserType } = useAuthStore();
+  const { isAuthenticated, getRedirectPath } = useAuthStore();
   
   const handleGetStarted = () => {
     if (isAuthenticated()) {

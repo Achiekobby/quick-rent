@@ -317,9 +317,8 @@ const useAuthStore = create(
         if (!store.user) return "/home";
         if (store.requiresVerification()) return "/verify-account";
         if (store.isAuthenticated()) {
-          // Only redirect renters to home page, keep original redirects for landlords and admins
-          if (store.user.user_type === 'renter') {
-            return "/home";
+          if (store.user.user_type === 'rentor') {
+            return "/dashboard";
           } else if (store.user.user_type === 'landlord') {
             return "/landlord-dashboard";
           } else if (store.user.user_type === 'admin') {
