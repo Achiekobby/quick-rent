@@ -31,6 +31,7 @@ const ViewModal = ({
   setShowRenterModal,
   selectedRenter,
   onRenterUpdate,
+  onEditRenter,
 }) => {
   const [actionLoading, setActionLoading] = useState({});
 
@@ -343,16 +344,29 @@ const ViewModal = ({
                       Quick Actions
                     </h3>
                     <div className="space-y-3">
+                      {/* Edit Button */}
+                      {onEditRenter && (
+                        <Motion.button
+                          onClick={() => onEditRenter(selectedRenter)}
+                          className="group w-full flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 text-sm font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <Settings size={16} className="group-hover:rotate-90 transition-transform duration-300" />
+                          Edit Renter Details
+                        </Motion.button>
+                      )}
+
                       <button
                         onClick={() =>
                           handleToggleVerification(selectedRenter.user_slug, selectedRenter.is_verified)
                         }
                         disabled={actionLoading[`verify_${selectedRenter.user_slug}`]}
-                        className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${
+                        className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 text-sm font-medium hover:shadow-md transform hover:-translate-y-0.5 ${
                           selectedRenter.is_verified
                             ? "bg-yellow-600 text-white hover:bg-yellow-700"
                             : "bg-green-600 text-white hover:bg-green-700"
-                        } disabled:opacity-50`}
+                        } disabled:opacity-50 disabled:transform-none`}
                       >
                         {actionLoading[`verify_${selectedRenter.user_slug}`] ? (
                           <RefreshCw size={16} className="animate-spin" />
@@ -367,11 +381,11 @@ const ViewModal = ({
                           handleToggleStatus(selectedRenter.user_slug, selectedRenter.is_active)
                         }
                         disabled={actionLoading[`status_${selectedRenter.user_slug}`]}
-                        className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${
+                        className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg transition-all duration-300 text-sm font-medium hover:shadow-md transform hover:-translate-y-0.5 ${
                           selectedRenter.is_active
                             ? "bg-red-600 text-white hover:bg-red-700"
                             : "bg-green-600 text-white hover:bg-green-700"
-                        } disabled:opacity-50`}
+                        } disabled:opacity-50 disabled:transform-none`}
                       >
                         {actionLoading[`status_${selectedRenter.user_slug}`] ? (
                           <RefreshCw size={16} className="animate-spin" />

@@ -54,6 +54,7 @@ import { toast } from "react-toastify";
 import moment from "moment";
 import generalRentersRequests from "../../api/Admin/Rentors/GeneralRentorsRequests";
 import ViewModal from "../../components/AdminRenters/ViewModal";
+import EditRenterModal from "../../components/AdminRenters/EditRenterModal";
 
 const RenterManagement = () => {
   // State management
@@ -66,6 +67,7 @@ const RenterManagement = () => {
   const [viewMode, setViewMode] = useState("grid");
   const [selectedRenter, setSelectedRenter] = useState(null);
   const [showRenterModal, setShowRenterModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [actionLoading, setActionLoading] = useState({});
 
   // Pagination state
@@ -263,6 +265,11 @@ const RenterManagement = () => {
     setShowRenterModal(true);
   };
 
+  const handleEditRenter = (renter) => {
+    setSelectedRenter(renter);
+    setShowEditModal(true);
+  };
+
   const getStatusBadge = (renter) => {
     if (!renter.is_active) {
       return (
@@ -335,10 +342,6 @@ const RenterManagement = () => {
           </div>
 
           <div className="flex items-center gap-3 mt-4 lg:mt-0">
-            <button className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 text-sm shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-              <RefreshCw size={16} />
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
           </div>
         </Motion.div>
 
@@ -602,32 +605,43 @@ const RenterManagement = () => {
 
                     {/* Actions */}
                     <div className="pt-3 border-t border-gray-100">
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <button
                           onClick={() => handleViewDetails(renter)}
-                          className="flex items-center justify-center gap-1 px-2 py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors text-xs font-medium"
+                          className="group flex items-center justify-center gap-1 px-2 py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-all duration-300 text-xs font-medium hover:shadow-md transform hover:-translate-y-0.5"
                           title="View Details"
                         >
-                          <Eye size={12} />
+                          <Eye size={12} className="group-hover:scale-110 transition-transform duration-300" />
                           <span className="hidden md:inline">Details</span>
                         </button>
 
+                        <button
+                          onClick={() => handleEditRenter(renter)}
+                          className="group flex items-center justify-center gap-1 px-2 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-600 rounded-lg hover:from-blue-100 hover:to-indigo-100 transition-all duration-300 text-xs font-medium hover:shadow-md transform hover:-translate-y-0.5"
+                          title="Edit Renter"
+                        >
+                          <Settings size={12} className="group-hover:rotate-90 transition-transform duration-300" />
+                          <span className="hidden md:inline">Edit</span>
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 mt-2">
                         <button
                           onClick={() =>
                             handleToggleVerification(renter.user_slug, renter.is_verified)
                           }
                           disabled={actionLoading[`verify_${renter.user_slug}`]}
-                          className={`flex items-center justify-center gap-1 px-2 py-2 rounded-lg transition-colors text-xs font-medium ${
+                          className={`group flex items-center justify-center gap-1 px-2 py-2 rounded-lg transition-all duration-300 text-xs font-medium hover:shadow-md transform hover:-translate-y-0.5 ${
                             renter.is_verified
                               ? "bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
                               : "bg-green-50 text-green-600 hover:bg-green-100"
-                          } disabled:opacity-50`}
+                          } disabled:opacity-50 disabled:transform-none`}
                           title={renter.is_verified ? "Remove Verification" : "Verify Account"}
                         >
                           {actionLoading[`verify_${renter.user_slug}`] ? (
                             <RefreshCw size={12} className="animate-spin" />
                           ) : (
-                            <Shield size={12} />
+                            <Shield size={12} className="group-hover:scale-110 transition-transform duration-300" />
                           )}
                           <span className="hidden md:inline">
                             {renter.is_verified ? "Unverify" : "Verify"}
@@ -639,19 +653,19 @@ const RenterManagement = () => {
                             handleToggleStatus(renter.user_slug, renter.is_active)
                           }
                           disabled={actionLoading[`status_${renter.user_slug}`]}
-                          className={`flex items-center justify-center gap-1 px-2 py-2 rounded-lg transition-colors text-xs font-medium ${
+                          className={`group flex items-center justify-center gap-1 px-2 py-2 rounded-lg transition-all duration-300 text-xs font-medium hover:shadow-md transform hover:-translate-y-0.5 ${
                             renter.is_active
                               ? "bg-red-50 text-red-600 hover:bg-red-100"
                               : "bg-green-50 text-green-600 hover:bg-green-100"
-                          } disabled:opacity-50`}
+                          } disabled:opacity-50 disabled:transform-none`}
                           title={renter.is_active ? "Deactivate Account" : "Activate Account"}
                         >
                           {actionLoading[`status_${renter.user_slug}`] ? (
                             <RefreshCw size={12} className="animate-spin" />
                           ) : renter.is_active ? (
-                            <UserX size={12} />
+                            <UserX size={12} className="group-hover:scale-110 transition-transform duration-300" />
                           ) : (
-                            <UserCheck size={12} />
+                            <UserCheck size={12} className="group-hover:scale-110 transition-transform duration-300" />
                           )}
                           <span className="hidden md:inline">
                             {renter.is_active ? "Deactivate" : "Activate"}
@@ -754,6 +768,15 @@ const RenterManagement = () => {
         <ViewModal
           showRenterModal={showRenterModal}
           setShowRenterModal={setShowRenterModal}
+          selectedRenter={selectedRenter}
+          onRenterUpdate={handleRenterUpdate}
+          onEditRenter={handleEditRenter}
+        />
+
+        {/* Edit Renter Modal */}
+        <EditRenterModal
+          showEditModal={showEditModal}
+          setShowEditModal={setShowEditModal}
           selectedRenter={selectedRenter}
           onRenterUpdate={handleRenterUpdate}
         />

@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Ban,
   CheckCircle,
+  Edit,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import moment from "moment";
@@ -402,6 +403,19 @@ const ViewModal = ({
                         <Building size={16} />
                         View Properties
                       </button>
+
+                      <Motion.button
+                        onClick={() => {
+                          navigate(`/admin/landlords/edit/${selectedLandlord.landlord_slug}`);
+                          setShowLandlordModal(false);
+                        }}
+                        className="group w-full flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 text-sm font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <Edit size={16} className="group-hover:rotate-12 transition-transform duration-300" />
+                        Edit Landlord Details
+                      </Motion.button>
 
                       <button
                         onClick={() =>

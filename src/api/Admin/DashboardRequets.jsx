@@ -4,7 +4,11 @@ const BASE_URL = `${Config.baseUrl}/admin`;
 
 class DashboardRequests {
   constructor() {
-    this.headers = {
+    // Headers are now generated dynamically for each request
+  }
+
+  getHeaders() {
+    return {
       "Content-Type": "application/json",
       Authorization: `Bearer ${localStorage.getItem("quick_admin_token")}`,
     };
@@ -12,7 +16,7 @@ class DashboardRequests {
 
   async getDashboardData() {
     const response = await axios.get(`${BASE_URL}/dashboardStats`, {
-      headers: this.headers,
+      headers: this.getHeaders(),
     });
     return response.data;
   }
@@ -33,7 +37,7 @@ class DashboardRequests {
     const response = await axios.post(
       `${BASE_URL}/properties/status`,
       { property_slug: propertySlug, status: status },
-      { headers: this.headers }
+      { headers: this.getHeaders() }
     );
     return response.data;
   }

@@ -28,6 +28,8 @@ import { Link, useNavigate } from "react-router";
 import AuthLayout from "../../Layouts/AuthLayout";
 import { toast } from "react-toastify";
 import { createProperty } from "../../api/Landlord/General/PropertyRequest";
+import { propertyTypes, amenitiesList } from "../../data/PropertyTypes";
+import ghanaRegions from "../../data/ghanaRegions";
 
 const AddProperty = () => {
   const navigate = useNavigate();
@@ -45,13 +47,13 @@ const AddProperty = () => {
       const element = errorFieldRefs.current[firstErrorField];
       const elementRect = element.getBoundingClientRect();
       const absoluteElementTop = elementRect.top + window.pageYOffset;
-      const offset = 120; // Offset from top for better visibility
-      
+      const offset = 120;
+
       window.scrollTo({
         top: absoluteElementTop - offset,
-        behavior: "smooth"
+        behavior: "smooth",
       });
-      
+
       // Add a subtle shake animation to draw attention
       element.style.animation = "shake 0.5s ease-in-out";
       setTimeout(() => {
@@ -67,7 +69,7 @@ const AddProperty = () => {
 
   // Add shake animation styles
   useEffect(() => {
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.textContent = `
       @keyframes shake {
         0%, 100% { transform: translateX(0); }
@@ -76,83 +78,11 @@ const AddProperty = () => {
       }
     `;
     document.head.appendChild(style);
-    
+
     return () => {
       document.head.removeChild(style);
     };
   }, []);
-
-  // Ghana regions and their major locations
-  const ghanaRegions = {
-    "Greater Accra": [
-      "Accra",
-      "Tema",
-      "Kasoa",
-      "East Legon",
-      "Airport Residential",
-      "Dansoman",
-      "Adenta",
-      "Madina",
-      "Spintex",
-      "Cantonments",
-      "Other",
-    ],
-    Ashanti: [
-      "Kumasi",
-      "Obuasi",
-      "Ejisu",
-      "Konongo",
-      "Mampong",
-      "Bekwai",
-      "Other",
-    ],
-    Western: ["Takoradi", "Axim", "Half Assini", "Prestea", "Tarkwa", "Other"],
-    Central: ["Cape Coast", "Elmina", "Winneba", "Kasoa", "Swedru", "Other"],
-    Eastern: ["Koforidua", "Akosombo", "Nkawkaw", "Begoro", "Other"],
-    Northern: ["Tamale", "Yendi", "Salaga", "Other"],
-    "Upper East": ["Bolgatanga", "Navrongo", "Bawku", "Other"],
-    "Upper West": ["Wa", "Lawra", "Jirapa", "Other"],
-    Volta: ["Ho", "Keta", "Hohoe", "Kpando", "Other"],
-    "Brong Ahafo": [
-      "Sunyani",
-      "Techiman",
-      "Berekum",
-      "Dormaa Ahenkro",
-      "Other",
-    ],
-  };
-
-  const propertyTypes = [
-    "Single Room",
-    "Chamber and Hall",
-    "2 Bedroom Apartment",
-    "3 Bedroom Apartment",
-    "Office Space",
-    "Short Stay",
-  ];
-
-  const amenitiesList = [
-    "Air Conditioning",
-    "Parking",
-    "Swimming Pool",
-    "Gym",
-    "Security",
-    "Elevator",
-    "Balcony",
-    "Garden",
-    "WiFi",
-    "Furnished",
-    "Pet Friendly",
-    "Laundry",
-    "Storage",
-    "Fire Safety",
-    "CCTV",
-    "Generator",
-    "Water Tank",
-    "Solar Power",
-    "Intercom",
-    "Gated Community",
-  ];
 
   const [formData, setFormData] = useState({
     title: "",
@@ -279,7 +209,6 @@ const AddProperty = () => {
       setFormData((prev) => {
         const updatedImages = [...prev.property_images, ...base64Images];
 
-        // If this is the first image and no image is featured, make it featured
         if (prev.property_images.length === 0 && updatedImages.length > 0) {
           updatedImages[0].is_featured = true;
         }
@@ -297,7 +226,6 @@ const AddProperty = () => {
   };
 
   const removeImage = (index) => {
-    // Revoke the object URL to prevent memory leaks
     if (imagePreviewUrls[index]) {
       URL.revokeObjectURL(imagePreviewUrls[index]);
     }
@@ -310,7 +238,6 @@ const AddProperty = () => {
     setFormData((prev) => {
       const updatedImages = prev.property_images.filter((_, i) => i !== index);
 
-      // If we removed the featured image and there are other images, make the first one featured
       if (wasFeatureImage && updatedImages.length > 0) {
         updatedImages[0].is_featured = true;
       }
@@ -386,13 +313,13 @@ const AddProperty = () => {
     }
 
     setErrors(newErrors);
-    
+
     // Scroll to first error if validation fails
     if (Object.keys(newErrors).length > 0) {
       setTimeout(() => scrollToFirstError(newErrors), 100);
       return false;
     }
-    
+
     return true;
   };
 
@@ -459,10 +386,6 @@ const AddProperty = () => {
     handleInputChange(field, cleanValue);
   };
 
-
-
-
-
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -479,7 +402,7 @@ const AddProperty = () => {
                 Property Title *
               </label>
               <input
-                ref={(el) => errorFieldRefs.current.title = el}
+                ref={(el) => (errorFieldRefs.current.title = el)}
                 type="text"
                 value={formData.title}
                 onChange={(e) => handleInputChange("title", e.target.value)}
@@ -501,8 +424,8 @@ const AddProperty = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Property Type *
               </label>
-              <div 
-                ref={(el) => errorFieldRefs.current.property_type = el}
+              <div
+                ref={(el) => (errorFieldRefs.current.property_type = el)}
                 className="grid grid-cols-2 md:grid-cols-3 gap-3"
               >
                 {propertyTypes.map((type) => (
@@ -536,14 +459,16 @@ const AddProperty = () => {
                   Region *
                 </label>
                 <select
-                  ref={(el) => errorFieldRefs.current.region = el}
+                  ref={(el) => (errorFieldRefs.current.region = el)}
                   value={formData.region}
                   onChange={(e) => {
                     handleInputChange("region", e.target.value);
                     handleInputChange("location", ""); // Reset location when region changes
                   }}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                    errors.region ? "border-red-500 bg-red-50" : "border-gray-200"
+                    errors.region
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-200"
                   }`}
                 >
                   <option value="">Select Region</option>
@@ -567,14 +492,16 @@ const AddProperty = () => {
                   Location *
                 </label>
                 <select
-                  ref={(el) => errorFieldRefs.current.location = el}
+                  ref={(el) => (errorFieldRefs.current.location = el)}
                   value={formData.location}
                   onChange={(e) =>
                     handleInputChange("location", e.target.value)
                   }
                   disabled={!formData.region}
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                    errors.location ? "border-red-500 bg-red-50" : "border-gray-200"
+                    errors.location
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-200"
                   } ${!formData.region ? "bg-gray-100" : ""}`}
                 >
                   <option value="">Select Location</option>
@@ -607,7 +534,7 @@ const AddProperty = () => {
                     Specify Location *
                   </label>
                   <input
-                    ref={(el) => errorFieldRefs.current.customLocation = el}
+                    ref={(el) => (errorFieldRefs.current.customLocation = el)}
                     type="text"
                     value={formData.customLocation}
                     onChange={(e) =>
@@ -637,13 +564,15 @@ const AddProperty = () => {
                   Suburb/Area *
                 </label>
                 <input
-                  ref={(el) => errorFieldRefs.current.suburb = el}
+                  ref={(el) => (errorFieldRefs.current.suburb = el)}
                   type="text"
                   value={formData.suburb}
                   onChange={(e) => handleInputChange("suburb", e.target.value)}
                   placeholder="e.g., American House"
                   className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                    errors.suburb ? "border-red-500 bg-red-50" : "border-gray-200"
+                    errors.suburb
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-200"
                   }`}
                 />
                 {errors.suburb && (
@@ -832,7 +761,7 @@ const AddProperty = () => {
                 Year Built *
               </label>
               <input
-                ref={(el) => errorFieldRefs.current.year_built = el}
+                ref={(el) => (errorFieldRefs.current.year_built = el)}
                 type="number"
                 value={formData.year_built}
                 onChange={(e) =>
@@ -842,7 +771,9 @@ const AddProperty = () => {
                 min="1900"
                 max={new Date().getFullYear()}
                 className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                  errors.year_built ? "border-red-500 bg-red-50" : "border-gray-200"
+                  errors.year_built
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-200"
                 }`}
               />
               {errors.year_built && (
@@ -858,10 +789,12 @@ const AddProperty = () => {
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Amenities *
               </label>
-              <div 
-                ref={(el) => errorFieldRefs.current.amenities = el}
+              <div
+                ref={(el) => (errorFieldRefs.current.amenities = el)}
                 className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 ${
-                  errors.amenities ? "border border-red-500 rounded-xl p-3 bg-red-50" : ""
+                  errors.amenities
+                    ? "border border-red-500 rounded-xl p-3 bg-red-50"
+                    : ""
                 }`}
               >
                 {amenitiesList.map((amenity) => (
@@ -906,7 +839,7 @@ const AddProperty = () => {
                 Property Description *
               </label>
               <textarea
-                ref={(el) => errorFieldRefs.current.description = el}
+                ref={(el) => (errorFieldRefs.current.description = el)}
                 value={formData.description}
                 onChange={(e) =>
                   handleInputChange("description", e.target.value)
@@ -914,7 +847,9 @@ const AddProperty = () => {
                 placeholder="Describe your property in detail. Include what makes it special, nearby amenities, transportation links, etc."
                 rows={5}
                 className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all resize-none ${
-                  errors.description ? "border-red-500 bg-red-50" : "border-gray-200"
+                  errors.description
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-200"
                 }`}
               />
               <div className="flex justify-between items-center mt-1">
@@ -952,7 +887,7 @@ const AddProperty = () => {
                     className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                   />
                   <input
-                    ref={(el) => errorFieldRefs.current.per_month_amount = el}
+                    ref={(el) => (errorFieldRefs.current.per_month_amount = el)}
                     type="number"
                     value={formData.per_month_amount}
                     onChange={(e) =>
@@ -1065,7 +1000,7 @@ const AddProperty = () => {
                     +233
                   </div>
                   <input
-                    ref={(el) => errorFieldRefs.current.contact_number = el}
+                    ref={(el) => (errorFieldRefs.current.contact_number = el)}
                     type="text"
                     value={formData.contact_number}
                     onChange={(e) =>
@@ -1104,7 +1039,7 @@ const AddProperty = () => {
                     +233
                   </div>
                   <input
-                    ref={(el) => errorFieldRefs.current.whatsapp_number = el}
+                    ref={(el) => (errorFieldRefs.current.whatsapp_number = el)}
                     type="text"
                     value={formData.whatsapp_number}
                     onChange={(e) =>
@@ -1165,7 +1100,7 @@ const AddProperty = () => {
 
               {/* Upload Button */}
               <div
-                ref={(el) => errorFieldRefs.current.property_images = el}
+                ref={(el) => (errorFieldRefs.current.property_images = el)}
                 className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
                   errors.property_images
                     ? "border-red-500 bg-red-50"
@@ -1333,111 +1268,6 @@ const AddProperty = () => {
                 </div>
               )}
             </div>
-
-            {/* Complete API Payload Preview */}
-            {/* <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <Code size={16} className="text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-semibold text-blue-900">
-                      Complete API Payload
-                    </h4>
-                    <p className="text-sm text-blue-700">
-                      Ready to send to your backend
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowFullPayload(!showFullPayload)}
-                    className="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
-                  >
-                    {showFullPayload ? <EyeOff size={14} /> : <Eye size={14} />}
-                    {showFullPayload ? "Collapse" : "Expand"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={copyPayloadToClipboard}
-                    className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
-                  >
-                    <Copy size={14} />
-                    Copy JSON
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div className="bg-white/60 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-blue-600">
-                    {Object.keys(generateCompletePayload(false)).length}
-                  </p>
-                  <p className="text-xs text-blue-700">Total Fields</p>
-                </div>
-                <div className="bg-white/60 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-green-600">
-                    {formData.property_images.length}
-                  </p>
-                  <p className="text-xs text-green-700">Images</p>
-                </div>
-                <div className="bg-white/60 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-orange-600">
-                    {formData.amenities.length}
-                  </p>
-                  <p className="text-xs text-orange-700">Amenities</p>
-                </div>
-                <div className="bg-white/60 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-purple-600">
-                    {JSON.stringify(generateCompletePayload(false)).length}
-                  </p>
-                  <p className="text-xs text-purple-700">Bytes</p>
-                </div>
-              </div>
-
-              <div
-                className={`transition-all duration-300 ${
-                  showFullPayload ? "max-h-96" : "max-h-40"
-                } overflow-y-auto`}
-              >
-                <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm">
-                  <pre className="text-green-400 whitespace-pre-wrap break-all">
-                    {JSON.stringify(generateCompletePayload(true), null, 2)}
-                  </pre>
-                </div>
-              </div>
-
-              <div className="mt-4 p-4 bg-white/60 rounded-lg">
-                <h5 className="font-semibold text-blue-900 mb-2">
-                  📡 Backend Integration Guide
-                </h5>
-                <div className="text-sm text-blue-800 space-y-1">
-                  <p>
-                    • <strong>Endpoint:</strong> POST /api/properties
-                  </p>
-                  <p>
-                    • <strong>Content-Type:</strong> application/json
-                  </p>
-                  <p>
-                    • <strong>Images:</strong> Base64 strings (decode & store as
-                    files)
-                  </p>
-                  <p>
-                    • <strong>Phone Numbers:</strong> Include +233 country code
-                  </p>
-                  <p>
-                    • <strong>Featured Image:</strong> Only one image has
-                    is_featured: true
-                  </p>
-                  <p>
-                    • <strong>Response:</strong> Return property ID and decoded
-                    image URLs
-                  </p>
-                </div>
-              </div>
-            </div> */}
           </Motion.div>
         );
 
@@ -1449,7 +1279,7 @@ const AddProperty = () => {
   return (
     <AuthLayout>
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-4 mb-6">

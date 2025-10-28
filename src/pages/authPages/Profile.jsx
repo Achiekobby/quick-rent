@@ -355,58 +355,7 @@ const Profile = () => {
     );
   };
 
-  const getUserStats = () => {
-    if (userType === "landlord") {
-      return [
-        {
-          label: "Properties",
-          value: user?.properties_count || 0,
-          icon: Building,
-          color: Colors.accent.orange,
-        },
-        {
-          label: "Total Views",
-          value: "2.4K",
-          icon: Eye,
-          color: Colors.primary[500],
-        },
-        {
-          label: "Rating",
-          value: "4.8",
-          icon: Star,
-          color: Colors.accent.yellow,
-        },
-        {
-          label: "Years Active",
-          value: "2",
-          icon: Award,
-          color: Colors.accent.green,
-        },
-      ];
-    } else {
-      return [
-        {
-          label: "Wishlist",
-          value: "12",
-          icon: Heart,
-          color: Colors.accent.pink,
-        },
-        { label: "Viewed", value: "45", icon: Eye, color: Colors.primary[500] },
-        {
-          label: "Applications",
-          value: "3",
-          icon: Home,
-          color: Colors.accent.green,
-        },
-        {
-          label: "Member Since",
-          value: "2023",
-          icon: Calendar,
-          color: Colors.accent.blue,
-        },
-      ];
-    }
-  };
+
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
@@ -684,6 +633,26 @@ const Profile = () => {
                         )}
                       </div>
 
+                      {/* Re-verification Notice */}
+                      {isEditing && (
+                        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                          <div className="flex items-start gap-3">
+                            <AlertCircle
+                              size={20}
+                              className="text-amber-600 mt-0.5 flex-shrink-0"
+                            />
+                            <div>
+                              <h4 className="text-sm font-semibold text-amber-800 mb-1">
+                                Profile Re-verification Required
+                              </h4>
+                              <p className="text-sm text-amber-700">
+                                After saving your profile changes, your account will go under review again for verification by an admin. You may experience temporary access limitations during this process.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                         {/* Full Name */}
                         <div>
@@ -771,8 +740,8 @@ const Profile = () => {
                           )}
                         </div>
 
-                        {/* Gender */}
-                        <div>
+                        {/* Gender - Hidden */}
+                        {/* <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Gender
                           </label>
@@ -803,7 +772,7 @@ const Profile = () => {
                                 : "Not specified"}
                             </div>
                           )}
-                        </div>
+                        </div> */}
 
                         {/* Landlord specific fields */}
                         {userType === "landlord" && (

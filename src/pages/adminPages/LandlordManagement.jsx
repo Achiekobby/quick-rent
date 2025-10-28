@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
+import { Link, useNavigate } from "react-router";
 import {
   Users,
   Search,
@@ -47,14 +48,18 @@ import {
   ChevronsRight,
   MailCheck,
   LocationEdit,
+  Edit,
 } from "lucide-react";
 import AuthLayout from "../../Layouts/AuthLayout";
 import { toast } from "react-toastify";
 import moment from "moment";
 import generalRequests from "../../api/Admin/Landlords/GeneralRequests";
 import ViewModal from "../../components/AdminLandlords/ViewModal";
+import ActivationReviewModal from "../../components/AdminLandlords/ActivationReviewModal";
+import DeactivationConfirmationModal from "../../components/AdminLandlords/DeactivationConfirmationModal";
 
 const LandlordManagement = () => {
+  const navigate = useNavigate();
   // State management
   const [landlords, setLandlords] = useState([]);
   const [filteredLandlords, setFilteredLandlords] = useState([]);
@@ -65,6 +70,8 @@ const LandlordManagement = () => {
   const [viewMode, setViewMode] = useState("grid");
   const [selectedLandlord, setSelectedLandlord] = useState(null);
   const [showLandlordModal, setShowLandlordModal] = useState(false);
+  const [showActivationModal, setShowActivationModal] = useState(false);
+  const [showDeactivationModal, setShowDeactivationModal] = useState(false);
   const [actionLoading, setActionLoading] = useState({});
 
   // Pagination state
@@ -223,35 +230,118 @@ const LandlordManagement = () => {
   };
 
   // Action handlers
-  const handleToggleStatus = async (landlordSlug, currentStatus) => {
+  const handleToggleStatus = (landlordSlug, currentStatus) => {
+    const landlord = landlords.find(l => l.landlord_slug === landlordSlug);
+    if (!landlord) return;
+
+    if (currentStatus) {
+      // Deactivating - show confirmation modal
+      setSelectedLandlord(landlord);
+      setShowDeactivationModal(true);
+    } else {
+      // Activating - show review modal
+      setSelectedLandlord(landlord);
+      setShowActivationModal(true);
+    }
+  };
+
+  const handleActivationApprove = async (landlordSlug) => {
     setActionLoading((prev) => ({ ...prev, [`status_${landlordSlug}`]: true }));
 
     try {
       const response = await generalRequests.updateAccountStatus({
         landlord_slug: landlordSlug,
-        status: currentStatus ? "deactivate" : "activate",
+        status: "activate",
       });
 
       if (!response?.data?.in_error) {
         toast.success(
-          response?.data?.reason || "Account status updated successfully"
+          response?.data?.reason || "Landlord account activated successfully"
         );
+        setLandlords((prev) =>
+          prev.map((landlord) =>
+            landlord.landlord_slug === landlordSlug
+              ? { ...landlord, is_active: true }
+              : landlord
+          )
+        );
+        setShowActivationModal(false);
       } else {
         toast.error(
-          response?.data?.reason || "Failed to update account status"
+          response?.data?.reason || "Failed to activate account"
         );
       }
-
-      setLandlords((prev) =>
-        prev.map((landlord) =>
-          landlord.landlord_slug === landlordSlug
-            ? { ...landlord, is_active: !currentStatus }
-            : landlord
-        )
-      );
     } catch (error) {
       console.log(error);
-      toast.error("Failed to update landlord status");
+      toast.error("Failed to activate landlord account");
+    } finally {
+      setActionLoading((prev) => ({
+        ...prev,
+        [`status_${landlordSlug}`]: false,
+      }));
+    }
+  };
+
+  const handleActivationReject = async (landlordSlug) => {
+    setActionLoading((prev) => ({ ...prev, [`status_${landlordSlug}`]: true }));
+
+    try {
+      const response = await generalRequests.updateAccountStatus({
+        landlord_slug: landlordSlug,
+        status: "reject",
+      });
+
+      if (!response?.data?.in_error) {
+        toast.success(
+          response?.data?.reason || "Landlord activation rejected"
+        );
+        setShowActivationModal(false);
+      } else {
+        toast.error(
+          response?.data?.reason || "Failed to reject activation"
+        );
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to reject landlord activation");
+    } finally {
+      setActionLoading((prev) => ({
+        ...prev,
+        [`status_${landlordSlug}`]: false,
+      }));
+    }
+  };
+
+  const handleDeactivationConfirm = async (landlordSlug, reason) => {
+    setActionLoading((prev) => ({ ...prev, [`status_${landlordSlug}`]: true }));
+
+    try {
+      const response = await generalRequests.updateAccountStatus({
+        landlord_slug: landlordSlug,
+        status: "deactivate",
+        reason: reason,
+      });
+
+      if (!response?.data?.in_error) {
+        toast.success(
+          response?.data?.reason || "Landlord account deactivated successfully"
+        );
+        setLandlords((prev) =>
+          prev.map((landlord) =>
+            landlord.landlord_slug === landlordSlug
+              ? { ...landlord, is_active: false }
+              : landlord
+          )
+        );
+        setShowDeactivationModal(false);
+      } else {
+        toast.error(
+          response?.data?.reason || "Failed to deactivate account"
+        );
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to deactivate landlord account");
     } finally {
       setActionLoading((prev) => ({
         ...prev,
@@ -304,6 +394,10 @@ const LandlordManagement = () => {
     setShowLandlordModal(true);
   };
 
+  const handleEditLandlord = (landlord) => {
+    navigate(`/admin/landlords/edit/${landlord.landlord_slug}`);
+  };
+
   // Handle landlord updates from modal
   const handleLandlordUpdate = (landlordSlug, updates) => {
     setLandlords((prev) =>
@@ -317,6 +411,11 @@ const LandlordManagement = () => {
     if (selectedLandlord?.landlord_slug === landlordSlug) {
       setSelectedLandlord((prev) => ({ ...prev, ...updates }));
     }
+  };
+
+  // Helper function to check if landlord has verification documents
+  const hasVerificationDocuments = (landlord) => {
+    return landlord.selfie_picture && landlord.ghana_card_front && landlord.ghana_card_back;
   };
 
   const getStatusBadge = (landlord) => {
@@ -368,13 +467,28 @@ const LandlordManagement = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">
+          <div className="relative">
+            <div className="absolute -top-2 -left-2 w-4 h-4 bg-purple-500 rounded-full animate-pulse"></div>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
               Landlord Management
             </h1>
             <p className="text-gray-600 text-sm md:text-base lg:text-lg">
               Manage and monitor all landlords on the platform
             </p>
+          </div>
+
+          <div className="flex items-center gap-3 mt-4 lg:mt-0">
+            <Link
+              to="/admin/landlords/create"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 text-sm shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            >
+              <Plus size={16} />
+              <span className="hidden sm:inline">Create Landlord</span>
+            </Link>
+            <button className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 text-sm shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+              <RefreshCw size={16} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
           </div>
         </Motion.div>
 
@@ -782,83 +896,110 @@ const LandlordManagement = () => {
                         </div>
 
                         {/* Actions */}
-                        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-                          <button
-                            onClick={() => handleViewDetails(landlord)}
-                            className="flex items-center justify-center gap-1 px-2 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-xs font-medium"
-                            title="View Details"
-                          >
-                            <Eye size={12} />
-                            <span className="hidden md:inline">Details</span>
-                          </button>
+                        <div className="space-y-2">
+                          {/* Primary Actions Row */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => handleViewDetails(landlord)}
+                              className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all duration-200 text-xs font-medium hover:shadow-sm"
+                              title="View Details"
+                            >
+                              <Eye size={14} />
+                              <span className="truncate">View Details</span>
+                            </button>
 
-                          <button
-                            onClick={() =>
-                              handleToggleVerification(
-                                landlord.landlord_slug,
+                            <button
+                              onClick={() => handleEditLandlord(landlord)}
+                              className="group flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-600 rounded-lg hover:from-indigo-100 hover:to-purple-100 transition-all duration-200 text-xs font-medium hover:shadow-sm"
+                              title="Edit Landlord"
+                            >
+                              <Edit size={14} className="group-hover:rotate-12 transition-transform duration-200" />
+                              <span className="truncate">Edit</span>
+                            </button>
+                          </div>
+
+                          {/* Secondary Actions Row */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() =>
+                                handleToggleVerification(
+                                  landlord.landlord_slug,
+                                  landlord.is_verified
+                                )
+                              }
+                              disabled={
+                                actionLoading[`verify_${landlord.landlord_slug}`]
+                              }
+                              className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg transition-all duration-200 text-xs font-medium hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
                                 landlord.is_verified
-                              )
-                            }
-                            disabled={
-                              actionLoading[`verify_${landlord.landlord_slug}`]
-                            }
-                            className={`flex items-center justify-center gap-1 px-2 py-2 rounded-lg transition-colors text-xs font-medium ${
-                              landlord.is_verified
-                                ? "bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
-                                : "bg-green-50 text-green-600 hover:bg-green-100"
-                            } disabled:opacity-50`}
-                            title={
-                              landlord.is_verified
-                                ? "Remove Verification"
-                                : "Verify Account"
-                            }
-                          >
-                            {actionLoading[
-                              `verify_${landlord.landlord_slug}`
-                            ] ? (
-                              <RefreshCw size={12} className="animate-spin" />
-                            ) : (
-                              <Shield size={12} />
-                            )}
-                            <span className="hidden md:inline">
-                              {landlord.is_verified ? "Unverify" : "Verify"}
-                            </span>
-                          </button>
+                                  ? "bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
+                                  : "bg-green-50 text-green-700 hover:bg-green-100"
+                              }`}
+                              title={
+                                landlord.is_verified
+                                  ? "Remove Verification"
+                                  : "Verify Account"
+                              }
+                            >
+                              {actionLoading[
+                                `verify_${landlord.landlord_slug}`
+                              ] ? (
+                                <RefreshCw size={14} className="animate-spin" />
+                              ) : (
+                                <Shield size={14} />
+                              )}
+                              <span className="truncate">
+                                {landlord.is_verified ? "Unverify" : "Verify"}
+                              </span>
+                            </button>
 
-                          <button
-                            onClick={() =>
-                              handleToggleStatus(
-                                landlord.landlord_slug,
+                            <button
+                              onClick={() =>
+                                handleToggleStatus(
+                                  landlord.landlord_slug,
+                                  landlord.is_active
+                                )
+                              }
+                              disabled={
+                                actionLoading[`status_${landlord.landlord_slug}`] ||
+                                (!landlord.is_active && !hasVerificationDocuments(landlord))
+                              }
+                              className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg transition-all duration-200 text-xs font-medium hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
                                 landlord.is_active
-                              )
-                            }
-                            disabled={
-                              actionLoading[`status_${landlord.landlord_slug}`]
-                            }
-                            className={`flex items-center justify-center gap-1 px-2 py-2 rounded-lg transition-colors text-xs font-medium ${
-                              landlord.is_active
-                                ? "bg-red-50 text-red-600 hover:bg-red-100"
-                                : "bg-green-50 text-green-600 hover:bg-green-100"
-                            } disabled:opacity-50`}
-                            title={
-                              landlord.is_active
-                                ? "Deactivate Account"
-                                : "Activate Account"
-                            }
-                          >
-                            {actionLoading[
-                              `status_${landlord.landlord_slug}`
-                            ] ? (
-                              <RefreshCw size={12} className="animate-spin" />
-                            ) : landlord.is_active ? (
-                              <UserX size={12} />
-                            ) : (
-                              <UserCheck size={12} />
-                            )}
-                            <span className="hidden md:inline">
-                              {landlord.is_active ? "Deactivate" : "Activate"}
-                            </span>
-                          </button>
+                                  ? "bg-red-50 text-red-700 hover:bg-red-100"
+                                  : hasVerificationDocuments(landlord)
+                                  ? "bg-green-50 text-green-700 hover:bg-green-100"
+                                  : "bg-gray-50 text-gray-500 cursor-not-allowed"
+                              }`}
+                              title={
+                                landlord.is_active
+                                  ? "Deactivate Account"
+                                  : hasVerificationDocuments(landlord)
+                                  ? "Activate Account"
+                                  : "Cannot activate - Missing verification documents"
+                              }
+                            >
+                              {actionLoading[
+                                `status_${landlord.landlord_slug}`
+                              ] ? (
+                                <RefreshCw size={14} className="animate-spin" />
+                              ) : landlord.is_active ? (
+                                <UserX size={14} />
+                              ) : hasVerificationDocuments(landlord) ? (
+                                <UserCheck size={14} />
+                              ) : (
+                                <XCircle size={14} />
+                              )}
+                              <span className="truncate">
+                                {landlord.is_active 
+                                  ? "Deactivate" 
+                                  : hasVerificationDocuments(landlord)
+                                  ? "Activate"
+                                  : "No Docs"
+                                }
+                              </span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1018,6 +1159,25 @@ const LandlordManagement = () => {
           setShowLandlordModal={setShowLandlordModal}
           selectedLandlord={selectedLandlord}
           onLandlordUpdate={handleLandlordUpdate}
+        />
+
+        {/* Activation Review Modal */}
+        <ActivationReviewModal
+          isOpen={showActivationModal}
+          onClose={() => setShowActivationModal(false)}
+          landlord={selectedLandlord}
+          onApprove={handleActivationApprove}
+          onReject={handleActivationReject}
+          isLoading={actionLoading[`status_${selectedLandlord?.landlord_slug}`]}
+        />
+
+        {/* Deactivation Confirmation Modal */}
+        <DeactivationConfirmationModal
+          isOpen={showDeactivationModal}
+          onClose={() => setShowDeactivationModal(false)}
+          landlord={selectedLandlord}
+          onConfirm={handleDeactivationConfirm}
+          isLoading={actionLoading[`status_${selectedLandlord?.landlord_slug}`]}
         />
       </div>
     </AuthLayout>

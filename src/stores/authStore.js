@@ -13,6 +13,7 @@ const useAuthStore = create(
       //* Computed values
       isAuthenticated: () => {
         const user = get().user;
+        console.log(user);
         return (
           user !== null &&
           (user.is_active === 1 || user?.is_active === true) &&
@@ -87,6 +88,12 @@ const useAuthStore = create(
               business_logo: userData.business_logo,
               location: userData.location,
               region: userData.region,
+
+              //* Activation Data (for landlords)
+              selfie_picture: userData.selfie_picture,
+              ghana_card_front: userData.ghana_card_front,
+              ghana_card_back: userData.ghana_card_back,
+              ghana_card_number: userData.ghana_card_number,
             },
             registrationData: {
               message: apiResponse?.data?.message,
@@ -122,7 +129,8 @@ const useAuthStore = create(
 
         if (userData) {
           //Todo => Determine user type - check explicit user_type first
-          const userType = userData.user_type || 
+          const userType =
+            userData.user_type ||
             (userData.business_name ? "landlord" : "rentor");
 
           // Admin-specific user object structure
@@ -167,6 +175,11 @@ const useAuthStore = create(
                 business_name: userData.business_name,
                 business_type: userData.business_type,
                 business_registration: userData.business_registration,
+                
+                selfie_picture: userData.selfie_picture,
+                ghana_card_front: userData.ghana_card_front,
+                ghana_card_back: userData.ghana_card_back,
+                ghana_card_number: userData.ghana_card_number,
                 business_registration_number:
                   userData.business_registration_number,
                 business_logo: userData.business_logo,
@@ -246,6 +259,18 @@ const useAuthStore = create(
                 verified_at: verificationData.verified_at,
                 token: verificationData.token,
                 //Todo => Update landlord-specific fields if present
+                ...(verificationData.selfie_picture && {
+                  selfie_picture: verificationData.selfie_picture,
+                }),
+                ...(verificationData.ghana_card_front && {
+                  ghana_card_front: verificationData.ghana_card_front,
+                }),
+                ...(verificationData.ghana_card_back && {
+                  ghana_card_back: verificationData.ghana_card_back,
+                }),
+                ...(verificationData.ghana_card_number && {
+                  ghana_card_number: verificationData.ghana_card_number,
+                }),
                 ...(verificationData.business_logo && {
                   business_logo: verificationData.business_logo,
                 }),
@@ -317,11 +342,11 @@ const useAuthStore = create(
         if (!store.user) return "/home";
         if (store.requiresVerification()) return "/verify-account";
         if (store.isAuthenticated()) {
-          if (store.user.user_type === 'rentor') {
+          if (store.user.user_type === "rentor") {
             return "/dashboard";
-          } else if (store.user.user_type === 'landlord') {
+          } else if (store.user.user_type === "landlord") {
             return "/landlord-dashboard";
-          } else if (store.user.user_type === 'admin') {
+          } else if (store.user.user_type === "admin") {
             return "/admin-dashboard";
           }
           return "/home"; // fallback

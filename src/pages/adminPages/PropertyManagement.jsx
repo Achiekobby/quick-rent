@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router";
 import {
   Search,
   MapPin,
@@ -24,6 +25,7 @@ import {
   ChevronRight,
   SlidersHorizontal,
   X,
+  Plus,
 } from "lucide-react";
 import AuthLayout from "../../Layouts/AuthLayout";
 import { toast } from "react-toastify";
@@ -526,6 +528,13 @@ const PropertyManagement = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/admin/properties/create"
+              className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 text-sm sm:text-base shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Create Property</span>
+            </Link>
             <Motion.button
               onClick={fetchProperties}
               className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm sm:text-base"

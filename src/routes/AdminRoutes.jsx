@@ -11,6 +11,9 @@ import ContactSupport from "../pages/guestPages/ContactSupport";
 import Landing from "../pages/guestPages/Landing";
 import ProtectedRoute from "../components/ProtectedRoute";
 import PropertyManagement from "../pages/adminPages/PropertyManagement";
+import CreateLandlord from "../pages/adminPages/CreateLandlord";
+import CreateProperty from "../pages/adminPages/CreateProperty";
+import EditLandlord from "../pages/adminPages/EditLandlord";
 
 function AdminRoutes() {
   return (
@@ -118,6 +121,22 @@ function AdminRoutes() {
         }
       />
       <Route
+        path="/landlords/create"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <CreateLandlord />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/landlords/edit/:landlordSlug"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <EditLandlord />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/renters"
         element={
           <ProtectedRoute requiredRoles={["admin"]}>
@@ -186,6 +205,54 @@ function AdminRoutes() {
         element={
           <ProtectedRoute requiredRoles={["admin"]}>
             <PropertyManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/properties/create"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <CreateProperty />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/properties"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <PropertyManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/properties/create"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <CreateProperty />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/landlords"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <LandlordManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/landlords/create"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <CreateLandlord />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/landlords/edit/:landlordSlug"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <EditLandlord />
           </ProtectedRoute>
         }
       />

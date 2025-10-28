@@ -1,0 +1,31 @@
+export const propertyTypes = [
+  "Single Room",
+  "Chamber and Hall",
+  "2 Bedroom Apartment",
+  "3 Bedroom Apartment",
+  "Office Space",
+  "Short Stay",
+];
+
+export const amenitiesList = [
+  "Air Conditioning",
+  "Parking",
+  "Swimming Pool",
+  "Gym",
+  "Security",
+  "Elevator",
+  "Balcony",
+  "Garden",
+  "WiFi",
+  "Furnished",
+  "Pet Friendly",
+  "Laundry",
+  "Storage",
+  "Fire Safety",
+  "CCTV",
+  "Generator",
+  "Water Tank",
+  "Solar Power",
+  "Intercom",
+  "Gated Community",
+];

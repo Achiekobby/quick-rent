@@ -26,7 +26,9 @@ import {
   getPropertyById,
   updateProperty,
 } from "../../api/Landlord/General/PropertyRequest";
+import ghanaRegions from "../../data/ghanaRegions";
 import { Loader2 } from "lucide-react";
+import { propertyTypes, amenitiesList } from "../../data/PropertyTypes";
 
 const EditProperty = () => {
   const { propertySlug } = useParams();
@@ -38,7 +40,7 @@ const EditProperty = () => {
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState([]);
   const [formData, setFormData] = useState(null);
-  const [property, setProperty] = useState(null);
+  const [, setProperty] = useState(null);
 
   // Refs for error fields to enable smooth scrolling
   const errorFieldRefs = useRef({});
@@ -51,12 +53,12 @@ const EditProperty = () => {
       const elementRect = element.getBoundingClientRect();
       const absoluteElementTop = elementRect.top + window.pageYOffset;
       const offset = 120; // Offset from top for better visibility
-      
+
       window.scrollTo({
         top: absoluteElementTop - offset,
-        behavior: "smooth"
+        behavior: "smooth",
       });
-      
+
       // Add a subtle shake animation to draw attention
       element.style.animation = "shake 0.5s ease-in-out";
       setTimeout(() => {
@@ -72,7 +74,7 @@ const EditProperty = () => {
 
   // Add shake animation styles
   useEffect(() => {
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.textContent = `
       @keyframes shake {
         0%, 100% { transform: translateX(0); }
@@ -81,7 +83,7 @@ const EditProperty = () => {
       }
     `;
     document.head.appendChild(style);
-    
+
     return () => {
       document.head.removeChild(style);
     };
@@ -105,9 +107,9 @@ const EditProperty = () => {
             // Handle custom location logic - check if location is in predefined list
             const region = propertyData.region;
             const location = propertyData.location;
-            const isCustomLocation = region && location && 
-              !ghanaRegions[region]?.includes(location);
-            
+            const isCustomLocation =
+              region && location && !ghanaRegions[region]?.includes(location);
+
             return {
               ...propertyData,
               // Set location dropdown and custom location field based on whether it's a custom location
@@ -177,82 +179,6 @@ const EditProperty = () => {
     fetchProperty();
   }, [propertySlug]);
 
-  console.log("Form Data", formData);
-  console.log("Property", property);
-  console.log("Property Slug", propertySlug);
-
-  //Todo=> Ghana regions and their major locations (same as AddProperty)
-  const ghanaRegions = {
-    "Greater Accra": [
-      "Accra",
-      "Tema",
-      "Kasoa",
-      "East Legon",
-      "Airport Residential",
-      "Dansoman",
-      "Adenta",
-      "Madina",
-      "Spintex",
-      "Cantonments",
-      "Other",
-    ],
-    Ashanti: [
-      "Kumasi",
-      "Obuasi",
-      "Ejisu",
-      "Konongo",
-      "Mampong",
-      "Bekwai",
-      "Other",
-    ],
-    Western: ["Takoradi", "Axim", "Half Assini", "Prestea", "Tarkwa", "Other"],
-    Central: ["Cape Coast", "Elmina", "Winneba", "Kasoa", "Swedru", "Other"],
-    Eastern: ["Koforidua", "Akosombo", "Nkawkaw", "Begoro", "Other"],
-    Northern: ["Tamale", "Yendi", "Salaga", "Other"],
-    "Upper East": ["Bolgatanga", "Navrongo", "Bawku", "Other"],
-    "Upper West": ["Wa", "Lawra", "Jirapa", "Other"],
-    Volta: ["Ho", "Keta", "Hohoe", "Kpando", "Other"],
-    "Brong Ahafo": [
-      "Sunyani",
-      "Techiman",
-      "Berekum",
-      "Dormaa Ahenkro",
-      "Other",
-    ],
-  };
-
-  const propertyTypes = [
-    "Single Room",
-    "Chamber and Hall",
-    "2 Bedroom Apartment",
-    "3 Bedroom Apartment",
-    "Office Space",
-    "Short Stay",
-  ];
-
-  const amenitiesList = [
-    "Air Conditioning",
-    "Parking",
-    "Swimming Pool",
-    "Gym",
-    "Security",
-    "Elevator",
-    "Balcony",
-    "Garden",
-    "WiFi",
-    "Furnished",
-    "Pet Friendly",
-    "Laundry",
-    "Storage",
-    "Fire Safety",
-    "CCTV",
-    "Generator",
-    "Water Tank",
-    "Solar Power",
-    "Intercom",
-    "Gated Community",
-  ];
-
   const steps = [
     {
       id: 1,
@@ -310,11 +236,11 @@ const EditProperty = () => {
   const handleAmenityToggle = (amenityName) => {
     setFormData((prev) => ({
       ...prev,
-      amenities: prev.amenities.some((a) => 
-        typeof a === 'string' ? a === amenityName : a.name === amenityName
+      amenities: prev.amenities.some((a) =>
+        typeof a === "string" ? a === amenityName : a.name === amenityName
       )
-        ? prev.amenities.filter((a) => 
-            typeof a === 'string' ? a !== amenityName : a.name !== amenityName
+        ? prev.amenities.filter((a) =>
+            typeof a === "string" ? a !== amenityName : a.name !== amenityName
           )
         : [...prev.amenities, amenityName],
     }));
@@ -367,7 +293,7 @@ const EditProperty = () => {
           return {
             image: base64,
             is_featured: false,
-            isNew: true, // Flag to identify new uploads
+            isNew: true,
           };
         })
       );
@@ -522,11 +448,9 @@ const EditProperty = () => {
     return payload;
   };
 
-
-
   const validateStep = (step) => {
     const newErrors = {};
-    
+
     switch (step) {
       case 1:
         if (!formData.title.trim())
@@ -541,7 +465,11 @@ const EditProperty = () => {
           newErrors.property_type = "Property type is required";
         break;
       case 2:
-        if (!formData.year_built || (typeof formData.year_built === 'string' && formData.year_built.trim() === ""))
+        if (
+          !formData.year_built ||
+          (typeof formData.year_built === "string" &&
+            formData.year_built.trim() === "")
+        )
           newErrors.year_built = "Year built is required";
         else if (parseInt(formData.year_built) > new Date().getFullYear())
           newErrors.year_built = "Year built cannot be in the future";
@@ -568,15 +496,15 @@ const EditProperty = () => {
         }
         break;
     }
-    
+
     setErrors(newErrors);
-    
+
     // Scroll to first error if validation fails
     if (Object.keys(newErrors).length > 0) {
       setTimeout(() => scrollToFirstError(newErrors), 100);
       return false;
     }
-    
+
     return true;
   };
 
@@ -626,7 +554,7 @@ const EditProperty = () => {
   return (
     <AuthLayout>
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center gap-4 mb-6">
             <button
               onClick={() => navigate(`/view-property/${propertySlug}`)}
@@ -635,6 +563,21 @@ const EditProperty = () => {
               <ArrowLeft size={20} />
             </button>
             <h1 className="text-3xl font-bold text-gray-900">Edit Property</h1>
+          </div>
+
+          {/* Admin Approval Notice */}
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-semibold text-blue-900 mb-1">
+                  Admin Approval Required
+                </h4>
+                <p className="text-sm text-blue-700">
+                  After editing property details, your changes will be submitted for admin review and approval before being published. You'll be notified once the review is complete.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Progress Steps */}
@@ -695,14 +638,16 @@ const EditProperty = () => {
                       Property Title *
                     </label>
                     <input
-                      ref={(el) => errorFieldRefs.current.title = el}
+                      ref={(el) => (errorFieldRefs.current.title = el)}
                       type="text"
                       value={formData.title}
                       onChange={(e) =>
                         handleInputChange("title", e.target.value)
                       }
                       className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                        errors.title ? "border-red-500 bg-red-50" : "border-gray-200"
+                        errors.title
+                          ? "border-red-500 bg-red-50"
+                          : "border-gray-200"
                       }`}
                     />
                     {errors.title && (
@@ -717,8 +662,8 @@ const EditProperty = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Property Type *
                     </label>
-                    <div 
-                      ref={(el) => errorFieldRefs.current.property_type = el}
+                    <div
+                      ref={(el) => (errorFieldRefs.current.property_type = el)}
                       className="grid grid-cols-2 md:grid-cols-3 gap-3"
                     >
                       {propertyTypes.map((type) => (
@@ -752,13 +697,15 @@ const EditProperty = () => {
                         Region *
                       </label>
                       <select
-                        ref={(el) => errorFieldRefs.current.region = el}
+                        ref={(el) => (errorFieldRefs.current.region = el)}
                         value={formData.region}
                         onChange={(e) =>
                           handleInputChange("region", e.target.value)
                         }
                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                          errors.region ? "border-red-500 bg-red-50" : "border-gray-200"
+                          errors.region
+                            ? "border-red-500 bg-red-50"
+                            : "border-gray-200"
                         }`}
                       >
                         <option value="">Select Region</option>
@@ -781,14 +728,16 @@ const EditProperty = () => {
                         Location *
                       </label>
                       <select
-                        ref={(el) => errorFieldRefs.current.location = el}
+                        ref={(el) => (errorFieldRefs.current.location = el)}
                         value={formData.location}
                         onChange={(e) =>
                           handleInputChange("location", e.target.value)
                         }
                         disabled={!formData.region}
                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none ${
-                          errors.location ? "border-red-500 bg-red-50" : "border-gray-200"
+                          errors.location
+                            ? "border-red-500 bg-red-50"
+                            : "border-gray-200"
                         } ${!formData.region ? "bg-gray-100" : ""}`}
                       >
                         <option value="">Select Location</option>
@@ -821,7 +770,9 @@ const EditProperty = () => {
                           Specify Location *
                         </label>
                         <input
-                          ref={(el) => errorFieldRefs.current.customLocation = el}
+                          ref={(el) =>
+                            (errorFieldRefs.current.customLocation = el)
+                          }
                           type="text"
                           value={formData.customLocation}
                           onChange={(e) =>
@@ -851,7 +802,7 @@ const EditProperty = () => {
                         Suburb/Area *
                       </label>
                       <input
-                        ref={(el) => errorFieldRefs.current.suburb = el}
+                        ref={(el) => (errorFieldRefs.current.suburb = el)}
                         type="text"
                         value={formData.suburb}
                         onChange={(e) =>
@@ -859,7 +810,9 @@ const EditProperty = () => {
                         }
                         placeholder="e.g., American House"
                         className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                          errors.suburb ? "border-red-500 bg-red-50" : "border-gray-200"
+                          errors.suburb
+                            ? "border-red-500 bg-red-50"
+                            : "border-gray-200"
                         }`}
                       />
                       {errors.suburb && (
@@ -1000,7 +953,9 @@ const EditProperty = () => {
                           <button
                             key={type}
                             type="button"
-                            onClick={() => handleInputChange("bathroom_type", type)}
+                            onClick={() =>
+                              handleInputChange("bathroom_type", type)
+                            }
                             className={`p-3 border rounded-xl text-sm font-medium transition-all ${
                               formData.bathroom_type === type
                                 ? "border-orange-500 bg-orange-50 text-orange-700"
@@ -1022,7 +977,9 @@ const EditProperty = () => {
                           <button
                             key={type}
                             type="button"
-                            onClick={() => handleInputChange("kitchen_type", type)}
+                            onClick={() =>
+                              handleInputChange("kitchen_type", type)
+                            }
                             className={`p-3 border rounded-xl text-sm font-medium transition-all ${
                               formData.kitchen_type === type
                                 ? "border-orange-500 bg-orange-50 text-orange-700"
@@ -1042,7 +999,7 @@ const EditProperty = () => {
                       Year Built *
                     </label>
                     <input
-                      ref={(el) => errorFieldRefs.current.year_built = el}
+                      ref={(el) => (errorFieldRefs.current.year_built = el)}
                       type="number"
                       value={formData.year_built}
                       onChange={(e) =>
@@ -1052,7 +1009,9 @@ const EditProperty = () => {
                       min="1900"
                       max={new Date().getFullYear()}
                       className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                        errors.year_built ? "border-red-500 bg-red-50" : "border-gray-200"
+                        errors.year_built
+                          ? "border-red-500 bg-red-50"
+                          : "border-gray-200"
                       }`}
                     />
                     {errors.year_built && (
@@ -1067,10 +1026,12 @@ const EditProperty = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Amenities *
                     </label>
-                    <div 
-                      ref={(el) => errorFieldRefs.current.amenities = el}
+                    <div
+                      ref={(el) => (errorFieldRefs.current.amenities = el)}
                       className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 ${
-                        errors.amenities ? "border border-red-500 rounded-xl p-3 bg-red-50" : ""
+                        errors.amenities
+                          ? "border border-red-500 rounded-xl p-3 bg-red-50"
+                          : ""
                       }`}
                     >
                       {amenitiesList.map((amenity) => (
@@ -1079,8 +1040,10 @@ const EditProperty = () => {
                           type="button"
                           onClick={() => handleAmenityToggle(amenity)}
                           className={`p-3 border rounded-xl text-sm font-medium transition-all text-left ${
-                            formData.amenities.some((a) => 
-                              typeof a === 'string' ? a === amenity : a.name === amenity
+                            formData.amenities.some((a) =>
+                              typeof a === "string"
+                                ? a === amenity
+                                : a.name === amenity
                             )
                               ? "border-orange-500 bg-orange-50 text-orange-700"
                               : "border-gray-200 hover:border-gray-300"
@@ -1089,15 +1052,19 @@ const EditProperty = () => {
                           <div className="flex items-center gap-2">
                             <div
                               className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                                formData.amenities.some(
-                                  (a) => typeof a === 'string' ? a === amenity : a.name === amenity
+                                formData.amenities.some((a) =>
+                                  typeof a === "string"
+                                    ? a === amenity
+                                    : a.name === amenity
                                 )
                                   ? "border-orange-500 bg-orange-500"
                                   : "border-gray-300"
                               }`}
                             >
-                              {formData.amenities.some(
-                                (a) => typeof a === 'string' ? a === amenity : a.name === amenity
+                              {formData.amenities.some((a) =>
+                                typeof a === "string"
+                                  ? a === amenity
+                                  : a.name === amenity
                               ) && <Check size={10} className="text-white" />}
                             </div>
                             <span>{amenity}</span>
@@ -1118,7 +1085,7 @@ const EditProperty = () => {
                       Property Description *
                     </label>
                     <textarea
-                      ref={(el) => errorFieldRefs.current.description = el}
+                      ref={(el) => (errorFieldRefs.current.description = el)}
                       value={formData.description}
                       onChange={(e) =>
                         handleInputChange("description", e.target.value)
@@ -1162,14 +1129,16 @@ const EditProperty = () => {
                         className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                       />
                       <input
-                        ref={(el) => errorFieldRefs.current.price = el}
+                        ref={(el) => (errorFieldRefs.current.price = el)}
                         type="number"
                         value={formData.price}
                         onChange={(e) =>
                           handleInputChange("price", e.target.value)
                         }
                         className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
-                          errors.price ? "border-red-500 bg-red-50" : "border-gray-200"
+                          errors.price
+                            ? "border-red-500 bg-red-50"
+                            : "border-gray-200"
                         }`}
                       />
                     </div>
@@ -1285,7 +1254,9 @@ const EditProperty = () => {
                           +233
                         </div>
                         <input
-                          ref={(el) => errorFieldRefs.current.contact_number = el}
+                          ref={(el) =>
+                            (errorFieldRefs.current.contact_number = el)
+                          }
                           type="text"
                           value={formData.contact_number}
                           onChange={(e) =>
@@ -1324,7 +1295,9 @@ const EditProperty = () => {
                           +233
                         </div>
                         <input
-                          ref={(el) => errorFieldRefs.current.whatsapp_number = el}
+                          ref={(el) =>
+                            (errorFieldRefs.current.whatsapp_number = el)
+                          }
                           type="text"
                           value={formData.whatsapp_number}
                           onChange={(e) =>
@@ -1380,7 +1353,7 @@ const EditProperty = () => {
                   <h2 className="text-xl font-semibold">Property Images</h2>
 
                   <div
-                    ref={(el) => errorFieldRefs.current.property_images = el}
+                    ref={(el) => (errorFieldRefs.current.property_images = el)}
                     className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
                       errors.property_images
                         ? "border-red-500 bg-red-50"
@@ -1567,6 +1540,21 @@ const EditProperty = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Final Review Notice */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-sm font-semibold text-amber-900 mb-1">
+                          Ready to Submit Changes?
+                        </h4>
+                        <p className="text-sm text-amber-700">
+                          Your edited property details will be sent for admin approval. The property will remain in its current state until your changes are reviewed and approved by an administrator.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Complete API Payload Preview */}
                   {/* <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">

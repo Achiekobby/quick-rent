@@ -4,7 +4,11 @@ const BASE_URL = `${Config.baseUrl}/admin`;
 
 class PropertyRequests {
   constructor() {
-    this.headers = {
+    // Headers are now generated dynamically for each request
+  }
+
+  getHeaders() {
+    return {
       "Content-Type": "application/json",
       Authorization: `Bearer ${localStorage.getItem("quick_admin_token")}`,
     };
