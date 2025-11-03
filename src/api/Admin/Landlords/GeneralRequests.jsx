@@ -66,6 +66,40 @@ class GeneralRequests {
     );
     return response.data;
   }
+
+  async reviewPendingUpdates(landlordSlug, status, reason = null) {
+    const payload = {
+      landlord_slug: landlordSlug,
+      status: status, // "approved" or "rejected"
+    };
+    
+    // Only include rejection_reason when rejecting
+    if (status === "rejected" && reason) {
+      payload.rejection_reason = reason;
+    }
+    
+    const response = await axios.post(
+      `${BASE_URL}/approve_or_reject/landlord_profile`,
+      payload,
+      {
+        headers: this.getHeaders(),
+      }
+    );
+    return response.data;
+  }
+
+  async reviewKYCVerification(payload) {
+    const response = await axios.post(
+      `${BASE_URL}/update/account`,
+      {
+        ...payload,
+      },
+      {
+        headers: this.getHeaders(),
+      }
+    );
+    return response.data;
+  }
 }
 const generalRequests = new GeneralRequests();
 export default generalRequests;

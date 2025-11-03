@@ -10,6 +10,11 @@ const Config = {
   renterHeaders: {
     "Content-Type": "application/json",
   },
+
+  telecel:"VOD",
+  mtn:"MTN",
+  airtelTigo:"AIR",
+  card_payment:"CRD"
 };
 
 export default Config;

@@ -203,6 +203,24 @@ export const registerLandlord = async (userData, businessLogoFile = null) => {
         userData.businessRegistration.trim();
     }
 
+    //Todo => Add Ghana Card number if provided
+    if (userData.ghanaCardNumber?.trim()) {
+      payload.ghana_card_number = userData.ghanaCardNumber.trim();
+    }
+
+    //Todo => Add verification images if provided (already base64 encoded)
+    if (userData.selfiePicture) {
+      payload.selfie_picture = userData.selfiePicture;
+    }
+
+    if (userData.ghanaCardFront) {
+      payload.ghana_card_front = userData.ghanaCardFront;
+    }
+
+    if (userData.ghanaCardBack) {
+      payload.ghana_card_back = userData.ghanaCardBack;
+    }
+
     //Todo => Handle business logo upload if provided
     if (businessLogoFile) {
       try {

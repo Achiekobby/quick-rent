@@ -23,6 +23,8 @@ import {
   Eye,
   EyeOff,
   Code,
+  Shield,
+  CreditCard,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import AuthLayout from "../../Layouts/AuthLayout";
@@ -30,9 +32,33 @@ import { toast } from "react-toastify";
 import { createProperty } from "../../api/Landlord/General/PropertyRequest";
 import { propertyTypes, amenitiesList } from "../../data/PropertyTypes";
 import ghanaRegions from "../../data/ghanaRegions";
+import useAuthStore from "../../stores/authStore";
+import moment from "moment";
+
+// Helper function to check subscription status
+const checkSubscriptionStatus = (subscriptionPlan) => {
+  if (!subscriptionPlan || !subscriptionPlan.end_date) {
+    return { hasSubscription: false, isExpired: true, message: "No active subscription" };
+  }
+  
+  const endDate = moment(subscriptionPlan.end_date);
+  const now = moment();
+  const isExpired = endDate.isBefore(now);
+  const daysLeft = Math.max(0, endDate.diff(now, "days"));
+  
+  return {
+    hasSubscription: true,
+    isExpired,
+    daysLeft,
+    endDate: subscriptionPlan.end_date,
+    planName: subscriptionPlan.plan_name,
+    message: isExpired ? "Subscription has expired" : null,
+  };
+};
 
 const AddProperty = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
@@ -1276,10 +1302,166 @@ const AddProperty = () => {
     }
   };
 
+  // Check if KYC is not approved
+  const isKYCNotApproved = user?.kyc_verification !== true;
+
+  // Check subscription status
+  const subscriptionStatus = checkSubscriptionStatus(user?.subscription_plan);
+  const isSubscriptionBlocked = !subscriptionStatus.hasSubscription || subscriptionStatus.isExpired;
+
+  // Parse kyc_rejection_reason (stringified array)
+  const parseRejectionReasons = (rejectionReason) => {
+    if (!rejectionReason) return [];
+    try {
+      const parsed = JSON.parse(rejectionReason);
+      return Array.isArray(parsed) ? parsed : [rejectionReason];
+    } catch {
+      // If parsing fails, treat as string and split by newlines or return as single item
+      return typeof rejectionReason === "string" ? [rejectionReason] : [];
+    }
+  };
+
+  const rejectionReasons = parseRejectionReasons(user?.kyc_rejection_reason);
+
   return (
     <AuthLayout>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="min-h-screen bg-gray-50 relative">
+        {/* Subscription Blocking Modal */}
+        {isSubscriptionBlocked && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <Motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative"
+            >
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg">
+                  <CreditCard className="w-8 h-8 text-white" />
+                </div>
+              </div>
+
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  {!subscriptionStatus.hasSubscription
+                    ? "Subscription Required"
+                    : "Subscription Expired"}
+                </h2>
+                {!subscriptionStatus.hasSubscription ? (
+                  <p className="text-sm text-gray-600 mb-4">
+                    You need to purchase a subscription plan to add properties on the platform. Choose a plan that suits your needs.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Your subscription expired on{" "}
+                      <span className="font-semibold text-gray-800">
+                        {moment(subscriptionStatus.endDate).format("MMM DD, YYYY")}
+                      </span>
+                      . Renew your subscription to continue adding properties.
+                    </p>
+                    <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-3 mb-4">
+                      <p className="text-xs text-orange-800">
+                        <span className="font-semibold">Plan:</span> {subscriptionStatus.planName?.charAt(0).toUpperCase() + subscriptionStatus.planName?.slice(1) || "N/A"}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => navigate("/subscription/upgrade")}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+                >
+                  {!subscriptionStatus.hasSubscription
+                    ? "Purchase Subscription"
+                    : "Renew Subscription"}
+                </button>
+                <button
+                  onClick={() => navigate("/landlord-dashboard")}
+                  className="w-full px-4 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors"
+                >
+                  Go to Dashboard
+                </button>
+              </div>
+            </Motion.div>
+          </div>
+        )}
+
+        {/* KYC Verification Blocking Modal */}
+        {isKYCNotApproved && !isSubscriptionBlocked && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <Motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative"
+            >
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+                  <Shield className="w-8 h-8 text-red-600" />
+                </div>
+              </div>
+
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  KYC Verification Required
+                </h2>
+                {rejectionReasons.length > 0 ? (
+                  <>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Your KYC verification has been rejected. Please review the reasons below and update your verification documents.
+                    </p>
+                    <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4 text-left">
+                      <p className="text-xs font-semibold text-red-900 mb-3 flex items-center gap-2">
+                        <X className="w-4 h-4" />
+                        Rejection Reasons:
+                      </p>
+                      <ul className="space-y-2">
+                        {rejectionReasons.map((reason, index) => (
+                          <li
+                            key={index}
+                            className="text-sm text-red-800 flex items-start gap-2"
+                          >
+                            <span className="text-red-600 font-bold mt-0.5 flex-shrink-0">
+                              {index + 1}.
+                            </span>
+                            <span className="break-words flex-1">{reason}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      You need to update your verification documents in your profile before you can add properties.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-600 mb-4">
+                    Your KYC verification is currently pending review or has not been completed. You will be able to add properties once your verification is approved.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => navigate("/profile")}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-amber-600 transition-all duration-300 shadow-lg hover:shadow-xl"
+                >
+                  {rejectionReasons.length > 0
+                    ? "Update Verification Documents"
+                    : "Complete Verification"}
+                </button>
+                <button
+                  onClick={() => navigate("/landlord-dashboard")}
+                  className="w-full px-4 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors"
+                >
+                  Go to Dashboard
+                </button>
+              </div>
+            </Motion.div>
+          </div>
+        )}
+
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isKYCNotApproved || isSubscriptionBlocked ? 'pointer-events-none opacity-50' : ''}`}>
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-4 mb-6">

@@ -11,6 +11,12 @@ import AllProperties from "../pages/guestPages/AllProperties";
 import ContactSupport from "../pages/guestPages/ContactSupport";
 import Landing from "../pages/guestPages/Landing";
 import ProtectedRoute from "../components/ProtectedRoute";
+import SubscriptionPlans from "../pages/landlordPages/SubscriptionPlans";
+import SubscriptionPayment from "../pages/landlordPages/SubscriptionPayment";
+import PaymentSuccess from "../pages/landlordPages/PaymentSuccess";
+import PaymentFailure from "../pages/landlordPages/PaymentFailure";
+import PaymentVerification from "../pages/landlordPages/PaymentVerification";
+import PaymentCallback from "../pages/landlordPages/PaymentCallback";
 
 function LandlordRoutes() {
   return (
@@ -121,6 +127,36 @@ function LandlordRoutes() {
         <ProtectedRoute requiredRoles={['landlord']}>
           <div>Tenant Management - Coming Soon</div>
         </ProtectedRoute>
+      } />
+
+      {/* Subscription Routes */}
+      <Route path="/subscription/upgrade" element={
+        <ProtectedRoute requiredRoles={['landlord']}>
+          <SubscriptionPlans />
+        </ProtectedRoute>
+      } />
+      <Route path="/subscription/payment" element={
+        <ProtectedRoute requiredRoles={['landlord']}>
+          <SubscriptionPayment />
+        </ProtectedRoute>
+      } />
+      <Route path="/subscription/payment/success" element={
+        <ProtectedRoute requiredRoles={['landlord']}>
+          <PaymentSuccess />
+        </ProtectedRoute>
+      } />
+      <Route path="/subscription/payment/failure" element={
+        <ProtectedRoute requiredRoles={['landlord']}>
+          <PaymentFailure />
+        </ProtectedRoute>
+      } />
+      <Route path="/subscription/payment/verify" element={
+        <ProtectedRoute requiredRoles={['landlord']}>
+          <PaymentVerification />
+        </ProtectedRoute>
+      } />
+      <Route path="/subscription/payment/callback" element={
+        <PaymentCallback />
       } />
 
       {/* Support */}

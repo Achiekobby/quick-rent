@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -11,6 +11,7 @@ import {
   Edit3,
   Save,
   X,
+  XCircle,
   CheckCircle2,
   Upload,
   Eye,
@@ -28,6 +29,7 @@ import {
   RefreshCw,
   Check,
   Info,
+  ArrowLeft,
 } from "lucide-react";
 import AuthLayout from "../../Layouts/AuthLayout";
 import useAuthStore from "../../stores/authStore";
@@ -38,8 +40,10 @@ import {
   changeLandlordPassword,
 } from "../../api/Landlord/General/ProfileRequest";
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router";
 
 const Profile = () => {
+  const navigate = useNavigate();
   const { user, updateUser, getUserType } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
@@ -50,6 +54,16 @@ const Profile = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Verification documents state (only editable when kyc_verification is false)
+  const [verificationImages, setVerificationImages] = useState({
+    selfie: { preview: null, base64: "" },
+    ghanaCardFront: { preview: null, base64: "" },
+    ghanaCardBack: { preview: null, base64: "" },
+  });
+  const selfieInputRef = useRef(null);
+  const ghanaCardFrontInputRef = useRef(null);
+  const ghanaCardBackInputRef = useRef(null);
 
   console.log("user", user);
 
@@ -63,6 +77,7 @@ const Profile = () => {
     location: user?.location || "",
     region: user?.region || "",
     business_registration_number: user?.business_registration_number || "",
+    ghana_card_number: user?.ghana_card_number || "",
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -86,6 +101,44 @@ const Profile = () => {
     passwordsMatch: false,
   });
   const userType = getUserType();
+
+  // Sync editForm with user data when it changes
+  useEffect(() => {
+    if (user) {
+      setEditForm({
+        full_name: user.full_name || "",
+        email: user.email || "",
+        phone_number: user.phone_number || "",
+        gender: user.gender || "",
+        business_name: user.business_name || "",
+        business_type: user.business_type || "",
+        location: user.location || "",
+        region: user.region || "",
+        business_registration_number: user.business_registration_number || "",
+        ghana_card_number: user.ghana_card_number || "",
+      });
+    }
+  }, [user]);
+
+  // Cleanup preview URLs on unmount
+  useEffect(() => {
+    return () => {
+      // Cleanup verification image previews on unmount
+      Object.values(verificationImages).forEach((img) => {
+        if (img?.preview) {
+          URL.revokeObjectURL(img.preview);
+        }
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Disable editing when update is pending
+  useEffect(() => {
+    if (user?.update_status === "pending") {
+      setIsEditing(false);
+    }
+  }, [user?.update_status]);
 
   const validatePassword = (
     password,
@@ -205,6 +258,61 @@ const Profile = () => {
     }
   };
 
+  // Handle verification document upload
+  const handleVerificationImageUpload = (file, type) => {
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be less than 5MB");
+      return;
+    }
+
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64String = e.target.result;
+      setVerificationImages((prev) => ({
+        ...prev,
+        [type]: { preview: previewUrl, base64: base64String },
+      }));
+      toast.success(
+        `${
+          type === "selfie"
+            ? "Selfie"
+            : type === "ghanaCardFront"
+            ? "Ghana Card Front"
+            : "Ghana Card Back"
+        } uploaded successfully`
+      );
+    };
+    reader.onerror = () => {
+      toast.error("Failed to upload image");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Remove verification image
+  const removeVerificationImage = (type) => {
+    // Revoke preview URL to free memory
+    if (verificationImages[type].preview) {
+      URL.revokeObjectURL(verificationImages[type].preview);
+    }
+    setVerificationImages((prev) => ({
+      ...prev,
+      [type]: { preview: null, base64: "" },
+    }));
+  };
+
   const handleSaveProfile = async () => {
     console.log("Save button clicked!");
     setIsSaving(true);
@@ -223,6 +331,7 @@ const Profile = () => {
           location: editForm.location,
           region: editForm.region,
           business_registration_number: editForm.business_registration_number,
+          ghana_card_number: editForm.ghana_card_number,
         };
 
         // Add business_logo only if provided (it's optional)
@@ -230,7 +339,19 @@ const Profile = () => {
           payload.business_logo = profileImageBase64;
         }
 
-        console.log("Landlord payload being sent:", payload);
+        // Add verification documents if user is not KYC verified (kyc_verification is false) and images were changed
+        if (!user?.kyc_verification && userType === "landlord") {
+          if (verificationImages.selfie.base64) {
+            payload.selfie_picture = verificationImages.selfie.base64;
+          }
+          if (verificationImages.ghanaCardFront.base64) {
+            payload.ghana_card_front = verificationImages.ghanaCardFront.base64;
+          }
+          if (verificationImages.ghanaCardBack.base64) {
+            payload.ghana_card_back = verificationImages.ghanaCardBack.base64;
+          }
+        }
+
         result = await updateLandlordProfile(payload);
       } else {
         // Renter-specific payload
@@ -241,11 +362,8 @@ const Profile = () => {
           gender: editForm.gender,
           profile_picture: profileImageBase64 || "",
         };
-
-        console.log("Renter payload being sent:", payload);
         result = await updateProfile(payload);
       }
-
 
       if (result.success) {
         toast.success(result.message || "Profile updated successfully");
@@ -271,10 +389,28 @@ const Profile = () => {
           business_registration_number:
             result.data?.business_registration_number ||
             editForm.business_registration_number,
+          ghana_card_number:
+            result.data?.ghana_card_number || editForm.ghana_card_number,
         });
 
         setIsEditing(false);
         setProfileImageBase64("");
+
+        // Reset verification images after successful save
+        if (userType === "landlord" && !user?.kyc_verification) {
+          // Revoke preview URLs
+          Object.values(verificationImages).forEach((img) => {
+            if (img.preview) {
+              URL.revokeObjectURL(img.preview);
+            }
+          });
+          setVerificationImages({
+            selfie: { preview: null, base64: "" },
+            ghanaCardFront: { preview: null, base64: "" },
+            ghanaCardBack: { preview: null, base64: "" },
+          });
+        }
+
         toast.success(result.message || "Profile updated successfully");
       } else {
         console.error("API returned error:", result);
@@ -355,8 +491,6 @@ const Profile = () => {
     );
   };
 
-
-
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
     userType !== "admin" && { id: "security", label: "Security", icon: Shield },
@@ -377,7 +511,7 @@ const Profile = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 bg-opacity-20 flex items-center justify-center z-50"
+              className="fixed inset-0 bg-black/20 flex items-center justify-center z-50"
             >
               <Motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
@@ -405,7 +539,13 @@ const Profile = () => {
           )}
         </AnimatePresence>
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div
+          className={`max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 ${
+            user?.update_status === "pending"
+              ? "pointer-events-none opacity-95"
+              : ""
+          } ${isSaving ? "pointer-events-none opacity-95" : ""}`}
+        >
           {/* Header Section */}
           <Motion.div className="mb-6 sm:mb-8" variants={itemVariants}>
             <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8 border border-gray-100">
@@ -491,24 +631,35 @@ const Profile = () => {
                 </div>
 
                 {/*//Todo => Action Buttons */}
-                {
-                  userType !== "admin" && (     
-                <div className="flex gap-3 w-full sm:w-auto justify-center sm:justify-end">
-                  <Motion.button
-                    className="px-4 sm:px-6 py-2 text-white rounded-xl font-medium hover:shadow-lg transition-all duration-300 text-sm sm:text-base"
-                    style={{
-                      background: `linear-gradient(to right, ${Colors.accent.orange}, #e67300)`,
-                    }}
-                    onClick={() => setIsEditing(!isEditing)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Edit3 size={14} className="inline mr-2 sm:w-4 sm:h-4" />
-                    {isEditing ? "Cancel" : "Edit Profile"}
-                  </Motion.button>
-                </div>
-                  )
-                }
+                {userType !== "admin" && (
+                  <div className="flex gap-3 w-full sm:w-auto justify-center sm:justify-end">
+                    <Motion.button
+                      className={`px-4 sm:px-6 py-2 text-white rounded-xl font-medium hover:shadow-lg transition-all duration-300 text-sm sm:text-base ${
+                        user?.update_status === "pending"
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
+                      }`}
+                      style={{
+                        background: `linear-gradient(to right, ${Colors.accent.orange}, #e67300)`,
+                      }}
+                      onClick={() => {
+                        if (user?.update_status !== "pending") {
+                          setIsEditing(!isEditing);
+                        }
+                      }}
+                      disabled={user?.update_status === "pending"}
+                      whileHover={
+                        user?.update_status !== "pending" ? { scale: 1.02 } : {}
+                      }
+                      whileTap={
+                        user?.update_status !== "pending" ? { scale: 0.98 } : {}
+                      }
+                    >
+                      <Edit3 size={14} className="inline mr-2 sm:w-4 sm:h-4" />
+                      {isEditing ? "Cancel" : "Edit Profile"}
+                    </Motion.button>
+                  </div>
+                )}
               </div>
 
               {/*//Todo => User Stats */}
@@ -633,8 +784,40 @@ const Profile = () => {
                         )}
                       </div>
 
+                      {/* Rejection Notice */}
+                      {user?.update_status === "rejected" && (
+                        <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+                          <div className="flex items-start gap-3">
+                            <XCircle
+                              size={20}
+                              className="text-red-600 mt-0.5 flex-shrink-0"
+                            />
+                            <div className="flex-1">
+                              <h4 className="text-sm font-semibold text-red-800 mb-2">
+                                Profile Update Rejected
+                              </h4>
+                              <p className="text-sm text-red-700 mb-3">
+                                Your profile update has been reviewed and
+                                rejected. Please review the rejection reason
+                                below and make necessary corrections.
+                              </p>
+                              {user?.rejection_reason && (
+                                <div className="bg-red-100 border border-red-300 rounded-lg p-3 mt-2">
+                                  <p className="text-xs font-medium text-red-900 mb-1">
+                                    Rejection Reason:
+                                  </p>
+                                  <p className="text-sm text-red-800 whitespace-pre-wrap break-words">
+                                    {user.rejection_reason}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Re-verification Notice */}
-                      {isEditing && (
+                      {isEditing && user?.update_status !== "rejected" && (
                         <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
                           <div className="flex items-start gap-3">
                             <AlertCircle
@@ -646,7 +829,10 @@ const Profile = () => {
                                 Profile Re-verification Required
                               </h4>
                               <p className="text-sm text-amber-700">
-                                After saving your profile changes, your account will go under review again for verification by an admin. You may experience temporary access limitations during this process.
+                                After saving your profile changes, your account
+                                will go under review again for verification by
+                                an admin. You may experience temporary access
+                                limitations during this process.
                               </p>
                             </div>
                           </div>
@@ -957,7 +1143,499 @@ const Profile = () => {
                                 </div>
                               )}
                             </div>
+
+                            {/* Ghana Card Number */}
+                            <div className="sm:col-span-2">
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Ghana Card Number
+                              </label>
+                              {isEditing ? (
+                                <div className="relative">
+                                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+                                    <div className="flex items-center gap-2">
+                                      <Shield className="h-5 w-5 text-gray-400" />
+                                      <span className="text-sm font-medium text-gray-700">
+                                        GHA-
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <input
+                                    type="text"
+                                    value={editForm.ghana_card_number
+                                      .replace(/^GHA-/, "")
+                                      .replace(/-$/, "")}
+                                    onChange={(e) => {
+                                      let value = e.target.value.replace(
+                                        /\D/g,
+                                        ""
+                                      );
+                                      if (value.length > 10) {
+                                        value = value.substring(0, 10);
+                                      }
+                                      let formattedValue = "";
+                                      if (value.length > 0) {
+                                        formattedValue = "GHA-";
+                                        if (value.length <= 9) {
+                                          formattedValue += value;
+                                        } else {
+                                          formattedValue +=
+                                            value.substring(0, 9) +
+                                            "-" +
+                                            value.substring(9);
+                                        }
+                                      }
+                                      setEditForm({
+                                        ...editForm,
+                                        ghana_card_number: formattedValue,
+                                      });
+                                    }}
+                                    disabled={isSaving}
+                                    placeholder="XXXXXXXXX-X"
+                                    maxLength={13}
+                                    className={`w-full pl-20 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all ${
+                                      isSaving
+                                        ? "bg-gray-100 cursor-not-allowed"
+                                        : ""
+                                    }`}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="px-4 py-3 bg-gray-50 rounded-xl text-gray-900 font-medium flex items-center">
+                                  <Shield
+                                    size={16}
+                                    className="mr-2 text-gray-500"
+                                  />
+                                  {user?.ghana_card_number || "Not provided"}
+                                </div>
+                              )}
+                            </div>
                           </>
+                        )}
+
+                        {/* Verification Documents Section - Landlord Only */}
+                        {userType === "landlord" && (
+                          <div className="sm:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-4">
+                              Verification Documents
+                            </label>
+                            <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 border border-purple-200">
+                              <div className="flex items-center gap-2 mb-4">
+                                <Shield className="h-5 w-5 text-purple-600" />
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                  Identity Verification
+                                </h3>
+                              </div>
+
+                              {/* KYC Status Messages */}
+                              {user?.kyc_verification === true ? (
+                                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
+                                  <div className="flex items-start gap-3">
+                                    <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      <h4 className="text-sm font-semibold text-green-800 mb-1">
+                                        KYC Verification Approved
+                                      </h4>
+                                      <p className="text-sm text-green-700">
+                                        Your account has been successfully
+                                        verified. These verification documents
+                                        cannot be modified. Please contact
+                                        support if you need to update them.
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : user?.kyc_verification === false &&
+                                user?.kyc_rejection_reason ? (
+                                <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+                                  <div className="flex items-start gap-3">
+                                    <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1">
+                                      <h4 className="text-sm font-semibold text-red-800 mb-2">
+                                        KYC Verification Rejected
+                                      </h4>
+                                      <p className="text-sm text-red-700 mb-3">
+                                        Your verification documents have been
+                                        reviewed and rejected. Please review the
+                                        reason below and upload new or updated
+                                        documents.
+                                      </p>
+                                      <div className="bg-red-100 border border-red-300 rounded-lg p-3">
+                                        <p className="text-xs font-medium text-red-900 mb-1">
+                                          Rejection Reason:
+                                        </p>
+                                        <p className="text-sm text-red-800 whitespace-pre-wrap break-words">
+                                          {JSON.parse(
+                                            user.kyc_rejection_reason
+                                          ).map((reason, index) => (
+                                            <p key={index} className="mb-2">
+                                              <span className="font-medium">
+                                                {index + 1}.{" "}
+                                              </span>
+                                              {reason}
+                                            </p>
+                                          ))}
+                                        </p>
+                                      </div>
+                                      <p className="text-xs text-red-700 mt-3 font-medium">
+                                        Please upload new or replace the
+                                        affected documents below.
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : user?.selfie_picture ||
+                                user?.ghana_card_front ||
+                                user?.ghana_card_back ? (
+                                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                                  <div className="flex items-start gap-3">
+                                    <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      <h4 className="text-sm font-semibold text-yellow-800 mb-1">
+                                        KYC Verification Pending
+                                      </h4>
+                                      <p className="text-sm text-yellow-700">
+                                        Your verification documents are
+                                        currently under review. You can still
+                                        update them while waiting for review.
+                                        You will not be able to add properties
+                                        until your KYC is approved.
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                                  <div className="flex items-start gap-3">
+                                    <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      <h4 className="text-sm font-semibold text-blue-800 mb-1">
+                                        Verification Documents Required
+                                      </h4>
+                                      <p className="text-sm text-blue-700 mb-2">
+                                        You need to submit your verification
+                                        documents to complete your KYC
+                                        verification. Please upload your selfie
+                                        picture and Ghana Card (front and back)
+                                        below.
+                                      </p>
+                                      <p className="text-xs text-blue-600 font-medium">
+                                        You will not be able to add properties
+                                        until your KYC verification is approved.
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* Selfie Picture */}
+                                <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden shadow-sm">
+                                  <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200">
+                                    <div className="flex items-center gap-2">
+                                      <User className="h-4 w-4 text-blue-600" />
+                                      <span className="text-sm font-semibold text-gray-900">
+                                        Selfie Picture
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="p-4">
+                                    {verificationImages.selfie.preview ||
+                                    user?.selfie_picture ? (
+                                      <div className="relative group">
+                                        <img
+                                          src={
+                                            verificationImages.selfie.preview ||
+                                            user.selfie_picture
+                                          }
+                                          alt="Selfie verification"
+                                          className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
+                                        />
+                                        {!user?.kyc_verification &&
+                                          isEditing && (
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  selfieInputRef.current?.click()
+                                                }
+                                                className="px-3 py-1.5 text-sm font-medium text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
+                                              >
+                                                Change
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  removeVerificationImage(
+                                                    "selfie"
+                                                  )
+                                                }
+                                                className="p-1.5 text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-red-500/80 transition-colors"
+                                              >
+                                                <X className="h-4 w-4" />
+                                              </button>
+                                            </div>
+                                          )}
+                                        {user?.kyc_verification === true && (
+                                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                            <span className="text-white text-sm font-medium">
+                                              Verification Document
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div
+                                        className={`w-full h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center ${
+                                          !user?.kyc_verification && isEditing
+                                            ? "cursor-pointer hover:bg-gray-200 transition-colors"
+                                            : ""
+                                        }`}
+                                        onClick={
+                                          !user?.kyc_verification && isEditing
+                                            ? () =>
+                                                selfieInputRef.current?.click()
+                                            : undefined
+                                        }
+                                      >
+                                        <div className="text-center">
+                                          <User className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                                          <p className="text-xs text-gray-500">
+                                            {!user?.kyc_verification &&
+                                            isEditing
+                                              ? "Click to upload"
+                                              : "Not uploaded"}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {!user?.kyc_verification && isEditing && (
+                                      <input
+                                        ref={selfieInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) =>
+                                          handleVerificationImageUpload(
+                                            e.target.files[0],
+                                            "selfie"
+                                          )
+                                        }
+                                        className="hidden"
+                                      />
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Ghana Card Front */}
+                                <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden shadow-sm">
+                                  <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
+                                    <div className="flex items-center gap-2">
+                                      <Shield className="h-4 w-4 text-green-600" />
+                                      <span className="text-sm font-semibold text-gray-900">
+                                        Card Front
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="p-4">
+                                    {verificationImages.ghanaCardFront
+                                      .preview || user?.ghana_card_front ? (
+                                      <div className="relative group">
+                                        <img
+                                          src={
+                                            verificationImages.ghanaCardFront
+                                              .preview || user.ghana_card_front
+                                          }
+                                          alt="Ghana Card front"
+                                          className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
+                                        />
+                                        {!user?.kyc_verification &&
+                                          isEditing && (
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  ghanaCardFrontInputRef.current?.click()
+                                                }
+                                                className="px-3 py-1.5 text-sm font-medium text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
+                                              >
+                                                Change
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  removeVerificationImage(
+                                                    "ghanaCardFront"
+                                                  )
+                                                }
+                                                className="p-1.5 text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-red-500/80 transition-colors"
+                                              >
+                                                <X className="h-4 w-4" />
+                                              </button>
+                                            </div>
+                                          )}
+                                        {user?.kyc_verification === true && (
+                                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                            <span className="text-white text-sm font-medium">
+                                              Verification Document
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div
+                                        className={`w-full h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center ${
+                                          !user?.kyc_verification && isEditing
+                                            ? "cursor-pointer hover:bg-gray-200 transition-colors"
+                                            : ""
+                                        }`}
+                                        onClick={
+                                          !user?.kyc_verification && isEditing
+                                            ? () =>
+                                                ghanaCardFrontInputRef.current?.click()
+                                            : undefined
+                                        }
+                                      >
+                                        <div className="text-center">
+                                          <Shield className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                                          <p className="text-xs text-gray-500">
+                                            {!user?.kyc_verification &&
+                                            isEditing
+                                              ? "Click to upload"
+                                              : "Not uploaded"}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {!user?.kyc_verification && isEditing && (
+                                      <input
+                                        ref={ghanaCardFrontInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) =>
+                                          handleVerificationImageUpload(
+                                            e.target.files[0],
+                                            "ghanaCardFront"
+                                          )
+                                        }
+                                        className="hidden"
+                                      />
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Ghana Card Back */}
+                                <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden shadow-sm">
+                                  <div className="p-3 bg-gradient-to-r from-orange-50 to-amber-50 border-b border-gray-200">
+                                    <div className="flex items-center gap-2">
+                                      <Shield className="h-4 w-4 text-orange-600" />
+                                      <span className="text-sm font-semibold text-gray-900">
+                                        Card Back
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="p-4">
+                                    {verificationImages.ghanaCardBack.preview ||
+                                    user?.ghana_card_back ? (
+                                      <div className="relative group">
+                                        <img
+                                          src={
+                                            verificationImages.ghanaCardBack
+                                              .preview || user.ghana_card_back
+                                          }
+                                          alt="Ghana Card back"
+                                          className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
+                                        />
+                                        {!user?.kyc_verification &&
+                                          isEditing && (
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  ghanaCardBackInputRef.current?.click()
+                                                }
+                                                className="px-3 py-1.5 text-sm font-medium text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
+                                              >
+                                                Change
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  removeVerificationImage(
+                                                    "ghanaCardBack"
+                                                  )
+                                                }
+                                                className="p-1.5 text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-red-500/80 transition-colors"
+                                              >
+                                                <X className="h-4 w-4" />
+                                              </button>
+                                            </div>
+                                          )}
+                                        {user?.kyc_verification === true && (
+                                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                            <span className="text-white text-sm font-medium">
+                                              Verification Document
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div
+                                        className={`w-full h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center ${
+                                          !user?.kyc_verification && isEditing
+                                            ? "cursor-pointer hover:bg-gray-200 transition-colors"
+                                            : ""
+                                        }`}
+                                        onClick={
+                                          !user?.kyc_verification && isEditing
+                                            ? () =>
+                                                ghanaCardBackInputRef.current?.click()
+                                            : undefined
+                                        }
+                                      >
+                                        <div className="text-center">
+                                          <Shield className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                                          <p className="text-xs text-gray-500">
+                                            {!user?.kyc_verification &&
+                                            isEditing
+                                              ? "Click to upload"
+                                              : "Not uploaded"}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {!user?.kyc_verification && isEditing && (
+                                      <input
+                                        ref={ghanaCardBackInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) =>
+                                          handleVerificationImageUpload(
+                                            e.target.files[0],
+                                            "ghanaCardBack"
+                                          )
+                                        }
+                                        className="hidden"
+                                      />
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Verification Status Badge */}
+                              {(user?.selfie_picture ||
+                                user?.ghana_card_front ||
+                                user?.ghana_card_back) && (
+                                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                    <span className="text-sm font-medium text-green-800">
+                                      Verification documents submitted
+                                      successfully
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         )}
 
                         {/* Account Status */}
@@ -1426,6 +2104,61 @@ const Profile = () => {
             </Motion.div>
           </div>
         </div>
+
+        {/* Pending Update Overlay */}
+        {user?.update_status === "pending" && (
+          <div className="fixed inset-0 bg-white/40 backdrop-blur-sm z-40 flex items-start justify-center pt-16 px-4 pb-8">
+            <Motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border-2 border-blue-200 mt-8 relative"
+            >
+              {/* Back Button */}
+              <button
+                onClick={() => navigate(-1)}
+                className="absolute top-4 left-4 flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 group"
+              >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-200" />
+                <span className="text-sm font-medium">Back</span>
+              </button>
+
+              <div className="flex items-center justify-center mb-6">
+                <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center">
+                  <RefreshCw className="w-10 h-10 text-blue-600 animate-spin" />
+                </div>
+              </div>
+
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                  Profile Update Pending Approval
+                </h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Your profile update is currently undergoing approval by our
+                  admin team. This process typically takes about 30 minutes.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-xs text-blue-800 font-medium mb-1">
+                    ⏱️ Expected Completion Time
+                  </p>
+                  <p className="text-sm text-blue-900">
+                    Approximately 30 minutes from submission
+                  </p>
+                </div>
+                <p className="text-xs text-gray-500 mt-4">
+                  You cannot edit your profile while updates are pending
+                  approval.
+                </p>
+              </div>
+
+              <div className="border-t border-gray-200 pt-4">
+                <p className="text-xs text-gray-500 text-center">
+                  Please check back later or refresh the page to see if your
+                  update has been approved.
+                </p>
+              </div>
+            </Motion.div>
+          </div>
+        )}
       </Motion.div>
     </AuthLayout>
   );

@@ -22,7 +22,7 @@ apiClient.interceptors.request.use(
 
     // Get token fresh from localStorage on each request
     const token = localStorage.getItem("quick_landlord_token");
-    
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     } else {
@@ -81,7 +81,7 @@ apiClient.interceptors.response.use(
       // Optionally clear invalid token
       localStorage.removeItem("quick_landlord_token");
       localStorage.removeItem("quick_landlord_token_expiry");
-      
+
       // Redirect to login if needed
       if (window.location.pathname !== "/landlord-login") {
         window.location.href = "/landlord-login";
@@ -108,9 +108,25 @@ export const updateLandlordProfile = async (data) => {
       business_registration_number: data.business_registration_number,
     };
 
+    //Todo => Add Ghana Card number if provided
+    if (data.ghana_card_number) {
+      payload.ghana_card_number = data.ghana_card_number;
+    }
+
     //Todo => Add business_logo only if provided (it's optional)
     if (data.business_logo) {
       payload.business_logo = data.business_logo;
+    }
+
+    //Todo => Add verification documents if provided (only when is_active !== 1)
+    if (data.selfie_picture) {
+      payload.selfie_picture = data.selfie_picture;
+    }
+    if (data.ghana_card_front) {
+      payload.ghana_card_front = data.ghana_card_front;
+    }
+    if (data.ghana_card_back) {
+      payload.ghana_card_back = data.ghana_card_back;
     }
 
     console.log("Landlord profile update payload:", payload);
@@ -261,7 +277,19 @@ export const changeLandlordPassword = async (data) => {
   }
 };
 
+export const refreshUserData = async (landlord_slug) => {
+  try {
+    const response = await apiClient.get(
+      `/landlord/refresh/user_data/${landlord_slug}`
+    );
+    return response.data?.data;
+  } catch (error) {
+    return error?.response?.data?.reason || null;
+  }
+};
+
 export default {
   updateLandlordProfile,
   changeLandlordPassword,
+  refreshUserData,
 };

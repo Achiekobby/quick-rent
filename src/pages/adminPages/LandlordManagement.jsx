@@ -49,6 +49,8 @@ import {
   MailCheck,
   LocationEdit,
   Edit,
+  FileText,
+  AlertTriangle,
 } from "lucide-react";
 import AuthLayout from "../../Layouts/AuthLayout";
 import { toast } from "react-toastify";
@@ -57,6 +59,8 @@ import generalRequests from "../../api/Admin/Landlords/GeneralRequests";
 import ViewModal from "../../components/AdminLandlords/ViewModal";
 import ActivationReviewModal from "../../components/AdminLandlords/ActivationReviewModal";
 import DeactivationConfirmationModal from "../../components/AdminLandlords/DeactivationConfirmationModal";
+import PendingUpdatesReviewModal from "../../components/AdminLandlords/PendingUpdatesReviewModal";
+import KYCReviewModal from "../../components/AdminLandlords/KYCReviewModal";
 
 const LandlordManagement = () => {
   const navigate = useNavigate();
@@ -72,6 +76,8 @@ const LandlordManagement = () => {
   const [showLandlordModal, setShowLandlordModal] = useState(false);
   const [showActivationModal, setShowActivationModal] = useState(false);
   const [showDeactivationModal, setShowDeactivationModal] = useState(false);
+  const [showPendingUpdatesModal, setShowPendingUpdatesModal] = useState(false);
+  const [showKYCModal, setShowKYCModal] = useState(false);
   const [actionLoading, setActionLoading] = useState({});
 
   // Pagination state
@@ -93,7 +99,7 @@ const LandlordManagement = () => {
     const activeLandlords =
       landlordsData?.filter((l) => l.is_active).length || 0;
     const verifiedLandlords =
-      landlordsData?.filter((l) => l.is_verified).length || 0;
+      landlordsData?.filter((l) => l.kyc_verification === true).length || 0;
     const newThisMonth =
       landlordsData?.filter((l) =>
         moment(l.join_date).isAfter(moment().subtract(1, "month"))
@@ -169,10 +175,10 @@ const LandlordManagement = () => {
         filtered = filtered.filter((l) => !l.is_active);
         break;
       case "verified":
-        filtered = filtered.filter((l) => l.is_verified);
+        filtered = filtered.filter((l) => l.kyc_verification === true);
         break;
       case "unverified":
-        filtered = filtered.filter((l) => !l.is_verified);
+        filtered = filtered.filter((l) => l.kyc_verification !== true);
         break;
       default:
         break;
@@ -231,7 +237,7 @@ const LandlordManagement = () => {
 
   // Action handlers
   const handleToggleStatus = (landlordSlug, currentStatus) => {
-    const landlord = landlords.find(l => l.landlord_slug === landlordSlug);
+    const landlord = landlords.find((l) => l.landlord_slug === landlordSlug);
     if (!landlord) return;
 
     if (currentStatus) {
@@ -267,9 +273,7 @@ const LandlordManagement = () => {
         );
         setShowActivationModal(false);
       } else {
-        toast.error(
-          response?.data?.reason || "Failed to activate account"
-        );
+        toast.error(response?.data?.reason || "Failed to activate account");
       }
     } catch (error) {
       console.log(error);
@@ -292,14 +296,10 @@ const LandlordManagement = () => {
       });
 
       if (!response?.data?.in_error) {
-        toast.success(
-          response?.data?.reason || "Landlord activation rejected"
-        );
+        toast.success(response?.data?.reason || "Landlord activation rejected");
         setShowActivationModal(false);
       } else {
-        toast.error(
-          response?.data?.reason || "Failed to reject activation"
-        );
+        toast.error(response?.data?.reason || "Failed to reject activation");
       }
     } catch (error) {
       console.log(error);
@@ -335,9 +335,7 @@ const LandlordManagement = () => {
         );
         setShowDeactivationModal(false);
       } else {
-        toast.error(
-          response?.data?.reason || "Failed to deactivate account"
-        );
+        toast.error(response?.data?.reason || "Failed to deactivate account");
       }
     } catch (error) {
       console.log(error);
@@ -346,45 +344,6 @@ const LandlordManagement = () => {
       setActionLoading((prev) => ({
         ...prev,
         [`status_${landlordSlug}`]: false,
-      }));
-    }
-  };
-
-  const handleToggleVerification = async (landlordSlug, currentStatus) => {
-    setActionLoading((prev) => ({ ...prev, [`verify_${landlordSlug}`]: true }));
-
-    try {
-      const response = await generalRequests.updateAccountStatus({
-        landlord_slug: landlordSlug,
-        status: currentStatus ? "unverify" : "verify",
-      });
-
-      if (!response?.data?.in_error) {
-        toast.success(
-          response?.data?.reason || "Account verified successfully"
-        );
-      } else {
-        toast.error(response?.data?.reason || "Failed to verify account");
-      }
-
-      setLandlords((prev) =>
-        prev.map((landlord) =>
-          landlord.landlord_slug === landlordSlug
-            ? {
-                ...landlord,
-                is_verified: !currentStatus,
-                verification_status: !currentStatus ? "verified" : "pending",
-              }
-            : landlord
-        )
-      );
-    } catch (error) {
-      console.log(error);
-      toast.error("Failed to update verification status");
-    } finally {
-      setActionLoading((prev) => ({
-        ...prev,
-        [`verify_${landlordSlug}`]: false,
       }));
     }
   };
@@ -413,9 +372,254 @@ const LandlordManagement = () => {
     }
   };
 
+  // Handle pending updates review
+  const handleReviewPendingUpdates = (landlord) => {
+    setSelectedLandlord(landlord);
+    setShowPendingUpdatesModal(true);
+  };
+
+  const handleApprovePendingUpdates = async (landlordSlug) => {
+    setActionLoading((prev) => ({
+      ...prev,
+      [`pending_updates_${landlordSlug}`]: true,
+    }));
+
+    try {
+      const response = await generalRequests.reviewPendingUpdates(
+        landlordSlug,
+        "approved"
+      );
+
+      if (!response?.data?.in_error) {
+        toast.success(
+          response?.data?.reason || "Pending updates approved successfully"
+        );
+        setLandlords((prev) =>
+          prev.map((landlord) =>
+            landlord.landlord_slug === landlordSlug
+              ? {
+                  ...landlord,
+                  update_status: null,
+                  pending_updates: null,
+                }
+              : landlord
+          )
+        );
+        setShowPendingUpdatesModal(false);
+        setSelectedLandlord(null);
+      } else {
+        toast.error(
+          response?.data?.reason || "Failed to approve pending updates"
+        );
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to approve pending updates");
+    } finally {
+      setActionLoading((prev) => ({
+        ...prev,
+        [`pending_updates_${landlordSlug}`]: false,
+      }));
+    }
+  };
+
+  const handleRejectPendingUpdates = async (landlordSlug, reason) => {
+    setActionLoading((prev) => ({
+      ...prev,
+      [`pending_updates_${landlordSlug}`]: true,
+    }));
+
+    try {
+      const response = await generalRequests.reviewPendingUpdates(
+        landlordSlug,
+        "rejected",
+        reason
+      );
+
+      if (!response?.data?.in_error) {
+        toast.success(
+          response?.data?.reason || "Pending updates rejected successfully"
+        );
+        setLandlords((prev) =>
+          prev.map((landlord) =>
+            landlord.landlord_slug === landlordSlug
+              ? {
+                  ...landlord,
+                  update_status: "rejected",
+                  pending_updates: null,
+                }
+              : landlord
+          )
+        );
+        setShowPendingUpdatesModal(false);
+        setSelectedLandlord(null);
+      } else {
+        toast.error(
+          response?.data?.reason || "Failed to reject pending updates"
+        );
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to reject pending updates");
+    } finally {
+      setActionLoading((prev) => ({
+        ...prev,
+        [`pending_updates_${landlordSlug}`]: false,
+      }));
+    }
+  };
+
+  // Handle KYC review
+  const handleReviewKYC = (landlord) => {
+    setSelectedLandlord(landlord);
+    setShowKYCModal(true);
+  };
+
+  const handleApproveKYC = async (landlordSlug) => {
+    setActionLoading((prev) => ({
+      ...prev,
+      [`kyc_${landlordSlug}`]: true,
+    }));
+
+    try {
+      const response = await generalRequests.reviewKYCVerification({
+        landlord_slug: landlordSlug,
+        status: "verify",
+      });
+
+      if (!response?.data?.in_error) {
+        toast.success(
+          response?.data?.reason || "KYC verification approved successfully"
+        );
+        setLandlords((prev) =>
+          prev.map((landlord) =>
+            landlord.landlord_slug === landlordSlug
+              ? {
+                  ...landlord,
+                  kyc_verification: true,
+                  kyc_rejection_reason: null,
+                }
+              : landlord
+          )
+        );
+        setShowKYCModal(false);
+        setSelectedLandlord(null);
+      } else {
+        toast.error(
+          response?.data?.reason || "Failed to approve KYC verification"
+        );
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to approve KYC verification");
+    } finally {
+      setActionLoading((prev) => ({
+        ...prev,
+        [`kyc_${landlordSlug}`]: false,
+      }));
+    }
+  };
+
+  const handleRejectKYC = async (landlordSlug, rejectionReasons) => {
+    setActionLoading((prev) => ({
+      ...prev,
+      [`kyc_${landlordSlug}`]: true,
+    }));
+
+    try {
+      const response = await generalRequests.reviewKYCVerification({
+        landlord_slug: landlordSlug,
+        status: "unverify",
+        kyc_rejection_reason: JSON.stringify(rejectionReasons),
+      });
+
+      if (!response?.data?.in_error) {
+        toast.success(
+          response?.data?.reason || "KYC verification rejected successfully"
+        );
+        setLandlords((prev) =>
+          prev.map((landlord) =>
+            landlord.landlord_slug === landlordSlug
+              ? {
+                  ...landlord,
+                  kyc_verification: false,
+                  kyc_rejection_reason: rejectionReasons.join("\n"),
+                }
+              : landlord
+          )
+        );
+        setShowKYCModal(false);
+        setSelectedLandlord(null);
+      } else {
+        toast.error(
+          response?.data?.reason || "Failed to reject KYC verification"
+        );
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to reject KYC verification");
+    } finally {
+      setActionLoading((prev) => ({
+        ...prev,
+        [`kyc_${landlordSlug}`]: false,
+      }));
+    }
+  };
+
   // Helper function to check if landlord has verification documents
   const hasVerificationDocuments = (landlord) => {
-    return landlord.selfie_picture && landlord.ghana_card_front && landlord.ghana_card_back;
+    return (
+      landlord.selfie_picture &&
+      landlord.ghana_card_front &&
+      landlord.ghana_card_back
+    );
+  };
+
+  // Helper functions for checking scenarios
+  const hasPendingUpdates = (landlord) => {
+    // update_status === "pending" takes precedence - always show Review Updates button
+    if (landlord.update_status === "pending") {
+      return true;
+    }
+    // Fallback: Check if pending_updates exists and has content
+    if (landlord.pending_updates) {
+      const hasContent =
+        (typeof landlord.pending_updates === "object" &&
+          !Array.isArray(landlord.pending_updates) &&
+          Object.keys(landlord.pending_updates).length > 0) ||
+        (Array.isArray(landlord.pending_updates) &&
+          landlord.pending_updates.length > 0);
+      return hasContent;
+    }
+    return false;
+  };
+
+  // Check if KYC can be reviewed (pending review - not yet approved or rejected)
+  const canReviewKYC = (landlord) => {
+    return (
+      landlord.update_status !== "pending" &&
+      landlord.kyc_verification === false &&
+      landlord.kyc_rejection_reason === null
+    );
+  };
+
+  // Check if KYC has been rejected (admin can re-review)
+  const isKYCRejected = (landlord) => {
+    return (
+      landlord.update_status !== "pending" &&
+      landlord.kyc_verification === false &&
+      landlord.kyc_rejection_reason !== null
+    );
+  };
+
+  // Check if KYC is blocked by pending updates
+  const isKYCBlockedByPendingUpdates = (landlord) => {
+    return landlord.update_status === "pending";
+  };
+
+  // Check if KYC is approved
+  const isKYCApproved = (landlord) => {
+    return landlord.kyc_verification === true;
   };
 
   const getStatusBadge = (landlord) => {
@@ -428,7 +632,7 @@ const LandlordManagement = () => {
       );
     }
 
-    if (landlord.is_verified) {
+    if (landlord.kyc_verification === true) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
           <CheckCircle2 size={12} />
@@ -816,7 +1020,7 @@ const LandlordManagement = () => {
                 {paginatedLandlords.map((landlord) => (
                   <Motion.div
                     key={landlord.landlord_slug}
-                    className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300"
+                    className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full"
                     whileHover={{ y: -4 }}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -843,163 +1047,241 @@ const LandlordManagement = () => {
                       </div>
                     </div>
 
-                    {/* Content */}
-                    <div className="p-3 sm:p-4 space-y-3">
-                      <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs">
-                        <div className="flex items-center gap-1.5">
-                          <Building
-                            size={12}
-                            className="text-gray-400 flex-shrink-0"
-                          />
-                          <span className="text-gray-600 truncate">
-                            {landlord.properties_count} Properties
-                          </span>
+                    {/* Content - Flex-1 to take available space */}
+                    <div className="p-3 sm:p-4 flex-1 flex flex-col">
+                      <div className="space-y-3 flex-1">
+                        <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <Building
+                              size={12}
+                              className="text-gray-400 flex-shrink-0"
+                            />
+                            <span className="text-gray-600 truncate">
+                              {landlord.properties_count} Properties
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <MailCheck
+                              size={12}
+                              className="text-gray-400 flex-shrink-0"
+                            />
+                            <span className="text-gray-600 truncate">
+                              {landlord.email}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <MapPin
+                              size={12}
+                              className="text-gray-400 flex-shrink-0"
+                            />
+                            <span className="text-gray-600 truncate">
+                              {landlord.region}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <LocationEdit
+                              size={12}
+                              className="text-green-500 flex-shrink-0"
+                            />
+                            <span className="text-gray-600 text-xs truncate">
+                              {landlord.location}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <MailCheck
-                            size={12}
-                            className="text-gray-400 flex-shrink-0"
-                          />
-                          <span className="text-gray-600 truncate">
-                            {landlord.email}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <MapPin
-                            size={12}
-                            className="text-gray-400 flex-shrink-0"
-                          />
-                          <span className="text-gray-600 truncate">
-                            {landlord.region}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <LocationEdit
-                            size={12}
-                            className="text-green-500 flex-shrink-0"
-                          />
-                          <span className="text-gray-600 text-xs truncate">
-                            {landlord.location}
-                          </span>
+
+                        <div className="pt-2 border-t border-gray-100">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500 mb-3 gap-1">
+                            <span className="truncate">
+                              Joined{" "}
+                              {moment(landlord.join_date).format("MMM YYYY")}
+                            </span>
+                            <span className="truncate">
+                              Active {moment(landlord.verified_at).fromNow()}
+                            </span>
+                          </div>
+
+                          {/* Pending Updates Badge */}
+                          {hasPendingUpdates(landlord) && (
+                            <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                              <div className="flex items-center gap-2 text-xs">
+                                <Clock className="w-3 h-3 text-amber-600" />
+                                <span className="text-amber-800 font-medium">
+                                  Pending Updates
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* KYC Blocked by Pending Updates Message */}
+                          {isKYCBlockedByPendingUpdates(landlord) &&
+                            !hasPendingUpdates(landlord) && (
+                              <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <div className="flex items-center gap-1.5 text-xs text-yellow-800">
+                                  <AlertTriangle size={12} />
+                                  <span>
+                                    KYC review unavailable - pending updates in
+                                    review
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                          {/* KYC Rejected Message */}
+                          {isKYCRejected(landlord) && (
+                            <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded-lg">
+                              <div className="flex items-center gap-1.5 text-xs text-red-800">
+                                <XCircle size={12} />
+                                <span>KYC verification was rejected</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* KYC Approved Message */}
+                          {isKYCApproved(landlord) && (
+                            <div className="mb-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                              <div className="flex items-center gap-1.5 text-xs text-green-800">
+                                <CheckCircle2 size={12} />
+                                <span>KYC verification approved</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-gray-100">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500 mb-3 gap-1">
-                          <span className="truncate">
-                            Joined{" "}
-                            {moment(landlord.join_date).format("MMM YYYY")}
-                          </span>
-                          <span className="truncate">
-                            Active {moment(landlord.verified_at).fromNow()}
-                          </span>
+                      {/* Actions - Pushed to bottom with mt-auto */}
+                      <div className="space-y-2 mt-auto pt-3 border-t border-gray-100">
+                        {/* Pending Updates Review Button */}
+                        {hasPendingUpdates(landlord) && (
+                          <button
+                            onClick={() => handleReviewPendingUpdates(landlord)}
+                            disabled={
+                              actionLoading[
+                                `pending_updates_${landlord.landlord_slug}`
+                              ]
+                            }
+                            className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all duration-200 text-xs font-medium hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Review Pending Updates"
+                          >
+                            {actionLoading[
+                              `pending_updates_${landlord.landlord_slug}`
+                            ] ? (
+                              <RefreshCw size={14} className="animate-spin" />
+                            ) : (
+                              <FileText size={14} />
+                            )}
+                            <span className="truncate">Review Updates</span>
+                          </button>
+                        )}
+
+                        {/* KYC Review Button - Show for pending review or rejected (can re-review) */}
+                        {(canReviewKYC(landlord) ||
+                          isKYCRejected(landlord)) && (
+                          <button
+                            onClick={() => handleReviewKYC(landlord)}
+                            disabled={
+                              actionLoading[`kyc_${landlord.landlord_slug}`] ||
+                              isKYCBlockedByPendingUpdates(landlord)
+                            }
+                            className={`w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg transition-all duration-200 text-xs font-medium hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${
+                              isKYCRejected(landlord)
+                                ? "bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600"
+                                : "bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600"
+                            }`}
+                            title={
+                              isKYCBlockedByPendingUpdates(landlord)
+                                ? "Please review pending updates first"
+                                : isKYCRejected(landlord)
+                                ? "Re-review KYC Verification"
+                                : "Review KYC Verification"
+                            }
+                          >
+                            {actionLoading[`kyc_${landlord.landlord_slug}`] ? (
+                              <RefreshCw size={14} className="animate-spin" />
+                            ) : (
+                              <Shield size={14} />
+                            )}
+                            <span className="truncate">
+                              {isKYCRejected(landlord)
+                                ? "Re-review KYC"
+                                : "Review KYC"}
+                            </span>
+                          </button>
+                        )}
+
+                        {/* Primary Actions Row */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => handleViewDetails(landlord)}
+                            className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all duration-200 text-xs font-medium hover:shadow-sm"
+                            title="View Details"
+                          >
+                            <Eye size={14} />
+                            <span className="truncate">View Details</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleEditLandlord(landlord)}
+                            className="group flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-600 rounded-lg hover:from-indigo-100 hover:to-purple-100 transition-all duration-200 text-xs font-medium hover:shadow-sm"
+                            title="Edit Landlord"
+                          >
+                            <Edit
+                              size={14}
+                              className="group-hover:rotate-12 transition-transform duration-200"
+                            />
+                            <span className="truncate">Edit</span>
+                          </button>
                         </div>
 
-                        {/* Actions */}
-                        <div className="space-y-2">
-                          {/* Primary Actions Row */}
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              onClick={() => handleViewDetails(landlord)}
-                              className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all duration-200 text-xs font-medium hover:shadow-sm"
-                              title="View Details"
-                            >
-                              <Eye size={14} />
-                              <span className="truncate">View Details</span>
-                            </button>
-
-                            <button
-                              onClick={() => handleEditLandlord(landlord)}
-                              className="group flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-600 rounded-lg hover:from-indigo-100 hover:to-purple-100 transition-all duration-200 text-xs font-medium hover:shadow-sm"
-                              title="Edit Landlord"
-                            >
-                              <Edit size={14} className="group-hover:rotate-12 transition-transform duration-200" />
-                              <span className="truncate">Edit</span>
-                            </button>
-                          </div>
-
-                          {/* Secondary Actions Row */}
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              onClick={() =>
-                                handleToggleVerification(
-                                  landlord.landlord_slug,
-                                  landlord.is_verified
-                                )
-                              }
-                              disabled={
-                                actionLoading[`verify_${landlord.landlord_slug}`]
-                              }
-                              className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg transition-all duration-200 text-xs font-medium hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
-                                landlord.is_verified
-                                  ? "bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
-                                  : "bg-green-50 text-green-700 hover:bg-green-100"
-                              }`}
-                              title={
-                                landlord.is_verified
-                                  ? "Remove Verification"
-                                  : "Verify Account"
-                              }
-                            >
-                              {actionLoading[
-                                `verify_${landlord.landlord_slug}`
-                              ] ? (
-                                <RefreshCw size={14} className="animate-spin" />
-                              ) : (
-                                <Shield size={14} />
-                              )}
-                              <span className="truncate">
-                                {landlord.is_verified ? "Unverify" : "Verify"}
-                              </span>
-                            </button>
-
-                            <button
-                              onClick={() =>
-                                handleToggleStatus(
-                                  landlord.landlord_slug,
-                                  landlord.is_active
-                                )
-                              }
-                              disabled={
-                                actionLoading[`status_${landlord.landlord_slug}`] ||
-                                (!landlord.is_active && !hasVerificationDocuments(landlord))
-                              }
-                              className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg transition-all duration-200 text-xs font-medium hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+                        {/* Secondary Actions Row */}
+                        <div className="grid grid-cols-1 gap-2">
+                          <button
+                            onClick={() =>
+                              handleToggleStatus(
+                                landlord.landlord_slug,
                                 landlord.is_active
-                                  ? "bg-red-50 text-red-700 hover:bg-red-100"
-                                  : hasVerificationDocuments(landlord)
-                                  ? "bg-green-50 text-green-700 hover:bg-green-100"
-                                  : "bg-gray-50 text-gray-500 cursor-not-allowed"
-                              }`}
-                              title={
-                                landlord.is_active
-                                  ? "Deactivate Account"
-                                  : hasVerificationDocuments(landlord)
-                                  ? "Activate Account"
-                                  : "Cannot activate - Missing verification documents"
-                              }
-                            >
-                              {actionLoading[
+                              )
+                            }
+                            disabled={
+                              actionLoading[
                                 `status_${landlord.landlord_slug}`
-                              ] ? (
-                                <RefreshCw size={14} className="animate-spin" />
-                              ) : landlord.is_active ? (
-                                <UserX size={14} />
-                              ) : hasVerificationDocuments(landlord) ? (
-                                <UserCheck size={14} />
-                              ) : (
-                                <XCircle size={14} />
-                              )}
-                              <span className="truncate">
-                                {landlord.is_active 
-                                  ? "Deactivate" 
-                                  : hasVerificationDocuments(landlord)
-                                  ? "Activate"
-                                  : "No Docs"
-                                }
-                              </span>
-                            </button>
-                          </div>
+                              ] ||
+                              (!landlord.is_active &&
+                                !hasVerificationDocuments(landlord))
+                            }
+                            className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg transition-all duration-200 text-xs font-medium hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+                              landlord.is_active
+                                ? "bg-red-50 text-red-700 hover:bg-red-100"
+                                : hasVerificationDocuments(landlord)
+                                ? "bg-green-50 text-green-700 hover:bg-green-100"
+                                : "bg-gray-50 text-gray-500 cursor-not-allowed"
+                            }`}
+                            title={
+                              landlord.is_active
+                                ? "Deactivate Account"
+                                : hasVerificationDocuments(landlord)
+                                ? "Activate Account"
+                                : "Cannot activate - Missing verification documents"
+                            }
+                          >
+                            {actionLoading[
+                              `status_${landlord.landlord_slug}`
+                            ] ? (
+                              <RefreshCw size={14} className="animate-spin" />
+                            ) : landlord.is_active ? (
+                              <UserX size={14} />
+                            ) : hasVerificationDocuments(landlord) ? (
+                              <UserCheck size={14} />
+                            ) : (
+                              <XCircle size={14} />
+                            )}
+                            <span className="truncate">
+                              {landlord.is_active
+                                ? "Deactivate"
+                                : hasVerificationDocuments(landlord)
+                                ? "Activate"
+                                : "No Docs"}
+                            </span>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -1178,6 +1460,34 @@ const LandlordManagement = () => {
           landlord={selectedLandlord}
           onConfirm={handleDeactivationConfirm}
           isLoading={actionLoading[`status_${selectedLandlord?.landlord_slug}`]}
+        />
+
+        {/* Pending Updates Review Modal */}
+        <PendingUpdatesReviewModal
+          isOpen={showPendingUpdatesModal}
+          onClose={() => {
+            setShowPendingUpdatesModal(false);
+            setSelectedLandlord(null);
+          }}
+          landlord={selectedLandlord}
+          onApprove={handleApprovePendingUpdates}
+          onReject={handleRejectPendingUpdates}
+          isLoading={
+            actionLoading[`pending_updates_${selectedLandlord?.landlord_slug}`]
+          }
+        />
+
+        {/* KYC Review Modal */}
+        <KYCReviewModal
+          isOpen={showKYCModal}
+          onClose={() => {
+            setShowKYCModal(false);
+            setSelectedLandlord(null);
+          }}
+          landlord={selectedLandlord}
+          onApprove={handleApproveKYC}
+          onReject={handleRejectKYC}
+          isLoading={actionLoading[`kyc_${selectedLandlord?.landlord_slug}`]}
         />
       </div>
     </AuthLayout>

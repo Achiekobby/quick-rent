@@ -94,6 +94,13 @@ const useAuthStore = create(
               ghana_card_front: userData.ghana_card_front,
               ghana_card_back: userData.ghana_card_back,
               ghana_card_number: userData.ghana_card_number,
+              kyc_verification: userData.kyc_verification,
+              kyc_verification_reason: userData.kyc_verification_reason,
+              kyc_rejection_reason: userData.kyc_rejection_reason,
+              rejection_reason: userData.rejection_reason,
+              update_status: userData.update_status,
+              pending_updates: userData.pending_updates,
+              subscription_plan: userData.subscription_plan || null,
             },
             registrationData: {
               message: apiResponse?.data?.message,
@@ -175,11 +182,15 @@ const useAuthStore = create(
                 business_name: userData.business_name,
                 business_type: userData.business_type,
                 business_registration: userData.business_registration,
-                
+
                 selfie_picture: userData.selfie_picture,
                 ghana_card_front: userData.ghana_card_front,
                 ghana_card_back: userData.ghana_card_back,
                 ghana_card_number: userData.ghana_card_number,
+                kyc_verification: userData.kyc_verification,
+                kyc_verification_reason: userData.kyc_verification_reason,
+                kyc_rejection_reason: userData.kyc_rejection_reason,
+                rejection_reason: userData.rejection_reason,
                 business_registration_number:
                   userData.business_registration_number,
                 business_logo: userData.business_logo,
@@ -196,6 +207,9 @@ const useAuthStore = create(
                 hasCompletedProfile:
                   userData.hasCompletedProfile ||
                   !!(userData.business_name && userData.business_type),
+                update_status: userData.update_status,
+                pending_updates: userData.pending_updates,
+                subscription_plan: userData.subscription_plan || null,
               },
               isLoading: false,
               error: null,
@@ -238,9 +252,134 @@ const useAuthStore = create(
       },
 
       updateUser: (userData) => {
-        set((state) => ({
-          user: state.user ? { ...state.user, ...userData } : null,
-        }));
+        if (!userData) return;
+
+        set((state) => {
+          if (!state.user) return state;
+
+          // Merge user data - use spread operator to ensure all fields are updated
+          // This properly handles null values and ensures the store is fully synchronized
+          const updatedUser = {
+            ...state.user,
+            ...userData,
+            // Explicitly handle fields that might be null to ensure they're set correctly
+            id: userData.id !== undefined ? userData.id : state.user.id,
+            landlord_slug:
+              userData.landlord_slug !== undefined
+                ? userData.landlord_slug
+                : state.user.landlord_slug,
+            user_slug:
+              userData.user_slug !== undefined
+                ? userData.user_slug
+                : state.user.user_slug,
+            full_name:
+              userData.full_name !== undefined
+                ? userData.full_name
+                : state.user.full_name,
+            email:
+              userData.email !== undefined ? userData.email : state.user.email,
+            phone_number:
+              userData.phone_number !== undefined
+                ? userData.phone_number
+                : state.user.phone_number,
+            user_type:
+              userData.user_type !== undefined
+                ? userData.user_type
+                : state.user.user_type,
+            is_active:
+              userData.is_active !== undefined
+                ? userData.is_active
+                : state.user.is_active,
+            is_verified:
+              userData.is_verified !== undefined
+                ? userData.is_verified
+                : state.user.is_verified,
+            verification_channel:
+              userData.verification_channel !== undefined
+                ? userData.verification_channel
+                : state.user.verification_channel,
+            verified_at:
+              userData.verified_at !== undefined
+                ? userData.verified_at
+                : state.user.verified_at,
+            // Landlord specific fields
+            business_name:
+              userData.business_name !== undefined
+                ? userData.business_name
+                : state.user.business_name,
+            business_type:
+              userData.business_type !== undefined
+                ? userData.business_type
+                : state.user.business_type,
+            business_registration_number:
+              userData.business_registration_number !== undefined
+                ? userData.business_registration_number
+                : state.user.business_registration_number,
+            business_logo:
+              userData.business_logo !== undefined
+                ? userData.business_logo
+                : state.user.business_logo,
+            location:
+              userData.location !== undefined
+                ? userData.location
+                : state.user.location,
+            region:
+              userData.region !== undefined
+                ? userData.region
+                : state.user.region,
+            // Verification documents
+            selfie_picture:
+              userData.selfie_picture !== undefined
+                ? userData.selfie_picture
+                : state.user.selfie_picture,
+            ghana_card_front:
+              userData.ghana_card_front !== undefined
+                ? userData.ghana_card_front
+                : state.user.ghana_card_front,
+            ghana_card_back:
+              userData.ghana_card_back !== undefined
+                ? userData.ghana_card_back
+                : state.user.ghana_card_back,
+            ghana_card_number:
+              userData.ghana_card_number !== undefined
+                ? userData.ghana_card_number
+                : state.user.ghana_card_number,
+            // KYC fields
+            kyc_verification:
+              userData.kyc_verification !== undefined
+                ? userData.kyc_verification
+                : state.user.kyc_verification,
+            kyc_verification_reason:
+              userData.kyc_verification_reason !== undefined
+                ? userData.kyc_verification_reason
+                : state.user.kyc_verification_reason,
+            kyc_rejection_reason:
+              userData.kyc_rejection_reason !== undefined
+                ? userData.kyc_rejection_reason
+                : state.user.kyc_rejection_reason,
+            update_status:
+              userData.update_status !== undefined
+                ? userData.update_status
+                : state.user.update_status,
+            rejection_reason:
+              userData.rejection_reason !== undefined
+                ? userData.rejection_reason
+                : state.user.rejection_reason,
+            pending_updates:
+              userData.pending_updates !== undefined
+                ? userData.pending_updates
+                : state.user.pending_updates,
+            subscription_plan:
+              userData.subscription_plan !== undefined
+                ? userData.subscription_plan
+                : state.user.subscription_plan,
+          };
+
+          return {
+            ...state,
+            user: updatedUser,
+          };
+        });
       },
 
       //* User verification
@@ -270,6 +409,22 @@ const useAuthStore = create(
                 }),
                 ...(verificationData.ghana_card_number && {
                   ghana_card_number: verificationData.ghana_card_number,
+                }),
+                ...(verificationData.kyc_verification !== undefined && {
+                  kyc_verification: verificationData.kyc_verification,
+                }),
+                ...(verificationData.kyc_verification_reason !== undefined && {
+                  kyc_verification_reason:
+                    verificationData.kyc_verification_reason,
+                }),
+                ...(verificationData.kyc_rejection_reason !== undefined && {
+                  kyc_rejection_reason: verificationData.kyc_rejection_reason,
+                }),
+                ...(verificationData.rejection_reason !== undefined && {
+                  rejection_reason: verificationData.rejection_reason,
+                }),
+                ...(verificationData.update_status !== undefined && {
+                  update_status: verificationData.update_status,
                 }),
                 ...(verificationData.business_logo && {
                   business_logo: verificationData.business_logo,

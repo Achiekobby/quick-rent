@@ -24,6 +24,7 @@ import {
   Sparkles,
   Award,
   Globe,
+  AlertCircle,
 } from "lucide-react";
 import Images from "../../utils/Images";
 import useAuthStore from "../../stores/authStore";
@@ -90,6 +91,9 @@ const LandlordRegister = () => {
   const [businessLogoPreview, setBusinessLogoPreview] = useState(null);
   const [availableCities, setAvailableCities] = useState([]);
   const [showCustomLocation, setShowCustomLocation] = useState(false);
+  const [selfiePreview, setSelfiePreview] = useState(null);
+  const [ghanaCardFrontPreview, setGhanaCardFrontPreview] = useState(null);
+  const [ghanaCardBackPreview, setGhanaCardBackPreview] = useState(null);
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -103,6 +107,10 @@ const LandlordRegister = () => {
     fullName: "",
     email: "",
     phone: "233",
+    ghanaCardNumber: "",
+    selfiePicture: null,
+    ghanaCardFront: null,
+    ghanaCardBack: null,
     businessName: "",
     businessType: "",
     businessRegistration: "",
@@ -147,6 +155,21 @@ const LandlordRegister = () => {
       }));
     }
   }, [formData.city, formData.customLocation]);
+
+  // Cleanup preview URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (selfiePreview) {
+        URL.revokeObjectURL(selfiePreview);
+      }
+      if (ghanaCardFrontPreview) {
+        URL.revokeObjectURL(ghanaCardFrontPreview);
+      }
+      if (ghanaCardBackPreview) {
+        URL.revokeObjectURL(ghanaCardBackPreview);
+      }
+    };
+  }, [selfiePreview, ghanaCardFrontPreview, ghanaCardBackPreview]);
 
   const validateEmail = (email) => {
     const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
@@ -260,6 +283,68 @@ const LandlordRegister = () => {
     }
   };
 
+  // Verification image upload handlers
+  const handleVerificationImageUpload = (file, field, setPreview) => {
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: "Please select a valid image file"
+      }));
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: "Image size must be less than 5MB"
+      }));
+      return;
+    }
+
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setPreview(previewUrl);
+
+    // Convert file to base64
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64String = reader.result;
+      setFormData((prev) => ({ ...prev, [field]: base64String }));
+    };
+    reader.readAsDataURL(file);
+
+    // Clear error if upload successful
+    setErrors((prev) => ({ ...prev, [field]: null }));
+  };
+
+  const handleSelfieUpload = (file) => {
+    handleVerificationImageUpload(file, "selfiePicture", setSelfiePreview);
+  };
+
+  const handleGhanaCardFrontUpload = (file) => {
+    handleVerificationImageUpload(file, "ghanaCardFront", setGhanaCardFrontPreview);
+  };
+
+  const handleGhanaCardBackUpload = (file) => {
+    handleVerificationImageUpload(file, "ghanaCardBack", setGhanaCardBackPreview);
+  };
+
+  const removeVerificationImage = (field, setPreview) => {
+    if (setPreview === setSelfiePreview && selfiePreview) {
+      URL.revokeObjectURL(selfiePreview);
+    } else if (setPreview === setGhanaCardFrontPreview && ghanaCardFrontPreview) {
+      URL.revokeObjectURL(ghanaCardFrontPreview);
+    } else if (setPreview === setGhanaCardBackPreview && ghanaCardBackPreview) {
+      URL.revokeObjectURL(ghanaCardBackPreview);
+    }
+    setPreview(null);
+    setFormData((prev) => ({ ...prev, [field]: null }));
+  };
+
   const validateStep = (step) => {
     const newErrors = {};
 
@@ -287,11 +372,31 @@ const LandlordRegister = () => {
     }
 
     if (step === 2) {
+      if (!formData.ghanaCardNumber.trim()) {
+        newErrors.ghanaCardNumber = "Ghana Card number is required";
+      } else if (!/^GHA-[0-9]{9}-[0-9]$/.test(formData.ghanaCardNumber)) {
+        newErrors.ghanaCardNumber = "Please enter a valid Ghana Card number (GHA-XXXXXXXXX-X)";
+      }
+
+      if (!formData.selfiePicture) {
+        newErrors.selfiePicture = "Selfie picture is required for verification";
+      }
+
+      if (!formData.ghanaCardFront) {
+        newErrors.ghanaCardFront = "Ghana Card front image is required";
+      }
+
+      if (!formData.ghanaCardBack) {
+        newErrors.ghanaCardBack = "Ghana Card back image is required";
+      }
+    }
+
+    if (step === 3) {
       if (!formData.businessName.trim()) {
         newErrors.businessName = "Business name is required";
       }
       if (!formData.businessType) {
-        newErrors.businessType = "Business type is required";
+ newErrors.businessType = "Business type is required";
       }
       if (!formData.region) {
         newErrors.region = "Region is required";
@@ -307,7 +412,7 @@ const LandlordRegister = () => {
       }
     }
 
-    if (step === 3) {
+    if (step === 4) {
       if (!formData.password) {
         newErrors.password = "Password is required";
       } else if (formData.password.length < 8) {
@@ -329,7 +434,7 @@ const LandlordRegister = () => {
 
   const nextStep = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep((prev) => Math.min(prev + 1, 3));
+      setCurrentStep((prev) => Math.min(prev + 1, 4));
     }
   };
 
@@ -340,7 +445,7 @@ const LandlordRegister = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateStep(3)) {
+    if (!validateStep(4)) {
       return;
     }
 
@@ -526,7 +631,296 @@ const LandlordRegister = () => {
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="space-y-6"
+      className="space-y-8"
+    >
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Identity Verification
+        </h2>
+        <p className="text-gray-600">Please provide your Ghana Card details and verification images</p>
+      </div>
+
+      {/* Ghana Card Number */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Ghana Card Number *
+        </label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-gray-400" />
+              <span className="text-sm font-medium text-gray-700">GHA-</span>
+            </div>
+          </div>
+          <input
+            type="text"
+            name="ghanaCardNumber"
+            value={formData.ghanaCardNumber.replace(/^GHA-/, '').replace(/-$/, '')}
+            onChange={(e) => {
+              let value = e.target.value.replace(/\D/g, '');
+              if (value.length > 10) {
+                value = value.substring(0, 10);
+              }
+              let formattedValue = '';
+              if (value.length > 0) {
+                formattedValue = 'GHA-';
+                if (value.length <= 9) {
+                  formattedValue += value;
+                } else {
+                  formattedValue += value.substring(0, 9) + '-' + value.substring(9);
+                }
+              }
+              const syntheticEvent = { target: { name: 'ghanaCardNumber', value: formattedValue, type: 'text' } };
+              handleInputChange(syntheticEvent);
+              // Clear error when user starts typing
+              if (errors.ghanaCardNumber) {
+                setErrors((prev) => ({ ...prev, ghanaCardNumber: null }));
+              }
+            }}
+            maxLength={13}
+            className={`w-full pl-20 pr-4 py-4 rounded-xl border-2 transition-all duration-300 ${
+              errors.ghanaCardNumber
+                ? "border-red-400"
+                : "border-gray-200 focus:border-orange-400"
+            } focus:outline-none focus:ring-4 focus:ring-orange-100 bg-white`}
+            placeholder="XXXXXXXXX-X"
+          />
+        </div>
+        {errors.ghanaCardNumber && (
+          <p className="mt-1 text-sm text-red-600">{errors.ghanaCardNumber}</p>
+        )}
+        <p className="mt-1 text-xs text-gray-500">
+          Enter your Ghana Card number (e.g., GHA-123456789-0)
+        </p>
+      </div>
+
+      {/* Verification Images Section */}
+      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Shield className="h-5 w-5 text-purple-600" />
+          Verification Images *
+        </h3>
+        <p className="text-sm text-gray-700 mb-6">
+          Please upload clear images of your selfie and Ghana Card (both sides) for identity verification.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+          {/* Selfie Picture */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Selfie Picture *
+            </label>
+            {!selfiePreview ? (
+              <div
+                className="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center transition-all duration-300 cursor-pointer hover:bg-gray-50 hover:border-gray-400"
+                onClick={() => document.getElementById('selfie-upload').click()}
+              >
+                <div className="flex flex-col items-center gap-3">
+                  <div className="p-3 rounded-full bg-gray-100">
+                    <User className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <div className="space-y-1">
+                    <h5 className="text-sm font-medium text-gray-700">Upload Selfie</h5>
+                    <p className="text-xs text-gray-500">Clear face photo</p>
+                  </div>
+                </div>
+                <input
+                  id="selfie-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleSelfieUpload(e.target.files[0])}
+                  className="hidden"
+                />
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="bg-white border-2 border-green-300 rounded-xl overflow-hidden shadow-sm">
+                  <div className="relative group">
+                    <img
+                      src={selfiePreview}
+                      alt="Selfie preview"
+                      className="w-full h-40 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('selfie-upload').click()}
+                        className="px-3 py-1.5 text-sm font-medium text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
+                      >
+                        Change
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeVerificationImage("selfiePicture", setSelfiePreview)}
+                        className="p-1.5 text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-red-500/80 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <input
+                  id="selfie-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleSelfieUpload(e.target.files[0])}
+                  className="hidden"
+                />
+              </div>
+            )}
+            {errors.selfiePicture && (
+              <p className="mt-1 text-xs text-red-600">{errors.selfiePicture}</p>
+            )}
+          </div>
+
+          {/* Ghana Card Front */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Ghana Card Front *
+            </label>
+            {!ghanaCardFrontPreview ? (
+              <div
+                className="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center transition-all duration-300 cursor-pointer hover:bg-gray-50 hover:border-gray-400"
+                onClick={() => document.getElementById('ghana-card-front-upload').click()}
+              >
+                <div className="flex flex-col items-center gap-3">
+                  <div className="p-3 rounded-full bg-gray-100">
+                    <Shield className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <div className="space-y-1">
+                    <h5 className="text-sm font-medium text-gray-700">Card Front</h5>
+                    <p className="text-xs text-gray-500">Front side image</p>
+                  </div>
+                </div>
+                <input
+                  id="ghana-card-front-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleGhanaCardFrontUpload(e.target.files[0])}
+                  className="hidden"
+                />
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="bg-white border-2 border-green-300 rounded-xl overflow-hidden shadow-sm">
+                  <div className="relative group">
+                    <img
+                      src={ghanaCardFrontPreview}
+                      alt="Ghana Card front preview"
+                      className="w-full h-40 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('ghana-card-front-upload').click()}
+                        className="px-3 py-1.5 text-sm font-medium text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
+                      >
+                        Change
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeVerificationImage("ghanaCardFront", setGhanaCardFrontPreview)}
+                        className="p-1.5 text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-red-500/80 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <input
+                  id="ghana-card-front-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleGhanaCardFrontUpload(e.target.files[0])}
+                  className="hidden"
+                />
+              </div>
+            )}
+            {errors.ghanaCardFront && (
+              <p className="mt-1 text-xs text-red-600">{errors.ghanaCardFront}</p>
+            )}
+          </div>
+
+          {/* Ghana Card Back */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Ghana Card Back *
+            </label>
+            {!ghanaCardBackPreview ? (
+              <div
+                className="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center transition-all duration-300 cursor-pointer hover:bg-gray-50 hover:border-gray-400"
+                onClick={() => document.getElementById('ghana-card-back-upload').click()}
+              >
+                <div className="flex flex-col items-center gap-3">
+                  <div className="p-3 rounded-full bg-gray-100">
+                    <Shield className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <div className="space-y-1">
+                    <h5 className="text-sm font-medium text-gray-700">Card Back</h5>
+                    <p className="text-xs text-gray-500">Back side image</p>
+                  </div>
+                </div>
+                <input
+                  id="ghana-card-back-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleGhanaCardBackUpload(e.target.files[0])}
+                  className="hidden"
+                />
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="bg-white border-2 border-green-300 rounded-xl overflow-hidden shadow-sm">
+                  <div className="relative group">
+                    <img
+                      src={ghanaCardBackPreview}
+                      alt="Ghana Card back preview"
+                      className="w-full h-40 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('ghana-card-back-upload').click()}
+                        className="px-3 py-1.5 text-sm font-medium text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
+                      >
+                        Change
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeVerificationImage("ghanaCardBack", setGhanaCardBackPreview)}
+                        className="p-1.5 text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-red-500/80 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <input
+                  id="ghana-card-back-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleGhanaCardBackUpload(e.target.files[0])}
+                  className="hidden"
+                />
+              </div>
+            )}
+            {errors.ghanaCardBack && (
+              <p className="mt-1 text-xs text-red-600">{errors.ghanaCardBack}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </Motion.div>
+  );
+
+  const renderStep3 = () => (
+    <Motion.div
+      key="step3"
+      variants={stepVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="space-y-8"
     >
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -708,9 +1102,9 @@ const LandlordRegister = () => {
     </Motion.div>
   );
 
-  const renderStep3 = () => (
+  const renderStep4 = () => (
     <Motion.div
-      key="step3"
+      key="step4"
       variants={stepVariants}
       initial="hidden"
       animate="visible"
@@ -887,7 +1281,7 @@ const LandlordRegister = () => {
           {/* Form Container - Scrollable */}
           <div className="flex-1 overflow-y-auto">
             <div className="min-h-full flex flex-col justify-center p-6 lg:p-8 py-12">
-              <div className="w-full max-w-md mx-auto flex-1 flex flex-col justify-center min-h-0">
+              <div className="w-full max-w-2xl mx-auto flex-1 flex flex-col justify-center min-h-0">
                 {/* Logo and Header */}
                 <Motion.div
                   className="text-center mb-8"
@@ -937,7 +1331,7 @@ const LandlordRegister = () => {
                 {/* Progress Steps */}
                 <div className="mb-10">
                   <div className="flex items-center justify-center relative">
-                    <div className="flex items-center justify-between w-full max-w-sm relative">
+                    <div className="flex items-center justify-between w-full max-w-2xl relative">
                       {/* Background connecting line that passes through circle centers */}
                       <div className="absolute top-1/2 left-5 right-5 h-0.5 bg-gray-200 -translate-y-1/2 z-0"></div>
 
@@ -949,15 +1343,18 @@ const LandlordRegister = () => {
                             currentStep === 1
                               ? "0%"
                               : currentStep === 2
-                              ? "calc(50% - 20px)"
-                              : "calc(100% - 40px)",
+                              ? "calc(33.33% - 15px)"
+                              : currentStep === 3
+                              ? "calc(66.66% - 30px)"
+                              : "calc(100% - 45px)",
                         }}
                       />
 
                       {[
                         { step: 1, title: "Personal Info", icon: User },
-                        { step: 2, title: "Business Details", icon: Building },
-                        { step: 3, title: "Security", icon: Shield },
+                        { step: 2, title: "Verification", icon: Shield },
+                        { step: 3, title: "Business Details", icon: Building },
+                        { step: 4, title: "Security", icon: Lock },
                       ].map(({ step, title, icon: Icon }) => (
                         <Motion.div
                           key={step}
@@ -1049,8 +1446,9 @@ const LandlordRegister = () => {
                   >
                     <p className="text-xs text-gray-600 bg-gray-50 px-3 py-1.5 rounded-full inline-block">
                       {currentStep === 1 && "Tell us about yourself"}
-                      {currentStep === 2 && "Share your business information"}
-                      {currentStep === 3 && "Secure your account"}
+                      {currentStep === 2 && "Verify your identity"}
+                      {currentStep === 3 && "Share your business information"}
+                      {currentStep === 4 && "Secure your account"}
                     </p>
                   </Motion.div>
                 </div>
@@ -1062,6 +1460,7 @@ const LandlordRegister = () => {
                       {currentStep === 1 && renderStep1()}
                       {currentStep === 2 && renderStep2()}
                       {currentStep === 3 && renderStep3()}
+                      {currentStep === 4 && renderStep4()}
                     </AnimatePresence>
                   </div>
 
@@ -1080,7 +1479,7 @@ const LandlordRegister = () => {
                       Previous
                     </button>
 
-                    {currentStep < 3 ? (
+                    {currentStep < 4 ? (
                       <Motion.button
                         type="button"
                         onClick={nextStep}

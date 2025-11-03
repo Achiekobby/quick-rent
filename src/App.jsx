@@ -7,10 +7,53 @@ import GuestRoutes from "./routes/guestRoutes";
 import useScrollToTop from "./hooks/useScrollToTop";
 import "react-toastify/dist/ReactToastify.css";
 import RootRedirect from "./components/RootRedirect";
+import profileRequests from "./api/Landlord/General/ProfileRequest";
 
 function App() {
-  const { isAuthenticated, isLoading, initializeAuth, requiresVerification } =
-    useAuthStore();
+  const {
+    isAuthenticated,
+    isLoading,
+    initializeAuth,
+    requiresVerification,
+    updateUser,
+    user,
+  } = useAuthStore();
+
+  // Refresh the user data in the zustand store periodically when the update_status===pending
+  useEffect(() => {
+    const refreshUserData = async () => {
+      if (!user?.user_slug && !user?.landlord_slug) return;
+
+      const response = await profileRequests.refreshUserData(
+        user?.user_slug || user?.landlord_slug
+      );
+      if (
+        response?.status_code === "000" &&
+        !response?.in_error &&
+        response?.data
+      ) {
+        updateUser(response.data);
+      }
+    };
+    refreshUserData();
+    let intervalId = null;
+    if (user?.update_status === "pending" || user?.kyc_verification === false) {
+      intervalId = setInterval(() => {
+        refreshUserData();
+      }, 30000);
+    }
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [
+    updateUser,
+    user?.landlord_slug,
+    user?.user_slug,
+    user?.update_status,
+    user?.kyc_verification,
+  ]);
 
   // Todo => Custom Hooks
   useScrollToTop();
@@ -45,7 +88,7 @@ function App() {
           <Route path="/*" element={<GuestRoutes />} />
         )}
       </Routes>
-      
+
       <ToastContainer
         position="top-right"
         autoClose={5000}
