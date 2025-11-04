@@ -12,7 +12,6 @@ import {
   FileText,
   Activity,
   MapPin,
-  RefreshCw,
   PieChart,
   Bell,
   Home,
@@ -41,7 +40,11 @@ const AdminDashboard = () => {
       pendingProperties: 0,
       activeListings: 0,
       newUsersToday: 0,
-      propertiesListedToday: 0
+      propertiesListedToday: 0,
+      totalSubscriptions: 0,
+      activeSubscriptions: 0,
+      expiredSubscriptions: 0,
+      totalRevenue: 0,
     },
     propertyCategories: [],
     regionStats: []
@@ -67,26 +70,6 @@ const AdminDashboard = () => {
     }
     fetchDashboardData();
   },[])
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Refresh dashboard data function
-  const refreshData = async () => {
-    setIsRefreshing(true);
-    try{
-      const response = await dashboardRequests.getDashboardData();
-      if(response?.data?.status_code === "000" && !response?.data?.in_error){
-        setDashboardData(response?.data?.data);
-        toast.success("Dashboard data refreshed successfully");
-      }else{
-        toast.error(response?.data?.message || "Failed to refresh dashboard data");
-      }
-    }catch(error){
-      console.log(error);
-      toast.error("Error refreshing dashboard data");
-    }finally{
-      setIsRefreshing(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -217,6 +200,152 @@ const AdminDashboard = () => {
             </div>
           </Motion.div>
         </div>
+
+        {/* Subscription Data Card - Full Width */}
+        <Motion.div
+          className="relative overflow-hidden bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 rounded-2xl shadow-lg border-2 border-purple-200 mb-6"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
+          {/* Decorative background elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-200/30 to-transparent rounded-full -translate-y-1/2 translate-x-1/2"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-orange-200/30 to-transparent rounded-full translate-y-1/2 -translate-x-1/2"></div>
+          
+          <div className="relative p-6 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-orange-500 flex items-center justify-center shadow-xl">
+                  <CreditCard className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 to-orange-600 bg-clip-text text-transparent">
+                    Subscription Overview
+                  </h2>
+                  <p className="text-gray-600 text-sm mt-1">
+                    Monitor subscription metrics and revenue
+                  </p>
+                </div>
+              </div>
+              
+              <Motion.button
+                onClick={() => navigate("/subscriptions")}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-orange-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-orange-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2 group"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Activity className="w-5 h-5 group-hover:animate-pulse" />
+                View All Subscriptions
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Motion.button>
+            </div>
+
+            {/* Subscription Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* Total Subscriptions */}
+              <Motion.div
+                className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white/50 shadow-md"
+                whileHover={{ scale: 1.02, y: -2 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Total</span>
+                  <CreditCard className="w-4 h-4 text-purple-500" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {dashboardData.stats.totalSubscriptions?.toLocaleString() || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">All subscriptions</p>
+              </Motion.div>
+
+              {/* Active Subscriptions */}
+              <Motion.div
+                className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white/50 shadow-md"
+                whileHover={{ scale: 1.02, y: -2 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Active</span>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                </div>
+                <p className="text-2xl font-bold text-green-600">
+                  {dashboardData.stats.activeSubscriptions?.toLocaleString() || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Currently active</p>
+              </Motion.div>
+
+              {/* Expired Subscriptions */}
+              <Motion.div
+                className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white/50 shadow-md"
+                whileHover={{ scale: 1.02, y: -2 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Expired</span>
+                  <AlertCircle className="w-4 h-4 text-orange-500" />
+                </div>
+                <p className="text-2xl font-bold text-orange-600">
+                  {dashboardData.stats.expiredSubscriptions?.toLocaleString() || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Require renewal</p>
+              </Motion.div>
+
+              {/* Total Revenue */}
+              <Motion.div
+                className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-white/50 shadow-md"
+                whileHover={{ scale: 1.02, y: -2 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.0 }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Revenue</span>
+                  <PieChart className="w-4 h-4 text-purple-500" />
+                </div>
+                <p className="text-2xl font-bold text-purple-600">
+                  GHS {dashboardData.stats.totalRevenue?.toLocaleString() || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Total earnings</p>
+              </Motion.div>
+            </div>
+
+            {/* Quick Stats Bar */}
+            <div className="mt-6 pt-6 border-t border-purple-200/50">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span className="text-sm text-gray-700">
+                      <span className="font-semibold">
+                        {dashboardData.stats.activeSubscriptions || 0}
+                      </span> Active Plans
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                    <span className="text-sm text-gray-700">
+                      <span className="font-semibold">
+                        {dashboardData.stats.expiredSubscriptions || 0}
+                      </span> Expired Plans
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/60 rounded-lg">
+                  <Bell className="w-4 h-4 text-purple-600" />
+                  <span className="text-sm font-medium text-gray-700">
+                    Platform subscriptions active
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Motion.div>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

@@ -562,14 +562,21 @@ const AllProperties = () => {
       navHeight.current = topNavbar.offsetHeight;
     }
 
+    let ticking = false;
     const handleScroll = () => {
-      if (navRef.current) {
-        const navPosition = navRef.current.getBoundingClientRect().top;
-        setIsNavSticky(navPosition <= navHeight.current);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (navRef.current) {
+            const navPosition = navRef.current.getBoundingClientRect().top;
+            setIsNavSticky(navPosition <= navHeight.current);
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -804,25 +811,40 @@ const AllProperties = () => {
           </div>
         </Motion.section>
 
-        <div
+        <Motion.div
           ref={navRef}
           style={{
             top: isNavSticky ? `${navHeight.current}px` : "0",
           }}
           className={`border-b border-neutral-200 sticky bg-white z-40 ${
             isNavSticky ? "shadow-md" : "shadow-sm"
-          } transition-all duration-300`}
+          }`}
+          animate={{ 
+            boxShadow: isNavSticky ? "0 4px 6px -1px rgba(0, 0, 0, 0.1)" : "0 1px 2px 0 rgba(0, 0, 0, 0.05)"
+          }}
+          transition={{
+            type: "spring",
+            damping: 25,
+            stiffness: 300,
+            mass: 0.8,
+          }}
         >
-          <div className="container mx-auto px-3 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between py-2 md:py-3">
-              <AnimatePresence>
+          <div className="container mx-auto px-3 sm:px-6 lg:px-8 overflow-hidden">
+            <div className="flex items-center justify-between py-2 md:py-3 gap-2">
+              <AnimatePresence mode="wait">
                 {isNavSticky && !isMobileView && (
                   <Motion.div
-                    className="flex-grow max-w-md mr-4"
-                    initial={{ opacity: 0, width: 0, x: -20 }}
-                    animate={{ opacity: 1, width: "auto", x: 0 }}
-                    exit={{ opacity: 0, width: 0, x: -20 }}
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    key="sticky-search"
+                    className="flex-shrink-0 max-w-md mr-2 md:mr-4"
+                    initial={{ opacity: 0, width: 0, x: -30, scale: 0.9 }}
+                    animate={{ opacity: 1, width: "auto", x: 0, scale: 1 }}
+                    exit={{ opacity: 0, width: 0, x: -30, scale: 0.9 }}
+                    transition={{ 
+                      type: "spring",
+                      damping: 25,
+                      stiffness: 300,
+                      mass: 0.6,
+                    }}
                   >
                     <div className="flex items-center bg-white rounded-full shadow-sm border border-neutral-200 overflow-hidden">
                       <div className="flex-grow px-3 py-2 flex items-center">
@@ -850,17 +872,37 @@ const AllProperties = () => {
                 )}
               </AnimatePresence>
 
-              {isMobileView && isNavSticky && (
-                <Motion.button
-                  className="p-2 rounded-full border border-neutral-200 mr-2"
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowMobileSearch(!showMobileSearch)}
-                >
-                  <Search size={18} className="text-neutral-600" />
-                </Motion.button>
-              )}
+              <AnimatePresence>
+                {isMobileView && isNavSticky && (
+                  <Motion.button
+                    key="mobile-search-btn"
+                    className="p-2 rounded-full border border-neutral-200 mr-2"
+                    initial={{ opacity: 0, scale: 0.8, x: -20 }}
+                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                    transition={{
+                      type: "spring",
+                      damping: 25,
+                      stiffness: 300,
+                      mass: 0.5,
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowMobileSearch(!showMobileSearch)}
+                  >
+                    <Search size={18} className="text-neutral-600" />
+                  </Motion.button>
+                )}
+              </AnimatePresence>
 
-              <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-grow">
+              <Motion.div 
+                className="flex items-center gap-0.5 sm:gap-1 overflow-x-hidden flex-grow min-w-0"
+                initial={false}
+                animate={isNavSticky ? {
+                  opacity: 1,
+                } : {
+                  opacity: 1,
+                }}
+              >
                 {propertyCategories.map((category, index) => {
                   const isActiveFromUrl = new URLSearchParams(location.search).get('category') === category.name;
                   const isSelected = selectedCategory === category.name;
@@ -869,18 +911,25 @@ const AllProperties = () => {
                   return (
                     <Motion.button
                       key={category.id}
-                      className={`flex cursor-pointer flex-col items-center px-2 md:px-4 py-1 md:py-2 rounded-lg whitespace-nowrap text-xs md:text-sm transition-all duration-200 ${
+                      className={`flex cursor-pointer flex-col items-center px-1.5 sm:px-2 md:px-2.5 py-1 rounded-lg whitespace-nowrap text-[10px] sm:text-xs md:text-xs transition-all duration-200 flex-shrink-0 ${
                         isHighlighted
                           ? isActiveFromUrl 
                             ? "bg-orange-100 text-orange-800 font-medium border border-orange-200" 
                             : "bg-neutral-100 font-medium"
                           : "hover:bg-neutral-50"
                       }`}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ 
+                        opacity: 1, 
+                        y: 0,
+                        scale: 1,
+                      }}
                       transition={{
-                        delay: shouldReduceMotion ? 0 : index * 0.03,
+                        delay: shouldReduceMotion ? 0 : index * 0.02,
                         duration: 0.4,
+                        type: "spring",
+                        damping: 20,
+                        stiffness: 300,
                       }}
                       whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
                       whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
@@ -897,13 +946,13 @@ const AllProperties = () => {
                         navigate(`/properties${newSearch ? `?${newSearch}` : ''}`, { replace: true });
                       }}
                     >
-                      <span className="text-lg md:text-xl mb-0.5 md:mb-1">
+                      <span className="text-sm sm:text-base md:text-lg mb-0.5">
                         {category.icon}
                       </span>
-                      <span>{category.name}</span>
+                      <span className="leading-tight">{category.name}</span>
                       {isActiveFromUrl && (
                         <Motion.div
-                          className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full"
+                          className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-orange-500 rounded-full"
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ delay: 0.2 }}
@@ -912,7 +961,7 @@ const AllProperties = () => {
                     </Motion.button>
                   );
                 })}
-              </div>
+              </Motion.div>
               <AnimatePresence>
                 <Motion.button
                   className="filter-toggle-btn cursor-pointer ml-2 md:ml-3 p-2 bg-white rounded-full shadow-md border border-neutral-200 flex items-center justify-center"
@@ -963,7 +1012,7 @@ const AllProperties = () => {
               )}
             </AnimatePresence>
           </div>
-        </div>
+        </Motion.div>
 
         {/* Sliding Side Filter Panel */}
         <AnimatePresence>
