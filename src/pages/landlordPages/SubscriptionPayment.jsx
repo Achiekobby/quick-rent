@@ -379,7 +379,8 @@ const SubscriptionPayment = () => {
                 <Smartphone className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                 <span className="truncate">Mobile Money</span>
               </button>
-              <button
+              {/* Original Card Payment Button - Commented out for future use */}
+              {/* <button
                 onClick={() => setPaymentMethod("card")}
                 className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 py-2.5 sm:py-3 px-2 sm:px-3 md:px-4 rounded-lg font-semibold text-sm sm:text-base transition-all ${
                   paymentMethod === "card"
@@ -389,6 +390,20 @@ const SubscriptionPayment = () => {
               >
                 <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                 <span className="truncate">Card Payment</span>
+              </button> */}
+              
+              {/* Disabled Card Payment Button - Coming Soon */}
+              <button
+                onClick={() => {}}
+                disabled
+                className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 py-2.5 sm:py-3 px-2 sm:px-3 md:px-4 rounded-lg font-semibold text-sm sm:text-base transition-all relative opacity-60 cursor-not-allowed"
+                title="Card payment coming soon"
+              >
+                <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <span className="truncate">Card Payment</span>
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                  Coming Soon
+                </span>
               </button>
             </div>
 
