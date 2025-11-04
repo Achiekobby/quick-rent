@@ -22,22 +22,31 @@ function App() {
   // Refresh the user data in the zustand store periodically when the update_status===pending
   useEffect(() => {
     const refreshUserData = async () => {
-      if (!user?.user_slug && !user?.landlord_slug) return;
-
-      const response = await profileRequests.refreshUserData(
-        user?.user_slug || user?.landlord_slug
-      );
       if (
-        response?.status_code === "000" &&
-        !response?.in_error &&
-        response?.data
-      ) {
-        updateUser(response.data);
+        user?.user_type !== "landlord" &&
+        !user?.user_slug &&
+        !user?.landlord_slug
+      )
+        return;
+      if (user?.user_type === "landlord" && user?.landlord_slug) {
+        const response = await profileRequests.refreshUserData(
+          user?.user_slug || user?.landlord_slug
+        );
+        if (
+          response?.status_code === "000" &&
+          !response?.in_error &&
+          response?.data
+        ) {
+          updateUser(response.data);
+        }
       }
     };
     refreshUserData();
     let intervalId = null;
-    if (user?.update_status === "pending" || user?.kyc_verification === false) {
+    if (
+      user?.user_type === "landlord" &&
+      (user?.update_status === "pending" || user?.kyc_verification === false)
+    ) {
       intervalId = setInterval(() => {
         refreshUserData();
       }, 30000);
@@ -49,6 +58,7 @@ function App() {
     };
   }, [
     updateUser,
+    user?.user_type,
     user?.landlord_slug,
     user?.user_slug,
     user?.update_status,
