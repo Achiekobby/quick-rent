@@ -14,6 +14,7 @@ import PropertyManagement from "../pages/adminPages/PropertyManagement";
 import CreateLandlord from "../pages/adminPages/CreateLandlord";
 import CreateProperty from "../pages/adminPages/CreateProperty";
 import EditLandlord from "../pages/adminPages/EditLandlord";
+import EditLandlordProperty from "../pages/adminPages/EditLandlordProperty";
 
 function AdminRoutes() {
   return (
@@ -229,6 +230,14 @@ function AdminRoutes() {
         element={
           <ProtectedRoute requiredRoles={["admin"]}>
             <CreateProperty />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/properties/edit/:property_slug"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <EditLandlordProperty />
           </ProtectedRoute>
         }
       />

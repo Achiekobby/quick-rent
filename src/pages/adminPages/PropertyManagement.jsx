@@ -26,10 +26,12 @@ import {
   SlidersHorizontal,
   X,
   Plus,
+  Edit3,
 } from "lucide-react";
 import AuthLayout from "../../Layouts/AuthLayout";
 import { toast } from "react-toastify";
 import dashboardRequests from "../../api/Admin/DashboardRequets";
+import { useNavigate } from "react-router";
 
 const PropertyManagement = () => {
   // State management
@@ -48,6 +50,7 @@ const PropertyManagement = () => {
     newStatus: null,
     isLoading: false,
   });
+  const navigate = useNavigate();
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -61,6 +64,10 @@ const PropertyManagement = () => {
   useEffect(() => {
     fetchProperties();
   }, []);
+
+  const handleNavigateToEdit = (property) => {
+    navigate(`/admin/properties/edit/${property.id}`);
+  };
 
   useEffect(() => {
     filterProperties();
@@ -359,6 +366,14 @@ const PropertyManagement = () => {
               whileTap={{ scale: 0.9 }}
             >
               <Eye className="w-4 h-4" />
+            </Motion.button>
+            <Motion.button
+              onClick={() => handleNavigateToEdit(property)}
+              className="p-1.5 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <Edit3 className="w-4 h-4" />
             </Motion.button>
 
             <Motion.button

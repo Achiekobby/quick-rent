@@ -26,7 +26,7 @@ const PaymentCallback = () => {
   const { updateUser } = useAuthStore();
 
   const [isVerifying, setIsVerifying] = useState(true);
-  const [paymentStatus, setPaymentStatus] = useState(null); // "success", "failed", "pending", "error"
+  const [paymentStatus, setPaymentStatus] = useState(null);
   const [paymentData, setPaymentData] = useState(null);
   const [transactionId, setTransactionId] = useState(null);
   const [plan, setPlan] = useState(null);

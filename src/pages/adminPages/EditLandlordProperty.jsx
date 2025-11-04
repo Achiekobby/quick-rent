@@ -37,14 +37,14 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import AuthLayout from "../../Layouts/AuthLayout";
 import { toast } from "react-toastify";
 import generalRequests from "../../api/Admin/Landlords/GeneralRequests";
 import propertiesServices from "../../api/Admin/Landlords/PropertiesServices";
 import ghanaRegions from "../../data/ghanaRegions";
 
-const CreateProperty = () => {
+const EditLandlordProperty = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -53,6 +53,8 @@ const CreateProperty = () => {
   const [selectedLandlord, setSelectedLandlord] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const fileInputRef = useRef(null);
+  const params = useParams();
+  const propertySlug = params.property_slug;
 
   // Dropdown states for Region and Location
   const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
@@ -148,12 +150,105 @@ const CreateProperty = () => {
   useEffect(() => {
     const loadLandlords = async () => {
       try {
-        const response = await generalRequests.getLandlords();
+        const [response, propertyResponse] = await Promise.all([
+          generalRequests.getLandlords(),
+          propertiesServices.getPropertyById(propertySlug),
+        ]);
+
+        const landlordsData =
+          response?.data?.status_code === "000" && !response?.data?.in_error
+            ? response?.data?.data || []
+            : [];
+
+        if (landlordsData.length > 0) {
+          setLandlords(landlordsData);
+        }
+
         if (
-          response?.data?.status_code === "000" &&
-          !response?.data?.in_error
+          propertyResponse?.data?.status_code === "000" &&
+          !propertyResponse?.data?.in_error
         ) {
-          setLandlords(response?.data?.data || []);
+          const propertyData = propertyResponse?.data?.data;
+          if (propertyData?.landlord_slug && landlordsData.length > 0) {
+            const matchingLandlord = landlordsData.find(
+              (landlord) =>
+                landlord.landlord_slug === propertyData.landlord_slug
+            );
+            if (matchingLandlord) {
+              setSelectedLandlord(matchingLandlord);
+            }
+          }
+
+          const backendImages =
+            propertyData?.images || propertyData?.property_images || [];
+          const convertedImages = backendImages.map((img) => {
+            const imageUrl = img.url || img.image || img;
+            const isFeatured =
+              img.is_featured === 1 ||
+              img.is_featured === true ||
+              img.is_featured === "1";
+
+            return {
+              image: imageUrl,
+              is_featured: Boolean(isFeatured),
+              _id: img.id || null,
+              _isExisting: true,
+            };
+          });
+
+          // Set preview URLs for existing images
+          if (convertedImages.length > 0) {
+            const previewUrls = convertedImages.map((img) => img.image);
+            setImagePreviewUrls(previewUrls);
+          }
+
+          setFormData({
+            // Property Basic Info
+            title: propertyData?.title || "",
+            property_type: propertyData?.property_type || "",
+
+            // Location
+            region: propertyData?.region || "",
+            location: propertyData?.location || "",
+            suburb: propertyData?.suburb || "",
+            district: propertyData?.district || "",
+            landmark: propertyData?.landmark || "",
+
+            // Property Details
+            number_of_bedrooms: propertyData?.number_of_rooms || 1,
+            number_of_bathrooms: propertyData?.number_of_bathrooms || 1,
+            bathroom_type: propertyData?.bathroom_type || "private",
+            kitchen_type: propertyData?.kitchen_type || "private",
+            year_built: propertyData?.year_built
+              ? String(propertyData.year_built)
+              : "",
+            square_feet: propertyData?.square_feet
+              ? String(propertyData.square_feet)
+              : "",
+            description: propertyData?.description || "",
+
+            // Pricing & Contact
+            per_month_amount: (
+              Number(propertyData?.price || 0) || 0
+            ).toString(),
+            rental_years: propertyData?.rental_years || 1,
+            negotiable: propertyData?.is_negotiable || false,
+            contact_number: propertyData?.contact_number.slice(3) || "",
+            whatsapp_number: propertyData?.whatsapp_number.slice(3) || "",
+
+            // Amenities
+            amenities: propertyData?.amenities || [],
+
+            // Images
+            property_images: convertedImages,
+
+            // Availability
+            is_available:
+              propertyData?.is_available !== undefined
+                ? propertyData?.is_available
+                : true,
+            approval_status: propertyData?.approval_status || "unverified",
+          });
         }
       } catch (error) {
         console.error("Error loading landlords:", error);
@@ -162,7 +257,7 @@ const CreateProperty = () => {
     };
 
     loadLandlords();
-  }, []);
+  }, [propertySlug]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -325,19 +420,21 @@ const CreateProperty = () => {
         }
         break;
 
-      case 3:
+      case 3: {
         if (formData.number_of_bedrooms < 0) {
           newErrors.number_of_bedrooms = "Invalid number of bedrooms";
         }
         if (formData.number_of_bathrooms < 0) {
           newErrors.number_of_bathrooms = "Invalid number of bathrooms";
         }
-        if (!formData.year_built || formData.year_built.trim() === "") {
+        const yearBuiltStr = String(formData.year_built || "").trim();
+        if (!yearBuiltStr) {
           newErrors.year_built = "Year built is required";
-        } else if (parseInt(formData.year_built) > new Date().getFullYear()) {
+        } else if (parseInt(yearBuiltStr) > new Date().getFullYear()) {
           newErrors.year_built = "Year built cannot be in the future";
         }
-        if (!formData.square_feet || formData.square_feet.trim() === "") {
+        const squareFeetStr = String(formData.square_feet || "").trim();
+        if (!squareFeetStr) {
           newErrors.square_feet = "Square feet is required";
         }
         if (formData.amenities.length === 0) {
@@ -347,6 +444,7 @@ const CreateProperty = () => {
           newErrors.description = "Property description is required";
         }
         break;
+      }
 
       case 4:
         if (!formData.per_month_amount || formData.per_month_amount <= 0) {
@@ -472,13 +570,17 @@ const CreateProperty = () => {
   };
 
   const removeImage = (index) => {
-    // Revoke the object URL to prevent memory leaks
-    if (imagePreviewUrls[index]) {
-      URL.revokeObjectURL(imagePreviewUrls[index]);
+    const previewUrl = imagePreviewUrls[index];
+
+    // Only revoke object URLs for new images (not existing URLs from backend)
+    // Object URLs start with "blob:" prefix
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
     }
 
     const wasFeatureImage = formData.property_images[index]?.is_featured;
 
+    // Remove from all arrays
     setImageFiles((prev) => prev.filter((_, i) => i !== index));
     setImagePreviewUrls((prev) => prev.filter((_, i) => i !== index));
 
@@ -560,8 +662,18 @@ const CreateProperty = () => {
         return `233${cleaned}`;
       };
 
+      // Format images: existing images keep URLs, new images are base64
+      // Backend will handle URL vs base64 based on the image value format
+      const formattedImages = formData.property_images.map((img) => {
+        return {
+          image: img.image, // Backend will handle URL vs base64
+          is_featured: Boolean(img.is_featured), // Ensure boolean (backend might convert to 1/0)
+        };
+      });
+
       // Prepare the payload with the correct structure matching the API requirements
       const payload = {
+        ...(propertySlug && { property_slug: propertySlug }), // Include property_slug for edit
         landlord_slug: selectedLandlord.landlord_slug,
         title: formData.title,
         description: formData.description,
@@ -585,23 +697,43 @@ const CreateProperty = () => {
         contact_number: formatPhoneNumber(formData.contact_number),
         whatsapp_number: formatPhoneNumber(formData.whatsapp_number),
         approval_status: formData.approval_status,
-        property_images: formData.property_images.map((img) => ({
-          image: img.image,
-          is_featured: img.is_featured,
-        })),
+        property_images: formattedImages,
       };
 
-      const response = await propertiesServices.createLandlordProperty(payload);
-      if (response?.data?.status_code === "001") {
+      // Use edit endpoint if propertySlug exists, otherwise create
+      const response = propertySlug
+        ? await propertiesServices.editLandlordProperty(payload)
+        : await propertiesServices.createLandlordProperty(payload);
+
+      if (
+        response?.data?.status_code === "001" ||
+        response?.status_code === "000"
+      ) {
         toast.success(
-          response?.data?.reason || "Property created successfully!"
+          response?.data?.reason ||
+            response?.message ||
+            (propertySlug
+              ? "Property updated successfully!"
+              : "Property created successfully!")
         );
         navigate("/admin/properties");
       } else {
-        toast.error(response?.data?.reason || "Failed to create property");
+        toast.error(
+          response?.data?.reason ||
+            response?.message ||
+            (propertySlug
+              ? "Failed to update property"
+              : "Failed to create property")
+        );
       }
     } catch (error) {
-      toast.error(error?.response?.data?.reason || "Failed to create property");
+      toast.error(
+        error?.response?.data?.reason ||
+          error?.response?.data?.message ||
+          (propertySlug
+            ? "Failed to update property"
+            : "Failed to create property")
+      );
     } finally {
       setLoading(false);
     }
@@ -622,7 +754,10 @@ const CreateProperty = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-8">
                 <div className="flex items-center gap-3 sm:gap-4">
                   <div className="p-2 sm:p-3 md:p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl md:rounded-2xl shadow-lg flex-shrink-0">
-                    <User size={20} className="sm:w-6 sm:h-6 md:w-7 md:h-7 text-white" />
+                    <User
+                      size={20}
+                      className="sm:w-6 sm:h-6 md:w-7 md:h-7 text-white"
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
@@ -639,8 +774,13 @@ const CreateProperty = () => {
                     animate={{ scale: 1, rotate: 0 }}
                     className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full shadow-lg self-start sm:self-auto"
                   >
-                    <CheckCircle2 size={16} className="sm:w-[18px] sm:h-[18px]" />
-                    <span className="font-semibold text-xs sm:text-sm whitespace-nowrap">1 Selected</span>
+                    <CheckCircle2
+                      size={16}
+                      className="sm:w-[18px] sm:h-[18px]"
+                    />
+                    <span className="font-semibold text-xs sm:text-sm whitespace-nowrap">
+                      1 Selected
+                    </span>
                   </Motion.div>
                 )}
               </div>
@@ -690,7 +830,10 @@ const CreateProperty = () => {
                     className="text-center py-10 sm:py-12 md:py-16 bg-white/60 backdrop-blur-sm rounded-xl sm:rounded-2xl border-2 border-dashed border-gray-300 px-4"
                   >
                     <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-inner">
-                      <User size={24} className="sm:w-8 sm:h-8 md:w-9 md:h-9 text-gray-400" />
+                      <User
+                        size={24}
+                        className="sm:w-8 sm:h-8 md:w-9 md:h-9 text-gray-400"
+                      />
                     </div>
                     <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
                       {searchTerm
@@ -2125,7 +2268,9 @@ const CreateProperty = () => {
                 <div className="p-3 bg-emerald-100 rounded-xl">
                   <CheckCircle2 size={24} className="text-emerald-600" />
                 </div>
-                Review & Create Property
+                {propertySlug
+                  ? "Review & Update Property"
+                  : "Review & Create Property"}
               </h3>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -2358,10 +2503,12 @@ const CreateProperty = () => {
               </Link>
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-blue-600 bg-clip-text text-transparent">
-                  Create New Property
+                  {propertySlug ? "Edit Property" : "Create New Property"}
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  Add a new property for a landlord
+                  {propertySlug
+                    ? "Update property details for the landlord"
+                    : "Add a new property for a landlord"}
                 </p>
               </div>
             </div>
@@ -2457,7 +2604,13 @@ const CreateProperty = () => {
                     ) : (
                       <Home size={16} />
                     )}
-                    {loading ? "Creating..." : "Create Property"}
+                    {loading
+                      ? propertySlug
+                        ? "Updating..."
+                        : "Creating..."
+                      : propertySlug
+                      ? "Update Property"
+                      : "Create Property"}
                   </Motion.button>
                 )}
               </div>
@@ -2469,4 +2622,4 @@ const CreateProperty = () => {
   );
 };
 
-export default CreateProperty;
+export default EditLandlordProperty;
