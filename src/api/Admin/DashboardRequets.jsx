@@ -22,15 +22,12 @@ class DashboardRequests {
   }
 
   async getAllProperties() {
-    const response = await axios.get(
-      `${Config.baseUrl}/admin/properties`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("quick_admin_token")}`,
-        },
-      }
-    );
+    const response = await axios.get(`${Config.baseUrl}/admin/properties`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("quick_admin_token")}`,
+      },
+    });
     return response.data;
   }
 
@@ -41,6 +38,103 @@ class DashboardRequests {
       { headers: this.getHeaders() }
     );
     return response.data;
+  }
+
+  async getSubscriptionPayments() {
+    try {
+      const response = await axios.get(`${BASE_URL}/transactions`, {
+        headers: this.getHeaders(),
+      });
+
+      // Handle nested data structure: response.data.data.data
+      const responseData = response?.data?.data || response?.data;
+      const paymentsArray = Array.isArray(responseData?.data)
+        ? responseData.data
+        : Array.isArray(responseData)
+        ? responseData
+        : [];
+
+      return {
+        status: true,
+        status_code: responseData?.status_code || "000",
+        data: paymentsArray,
+        message:
+          responseData?.message || "Subscription payments fetched successfully",
+      };
+    } catch (error) {
+      console.error("Subscription payments error:", error);
+      return {
+        status: false,
+        status_code: error?.response?.data?.data?.status_code || "500",
+        data: [],
+        message:
+          error?.response?.data?.data?.reason ||
+          error?.response?.data?.message ||
+          "Failed to fetch subscription payments",
+      };
+    }
+  }
+
+  async getLandlordSubscriptions() {
+    try {
+      const response = await axios.get(`${BASE_URL}/landlord_subscriptions`, {
+        headers: this.getHeaders(),
+      });
+
+      const responseData = response?.data?.data || response?.data;
+      const subscriptionsArray = Array.isArray(responseData?.data)
+        ? responseData.data
+        : Array.isArray(responseData)
+        ? responseData
+        : [];
+
+      return {
+        status: true,
+        status_code: responseData?.status_code || "000",
+        data: subscriptionsArray,
+        message:
+          responseData?.message ||
+          "Landlord subscriptions fetched successfully",
+      };
+    } catch (error) {
+      console.error("Landlord subscriptions error:", error);
+      return {
+        status: false,
+        status_code: error?.response?.data?.data?.status_code || "500",
+        data: [],
+        message:
+          error?.response?.data?.data?.reason ||
+          error?.response?.data?.message ||
+          "Failed to fetch landlord subscriptions",
+      };
+    }
+  }
+
+  async getSubscriptionStats() {
+    try {
+      const response = await axios.get(`${BASE_URL}/subscription_stats`, {
+        headers: this.getHeaders(),
+      });
+      return {
+        status: true,
+        status_code: response?.data?.data?.status_code || "000",
+        data: response?.data?.data || [],
+        message:
+          response?.data?.data?.message ||
+          "Subscription stats fetched successfully",
+      };
+    } catch (error) {
+      console.error("Subscription stats error:", error);
+      return {
+        status: false,
+        status_code: error?.response?.data?.data?.status_code || "500",
+        data: [],
+        message:
+          error?.response?.data?.data?.reason ||
+          error?.response?.data?.message ||
+          "Failed to fetch subscription stats",
+      };
+    }
   }
 }
 

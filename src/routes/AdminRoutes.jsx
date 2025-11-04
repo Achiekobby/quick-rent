@@ -15,6 +15,8 @@ import CreateLandlord from "../pages/adminPages/CreateLandlord";
 import CreateProperty from "../pages/adminPages/CreateProperty";
 import EditLandlord from "../pages/adminPages/EditLandlord";
 import EditLandlordProperty from "../pages/adminPages/EditLandlordProperty";
+import AdminPayments from "../pages/adminPages/AdminPayments";
+import AdminSubscriptions from "../pages/adminPages/AdminSubscriptions";
 
 function AdminRoutes() {
   return (
@@ -274,10 +276,34 @@ function AdminRoutes() {
         }
       />
       <Route
+        path="/subscriptions"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminSubscriptions />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/subscriptions"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminSubscriptions />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/payment-oversight"
         element={
           <ProtectedRoute requiredRoles={["admin"]}>
-            <div>Payment Oversight - Coming Soon</div>
+            <AdminPayments />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/payments"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <AdminPayments />
           </ProtectedRoute>
         }
       />

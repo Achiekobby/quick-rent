@@ -13,6 +13,8 @@ import Landing from "../pages/guestPages/Landing";
 import ProtectedRoute from "../components/ProtectedRoute";
 import SubscriptionPlans from "../pages/landlordPages/SubscriptionPlans";
 import SubscriptionPayment from "../pages/landlordPages/SubscriptionPayment";
+import SubscriptionHistory from "../pages/landlordPages/SubscriptionHistory";
+import Payments from "../pages/landlordPages/Payments";
 import PaymentSuccess from "../pages/landlordPages/PaymentSuccess";
 import PaymentFailure from "../pages/landlordPages/PaymentFailure";
 import PaymentVerification from "../pages/landlordPages/PaymentVerification";
@@ -110,7 +112,7 @@ function LandlordRoutes() {
       } />
       <Route path="/payment-history" element={
         <ProtectedRoute requiredRoles={['landlord']}>
-          <div>Payment History - Coming Soon</div>
+          <Payments />
         </ProtectedRoute>
       } />
       <Route path="/property-analytics" element={
@@ -133,6 +135,16 @@ function LandlordRoutes() {
       <Route path="/subscription/upgrade" element={
         <ProtectedRoute requiredRoles={['landlord']}>
           <SubscriptionPlans />
+        </ProtectedRoute>
+      } />
+      <Route path="/subscription/history" element={
+        <ProtectedRoute requiredRoles={['landlord']}>
+          <SubscriptionHistory />
+        </ProtectedRoute>
+      } />
+      <Route path="/payments" element={
+        <ProtectedRoute requiredRoles={['landlord']}>
+          <Payments />
         </ProtectedRoute>
       } />
       <Route path="/subscription/payment" element={

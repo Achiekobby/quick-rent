@@ -19,6 +19,7 @@ import {
   Zap,
   History,
   CreditCard,
+  Receipt,
 } from "lucide-react";
 import Colors from "../../utils/Colors";
 import AuthLayout from "../../Layouts/AuthLayout";
@@ -480,6 +481,15 @@ const LandlordDashboard = () => {
                           <History className="w-5 h-5 text-blue-600" />
                           <span>View History</span>
                         </Motion.button>
+                        <Motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => navigate("/payments")}
+                          className="bg-white hover:bg-gray-50 text-gray-800 border-2 border-purple-300 rounded-xl px-6 py-3 font-semibold transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+                        >
+                          <Receipt className="w-5 h-5 text-purple-600" />
+                          <span>Payments</span>
+                        </Motion.button>
                       </div>
                     </div>
                   </div>
@@ -604,12 +614,12 @@ const LandlordDashboard = () => {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <Motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => navigate("/subscription/history")}
-                      className="flex-1 flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-800 border-2 border-blue-300 rounded-xl px-6 py-3 font-semibold transition-all duration-300 shadow-sm hover:shadow-md"
+                      className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-800 border-2 border-blue-300 rounded-xl px-6 py-3 font-semibold transition-all duration-300 shadow-sm hover:shadow-md"
                     >
                       <History className="w-5 h-5 text-blue-600" />
                       <span>Subscription History</span>
@@ -618,8 +628,18 @@ const LandlordDashboard = () => {
                     <Motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
+                      onClick={() => navigate("/payments")}
+                      className="flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-800 border-2 border-purple-300 rounded-xl px-6 py-3 font-semibold transition-all duration-300 shadow-sm hover:shadow-md"
+                    >
+                      <Receipt className="w-5 h-5 text-purple-600" />
+                      <span>Payment History</span>
+                    </Motion.button>
+
+                    <Motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={() => navigate("/subscription/upgrade")}
-                      className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl px-6 py-3 font-semibold transition-all duration-300 shadow-lg hover:shadow-xl"
+                      className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl px-6 py-3 font-semibold transition-all duration-300 shadow-lg hover:shadow-xl"
                     >
                       <CreditCard className="w-5 h-5" />
                       <span>Upgrade/Renew</span>
@@ -746,6 +766,20 @@ const LandlordDashboard = () => {
                   description: "Create a new property listing",
                   path: "/add-property",
                   icon: <Plus size={20} />,
+                  available: true,
+                },
+                {
+                  title: "Subscription History",
+                  description: "View subscription transactions",
+                  path: "/subscription/history",
+                  icon: <History size={20} />,
+                  available: true,
+                },
+                {
+                  title: "Payment History",
+                  description: "View all payment transactions",
+                  path: "/payments",
+                  icon: <Receipt size={20} />,
                   available: true,
                 },
                 {
