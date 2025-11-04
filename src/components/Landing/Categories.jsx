@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { motion as Motion } from "framer-motion";
+import { useNavigate } from "react-router";
 import categories from "../../data/CategoryData";
 import categoryRequests from "../../api/Renter/General/CategoryRequests";
 import { toast } from "react-toastify";
 
 const Categories = () => {
+  const navigate = useNavigate();
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [updatedCategories, setUpdatedCategories] = useState(categories);
   const [loading, setLoading] = useState(true);
@@ -63,6 +65,13 @@ const Categories = () => {
     },
   };
 
+  // Handle category click - navigate to properties page with category filter
+  const handleCategoryClick = (category) => {
+    // Use category.key to match the filtering logic in AllProperties.jsx
+    const categoryName = category.key;
+    navigate(`/properties?category=${encodeURIComponent(categoryName)}`);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -107,18 +116,26 @@ const Categories = () => {
                 variants={itemVariants}
                 role="button"
                 tabIndex={0}
+                aria-label={`Browse ${category.title} properties`}
                 onMouseEnter={() => setHoveredCategory(category.id)}
                 onMouseLeave={() => setHoveredCategory(null)}
                 onFocus={() => setHoveredCategory(category.id)}
                 onBlur={() => setHoveredCategory(null)}
+                onClick={() => handleCategoryClick(category)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
-                    console.log(`Card ${category.title} activated`);
+                    e.preventDefault();
+                    handleCategoryClick(category);
                   }
                 }}
                 whileHover={{
                   y: -8,
+                  scale: 1.02,
                   transition: { duration: 0.4, ease: "easeOut" },
+                }}
+                whileTap={{
+                  scale: 0.98,
+                  transition: { duration: 0.2 },
                 }}
               >
                 <div className="relative w-full pb-[98%] lg:pb-[95%]">
@@ -175,6 +192,18 @@ const Categories = () => {
                       }}
                     >
                       {category.ads}
+                    </Motion.span>
+                    
+                    {/* Click indicator on hover */}
+                    <Motion.span
+                      className="text-[10px] md:text-xs text-white/80 font-medium mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      animate={{
+                        opacity: isHovered ? 1 : 0,
+                        y: isHovered ? 0 : 5,
+                      }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      Click to explore →
                     </Motion.span>
                   </Motion.div>
                 </div>

@@ -23,10 +23,11 @@ class DashboardRequests {
 
   async getAllProperties() {
     const response = await axios.get(
-      `${Config.baseUrl}/properties/allProperties`,
+      `${Config.baseUrl}/admin/properties`,
       {
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("quick_admin_token")}`,
         },
       }
     );

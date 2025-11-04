@@ -129,6 +129,7 @@ const AddProperty = () => {
     contact_number: "",
     whatsapp_number: "",
     year_built: "",
+    square_feet: "",
     amenities: [],
     approval_status: "unverified",
     property_type: "",
@@ -308,7 +309,7 @@ const AddProperty = () => {
         if (!formData.property_type)
           newErrors.property_type = "Property type is required";
         break;
-      case 2:
+      case 2: {
         if (formData.number_of_bedrooms < 0)
           newErrors.number_of_bedrooms = "Invalid number of bedrooms";
         if (formData.number_of_bathrooms < 0)
@@ -317,11 +318,16 @@ const AddProperty = () => {
           newErrors.year_built = "Year built is required";
         else if (parseInt(formData.year_built) > new Date().getFullYear())
           newErrors.year_built = "Year built cannot be in the future";
+        const squareFeetStr = String(formData.square_feet || "").trim();
+        if (!squareFeetStr) {
+          newErrors.square_feet = "Square feet is required";
+        }
         if (formData.amenities.length === 0)
           newErrors.amenities = "Please select at least one amenity";
         if (!formData.description.trim())
           newErrors.description = "Property description is required";
         break;
+      }
       case 3:
         if (!formData.per_month_amount || formData.per_month_amount <= 0) {
           newErrors.per_month_amount = "Valid monthly rent is required";
@@ -366,6 +372,7 @@ const AddProperty = () => {
     try {
       const submissionData = {
         ...formData,
+        square_feet: formData.square_feet ? String(formData.square_feet) : "",
         property_images:
           formData.property_images.length > 0
             ? formData.property_images.map((img, index) => {
@@ -806,6 +813,33 @@ const AddProperty = () => {
                 <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
                   <AlertCircle size={14} />
                   {errors.year_built}
+                </p>
+              )}
+            </div>
+
+            {/* Square Feet */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Square Feet *
+              </label>
+              <input
+                ref={(el) => (errorFieldRefs.current.square_feet = el)}
+                type="text"
+                value={formData.square_feet}
+                onChange={(e) =>
+                  handleInputChange("square_feet", e.target.value)
+                }
+                placeholder="e.g., 1200"
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all ${
+                  errors.square_feet
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-200"
+                }`}
+              />
+              {errors.square_feet && (
+                <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                  <AlertCircle size={14} />
+                  {errors.square_feet}
                 </p>
               )}
             </div>

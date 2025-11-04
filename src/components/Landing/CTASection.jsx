@@ -28,11 +28,26 @@ const features = [
   }
 ];
 
-// Reduced set of high-quality property images
+// Reduced set of high-quality property images with category mapping
 const propertyImages = [
-  Images.luxury_apartment,
-  Images.studio_apartment,
-  Images.luxury_villa,
+  {
+    src: Images.luxury_apartment,
+    title: "Luxury Apartments Available",
+    category: "3 Bedroom Apartment",
+    alt: "Luxury Apartment"
+  },
+  {
+    src: Images.studio_apartment,
+    title: "Modern Studio",
+    category: "Single Room",
+    alt: "Modern Studio"
+  },
+  {
+    src: Images.luxury_villa,
+    title: "Luxury Villa",
+    category: "3 Bedroom Apartment",
+    alt: "Luxury Villa"
+  }
 ];
 
 const CTASection = () => {
@@ -48,6 +63,11 @@ const CTASection = () => {
       // If not authenticated, redirect to user type selection
       navigate("/select-user-type");
     }
+  };
+
+  // Handle image click - navigate to properties page with category filter
+  const handleImageClick = (category) => {
+    navigate(`/properties?category=${encodeURIComponent(category)}`);
   };
 
   return (
@@ -131,20 +151,31 @@ const CTASection = () => {
             <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-4 sm:h-[600px]">
               {/* Main Feature Image */}
               <Motion.div
-                className="col-span-1 sm:col-span-2 h-[250px] sm:h-[350px] relative rounded-3xl overflow-hidden shadow-xl group"
+                className="col-span-1 sm:col-span-2 h-[250px] sm:h-[350px] relative rounded-3xl overflow-hidden shadow-xl group cursor-pointer"
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5 }}
                 whileHover={{ y: -5 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleImageClick(propertyImages[0].category)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Browse ${propertyImages[0].category} properties`}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleImageClick(propertyImages[0].category);
+                  }
+                }}
               >
-                <div className="absolute inset-0 bg-gradient-to-tr from-primary-600/60 via-transparent to-transparent z-10" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-primary-600/60 via-transparent to-transparent z-10 group-hover:from-primary-600/70 transition-colors duration-300 pointer-events-none" />
                 <img 
-                  src={propertyImages[0]}
-                  alt="Luxury Apartment"
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  src={propertyImages[0].src}
+                  alt={propertyImages[0].alt}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 pointer-events-none"
                 />
-                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-black/80 to-transparent">
+                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 z-20 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3">
                     <div>
                       <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -152,8 +183,11 @@ const CTASection = () => {
                           <Star className="w-3 h-3 fill-yellow-400 stroke-yellow-400" />
                           Premium
                         </span>
+                        <span className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded-full border border-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          Click to explore →
+                        </span>
                       </div>
-                      <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">Luxury Apartments Available</h3>
+                      <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">{propertyImages[0].title}</h3>
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-white/90 text-xs sm:text-sm">
                       </div>
                     </div>
@@ -165,21 +199,37 @@ const CTASection = () => {
               {[1, 2].map((index) => (
                 <Motion.div 
                   key={index}
-                  className="relative rounded-3xl overflow-hidden shadow-lg group h-[180px] sm:h-[220px]"
+                  className="relative rounded-3xl overflow-hidden shadow-lg group h-[180px] sm:h-[220px] cursor-pointer"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   whileHover={{ y: -5, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleImageClick(propertyImages[index].category)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Browse ${propertyImages[index].category} properties`}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleImageClick(propertyImages[index].category);
+                    }
+                  }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-tr from-primary-600/40 via-transparent to-transparent z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-tr from-primary-600/40 via-transparent to-transparent z-10 group-hover:from-primary-600/50 transition-colors duration-300 pointer-events-none" />
                   <img 
-                    src={propertyImages[index]}
-                    alt={`Property ${index + 1}`}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    src={propertyImages[index].src}
+                    alt={propertyImages[index].alt}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 pointer-events-none"
                   />
-                  <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 z-20 bg-gradient-to-t from-black/80 to-transparent">
-                    <h3 className="text-base sm:text-lg font-bold text-white">{index === 1 ? "Modern Studio" : "Luxury Villa"}</h3>
+                  <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 z-20 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="text-base sm:text-lg font-bold text-white">{propertyImages[index].title}</h3>
+                      <span className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded-full border border-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        →
+                      </span>
+                    </div>
                     <div className="flex justify-between items-center mt-1">
                     </div>
                   </div>
@@ -188,8 +238,8 @@ const CTASection = () => {
             </div>
 
             {/* Keep the decorative elements */}
-            <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary-100 rounded-full opacity-30 blur-3xl" />
-            <div className="absolute -left-20 bottom-20 w-72 h-72" style={{ backgroundColor: Colors.accent.orange, opacity: 0.2 }} />
+            {/* <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary-100 rounded-full opacity-30 blur-3xl" /> */}
+            {/* <div className="absolute -left-20 bottom-20 w-72 h-72" style={{ backgroundColor: Colors.accent.orange, opacity: 0.2 }} /> */}
           </Motion.div>
           
           {/* CTA Content */}
