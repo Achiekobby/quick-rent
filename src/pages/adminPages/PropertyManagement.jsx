@@ -526,7 +526,7 @@ const PropertyManagement = () => {
 
   return (
     <AuthLayout>
-      <div className="px-4 md:px-8 py-6 max-w-7xl mx-auto">
+      <div className="px-4 md:px-8 py-6 max-w-8xl mx-auto">
         {/* Header */}
         <Motion.div
           className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8"

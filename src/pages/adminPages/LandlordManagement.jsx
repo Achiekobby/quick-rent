@@ -664,7 +664,7 @@ const LandlordManagement = () => {
 
   return (
     <AuthLayout>
-      <div className="px-4 md:px-8 py-6 max-w-7xl mx-auto">
+      <div className="px-4 md:px-8 py-6 max-w-8xl mx-auto">
         {/* Header */}
         <Motion.div
           className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8"

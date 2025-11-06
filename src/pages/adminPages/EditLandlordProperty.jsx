@@ -2487,7 +2487,7 @@ const EditLandlordProperty = () => {
   return (
     <AuthLayout>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="px-4 md:px-8 py-6 max-w-7xl mx-auto">
+        <div className="px-4 md:px-8 py-6 max-w-8xl mx-auto">
           {/* Header */}
           <Motion.div
             className="flex items-center justify-between mb-8"

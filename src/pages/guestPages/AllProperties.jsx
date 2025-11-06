@@ -686,7 +686,7 @@ const AllProperties = () => {
           animate="visible"
           variants={fadeInVariants}
         >
-          <div className="container mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="max-w-8xl mx-auto px-3 sm:px-6 lg:px-8">
             {/* Applied Filters Indicator */}
             {(location.search && (new URLSearchParams(location.search).get('location') || new URLSearchParams(location.search).get('category'))) && (
               <Motion.div
@@ -829,7 +829,7 @@ const AllProperties = () => {
             mass: 0.8,
           }}
         >
-          <div className="container mx-auto px-3 sm:px-6 lg:px-8 overflow-hidden">
+          <div className="max-w-8xl mx-auto px-3 sm:px-6 lg:px-8 overflow-hidden">
             <div className="flex items-center justify-between py-2 md:py-3 gap-2">
               <AnimatePresence mode="wait">
                 {isNavSticky && !isMobileView && (
@@ -1314,7 +1314,7 @@ const AllProperties = () => {
           animate="visible"
           variants={fadeInVariants}
         >
-          <div className="container mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="max-w-8xl mx-auto px-3 sm:px-6 lg:px-8">
             <Motion.div
               className="mb-4 md:mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-0"
               initial={{ opacity: 0, y: 20 }}
@@ -1422,7 +1422,7 @@ const AllProperties = () => {
               </Motion.div>
             ) : (
               <Motion.div
-                className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
+                className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"

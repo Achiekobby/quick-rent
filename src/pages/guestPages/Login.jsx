@@ -231,7 +231,7 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-gray-50">
       <Motion.div
-        className="max-w-6xl w-full mx-auto"
+        className="max-w-8xl w-full mx-auto"
         initial="hidden"
         animate="visible"
         exit="exit"

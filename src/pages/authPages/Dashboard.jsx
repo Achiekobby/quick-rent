@@ -89,7 +89,7 @@ const Dashboard = () => {
 
   return (
     <AuthLayout>
-      <div className="px-4 md:px-8 py-6 max-w-7xl mx-auto">
+      <div className="px-4 md:px-8 py-6 max-w-8xl mx-auto">
         {/* Welcome Section */}
         {/* <Motion.div
           className="mb-8"
@@ -107,7 +107,7 @@ const Dashboard = () => {
 
         {/* Stats Cards */}
         <Motion.div
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"
+          className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -261,7 +261,7 @@ const Dashboard = () => {
                 View all <ChevronRight size={16} className="ml-1" />
               </Motion.button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
               {featuredProperties.map((property) => (
                 <PropertyCard
                   key={property.property_slug}
@@ -294,7 +294,7 @@ const Dashboard = () => {
                 View all <ChevronRight size={16} className="ml-1" />
               </Motion.button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
               {popularProperties.map((property) => (
                 <PropertyCard
                   key={property.property_slug}
