@@ -8,9 +8,10 @@ import { toast } from "react-toastify";
 import useAuthStore from "../../stores/authStore";
 
 const PropertyCard = ({ property }) => {
-  const { user } = useAuthStore();
+  const { user, getUserType, isAuthenticated } = useAuthStore();
   const pageLocation = useLocation();
   const isWishlistPage = pageLocation.pathname === "/wishlist";
+  const isLandlord = isAuthenticated() && getUserType() === "landlord";
   const [isLiked, setIsLiked] = useState(false);
   const navigate = useNavigate();
   const [isWishlisting, setIsWishlisting] = useState(false);
@@ -96,7 +97,7 @@ const PropertyCard = ({ property }) => {
             </Motion.span>
           )}
         </div>
-        {!isWishlistPage && (
+        {!isWishlistPage && !isLandlord && (
           <Motion.button
             className="absolute top-2 sm:top-3 right-2 sm:right-3 p-1.5 sm:p-2 rounded-full bg-white shadow-lg transition-colors duration-200"
             whileTap={{ scale: 0.95 }}

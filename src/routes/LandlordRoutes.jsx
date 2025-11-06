@@ -78,6 +78,11 @@ function LandlordRoutes() {
           <AllProperties />
         </ProtectedRoute>
       } />
+      <Route path="/properties/:propertySlug" element={
+        <ProtectedRoute>
+          <PropertyDetails />
+        </ProtectedRoute>
+      } />
       
       {/* Landlord specific routes */}
       <Route path="/my-properties" element={
