@@ -20,6 +20,10 @@ import {
   History,
   CreditCard,
   Receipt,
+  Globe,
+  ArrowRight,
+  TrendingUp,
+  Sparkles,
 } from "lucide-react";
 import Colors from "../../utils/Colors";
 import AuthLayout from "../../Layouts/AuthLayout";
@@ -205,7 +209,7 @@ const LandlordDashboard = () => {
 
   return (
     <AuthLayout>
-      <div className="px-4 md:px-8 py-6 max-w-7xl mx-auto">
+      <div className="px-4 md:px-8 py-6 max-w-8xl mx-auto">
         {/* Welcome Section */}
         <Motion.div
           className="mb-8"
@@ -213,56 +217,200 @@ const LandlordDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
-            Welcome back, {user?.full_name || user?.business_name || "Landlord"}
-            !
-          </h1>
-          <p className="text-gray-600">
-            Manage your property listings and track their performance.
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+                Welcome back, {user?.full_name || user?.business_name || "Landlord"}
+                !
+              </h1>
+              <p className="text-gray-600">
+                Manage your property listings and track their performance.
+              </p>
+            </div>
+            <Motion.button
+              onClick={() => navigate("/home")}
+              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-orange-200 text-orange-600 rounded-xl font-medium hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 shadow-sm hover:shadow-md"
+              whileHover={{ scale: 1.02, x: 2 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Globe className="w-4 h-4" />
+              <span className="hidden sm:inline">Visit Homepage</span>
+              <span className="sm:hidden">Home</span>
+              <ArrowRight className="w-4 h-4" />
+            </Motion.button>
+          </div>
         </Motion.div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Enhanced Cards */}
         <Motion.div
-          className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
+          {/* Add New Property Card */}
           <Motion.button
             variants={itemVariants}
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="bg-orange-500 text-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 text-left"
+            whileHover={{ y: -8, scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="group relative bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 text-left overflow-hidden"
             onClick={() => navigate("/add-property")}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold mb-1">Add New Property</h3>
-                <p className="text-orange-100 text-sm">
-                  Create a new property listing
-                </p>
-              </div>
-              <Plus className="w-8 h-8 text-orange-100" />
+            {/* Animated Background Pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute inset-0" style={{
+                backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
+                backgroundSize: '20px 20px'
+              }}></div>
             </div>
+            
+            {/* Decorative Elements */}
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
+            <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg group-hover:bg-white/30 transition-all duration-300">
+                  <Plus className="w-7 h-7 text-white" />
+                </div>
+                <Motion.div
+                  animate={{ rotate: [0, 90, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <Sparkles className="w-6 h-6 text-white/80" />
+                </Motion.div>
+              </div>
+              
+              <h3 className="text-xl font-bold mb-2 group-hover:text-white transition-colors">
+                Add New Property
+              </h3>
+              <p className="text-white/90 text-sm mb-4 leading-relaxed">
+                Create a new property listing and reach thousands of tenants
+              </p>
+              
+              <div className="flex items-center gap-2 text-sm font-medium text-white/90">
+                <span>Get Started</span>
+                <Motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </Motion.div>
+              </div>
+            </div>
+            
+            {/* Shine Effect on Hover */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%]"></div>
           </Motion.button>
 
+          {/* Manage Properties Card */}
           <Motion.button
             variants={itemVariants}
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="bg-blue-500 text-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 text-left"
+            whileHover={{ y: -8, scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="group relative bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-500 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 text-left overflow-hidden"
             onClick={() => navigate("/my-properties")}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold mb-1">
-                  Manage Properties
-                </h3>
-                <p className="text-blue-100 text-sm">
-                  View and edit your listings
-                </p>
-              </div>
-              <Building className="w-8 h-8 text-blue-100" />
+            {/* Animated Background Pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute inset-0" style={{
+                backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
+                backgroundSize: '20px 20px'
+              }}></div>
             </div>
+            
+            {/* Decorative Elements */}
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
+            <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg group-hover:bg-white/30 transition-all duration-300">
+                  <Building className="w-7 h-7 text-white" />
+                </div>
+                <Motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <TrendingUp className="w-6 h-6 text-white/80" />
+                </Motion.div>
+              </div>
+              
+              <h3 className="text-xl font-bold mb-2 group-hover:text-white transition-colors">
+                Manage Properties
+              </h3>
+              <p className="text-white/90 text-sm mb-4 leading-relaxed">
+                View, edit, and track performance of all your listings
+              </p>
+              
+              <div className="flex items-center gap-2 text-sm font-medium text-white/90">
+                <span>View All</span>
+                <Motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </Motion.div>
+              </div>
+            </div>
+            
+            {/* Shine Effect on Hover */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%]"></div>
+          </Motion.button>
+
+          {/* Subscription Plans Card */}
+          <Motion.button
+            variants={itemVariants}
+            whileHover={{ y: -8, scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="group relative bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 text-left overflow-hidden"
+            onClick={() => navigate("/subscription/upgrade")}
+          >
+            {/* Animated Background Pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute inset-0" style={{
+                backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
+                backgroundSize: '20px 20px'
+              }}></div>
+            </div>
+            
+            {/* Decorative Elements */}
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
+            <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg group-hover:bg-white/30 transition-all duration-300">
+                  <Crown className="w-7 h-7 text-white" />
+                </div>
+                <Motion.div
+                  animate={{ scale: [1, 1.15, 1], rotate: [0, 10, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <Sparkles className="w-6 h-6 text-white/80" />
+                </Motion.div>
+              </div>
+              
+              <h3 className="text-xl font-bold mb-2 group-hover:text-white transition-colors">
+                Subscription Plans
+              </h3>
+              <p className="text-white/90 text-sm mb-4 leading-relaxed">
+                Upgrade or renew your subscription to unlock more features
+              </p>
+              
+              <div className="flex items-center gap-2 text-sm font-medium text-white/90">
+                <span>View Plans</span>
+                <Motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </Motion.div>
+              </div>
+            </div>
+            
+            {/* Shine Effect on Hover */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%]"></div>
           </Motion.button>
         </Motion.div>
 
@@ -754,6 +902,13 @@ const LandlordDashboard = () => {
             </h2>
             <div className="space-y-3">
               {[
+                {
+                  title: "Visit Homepage",
+                  description: "Browse properties as a renter",
+                  path: "/home",
+                  icon: <Globe size={20} />,
+                  available: true,
+                },
                 {
                   title: "My Properties",
                   description: "View and manage all properties",

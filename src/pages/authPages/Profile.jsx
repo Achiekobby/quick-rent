@@ -540,7 +540,7 @@ const Profile = () => {
         </AnimatePresence>
 
         <div
-          className={`max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 ${
+          className={`max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 ${
             user?.update_status === "pending"
               ? "pointer-events-none opacity-95"
               : ""

@@ -157,7 +157,7 @@ const Hero = () => {
         initial="hidden"
         animate="visible"
       >
-        <div className="w-full max-w-7xl">
+        <div className="w-full max-w-8xl">
           <Motion.h1 
             className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-3 md:mb-4 leading-tight"
             variants={itemVariants}

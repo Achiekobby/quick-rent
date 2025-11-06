@@ -4,15 +4,19 @@ import Hero from "../../components/Landing/Hero";
 import Categories from "../../components/Landing/Categories";
 import PopularProperties from "../../components/Landing/PopularProperties";
 import CTASection from "../../components/Landing/CTASection";
+import LandlordCTASection from "../../components/Landing/LandlordCTASection";
 import FAQSection from "../../components/Landing/FAQSection";
 import { toast } from "react-toastify";
 import { getAllProperties } from "../../api/Renter/General/DashboardRequests";
 import { Loader2 } from "lucide-react";
+import useAuthStore from "../../stores/authStore";
 
 const Landing = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [properties, setProperties] = useState(null);
   const [popularProperties, setPopularProperties] = useState(null);
+  const { isAuthenticated, getUserType } = useAuthStore();
+  const isLandlord = isAuthenticated() && getUserType() === "landlord";
   console.log(properties);
 
   useEffect(() => {
@@ -50,9 +54,12 @@ const Landing = () => {
   return (
     <GuestLayout>
       <Hero />
+      {/* Show landlord-specific CTA section if landlord is logged in */}
+      {isLandlord && <LandlordCTASection />}
       <Categories />
       <PopularProperties properties={popularProperties} />
-      <CTASection />
+      {/* Show regular CTA section only if not a landlord */}
+      {!isLandlord && <CTASection />}
       <FAQSection />
     </GuestLayout>
   );

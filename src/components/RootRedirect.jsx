@@ -16,7 +16,7 @@ const RootRedirect = () => {
   if (isAuthenticated()) {
     const userType = getUserType();
     const redirectPath = userType === 'renter' ? '/home' : 
-                        userType === 'landlord' ? '/landlord-dashboard' : 
+                        userType === 'landlord' ? '/home' : // Redirect landlords to landing page
                         userType === 'admin' ? '/admin-dashboard' : '/home';
     return <Navigate to={redirectPath} replace />;
   }

@@ -17,7 +17,7 @@ const PopularProperties = ({ properties }) => {
 
   return (
     <section className="py-12 sm:py-16 bg-neutral-50">
-      <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="px-4 sm:px-6 lg:px-8 max-w-8xl mx-auto">
         <div className="flex items-center justify-between mb-10">
           <Motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -49,7 +49,7 @@ const PopularProperties = ({ properties }) => {
           </Motion.div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
           {properties && properties.map((property) => (
             <PropertyCard key={property.property_slug} property={property} />
           ))}

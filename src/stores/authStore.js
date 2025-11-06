@@ -500,7 +500,7 @@ const useAuthStore = create(
           if (store.user.user_type === "rentor") {
             return "/dashboard";
           } else if (store.user.user_type === "landlord") {
-            return "/landlord-dashboard";
+            return "/home"; // Redirect landlords to landing page like renters
           } else if (store.user.user_type === "admin") {
             return "/admin-dashboard";
           }

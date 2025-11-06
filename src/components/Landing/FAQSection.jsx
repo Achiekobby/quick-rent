@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Search, MessageCircle, HelpCircle, User, Mail, ArrowRight, X } from 'lucide-react';
+import { ChevronDown, Search, MessageCircle, HelpCircle, X, Sparkles, Lightbulb, BookOpen } from 'lucide-react';
 import Colors from '../../utils/Colors';
 
 const faqs = [
@@ -12,15 +12,25 @@ const faqs = [
     question: "Are the properties verified?",
     answer: "Yes, all properties on Quick Rent are verified by our team. We conduct physical inspections of properties before they're listed to ensure they match the descriptions and photos provided. This helps prevent scams and ensures you get exactly what you're looking for."
   },
- 
   {
     question: "What fees does Quick Rent charge?",
     answer: "Quick Rent is free for tenants to browse. Landlords pay a small fee to list their properties. We don't charge any hidden fees or commissions on rental agreements made through our platform."
   },
- 
   {
     question: "Can I list my property on Quick Rent?",
     answer: "Absolutely! If you're a property owner or manager, you can create an account and list your properties on Quick Rent. We offer different subscription plans based on the number of properties you want to list. Visit our 'Landlord Registration' page to get started."
+  },
+  {
+    question: "What payment methods are accepted?",
+    answer: "Quick Rent supports various secure payment methods including mobile money (MTN, Telecel, AirtelTigo), bank transfers, and credit/debit cards. All transactions are processed securely through our encrypted payment gateway. Landlords make payments directly for their subscriptions."
+  },
+  {
+    question: "Is my personal information secure?",
+    answer: "Yes, we take your privacy and security seriously. All personal information is encrypted and stored securely. We never share your contact details with third parties without your consent. Your data is protected using industry-standard security measures."
+  },
+  {
+    question: "What happens if I have issues with my landlord or tenant?",
+    answer: "Quick Rent provides a dispute resolution service to help resolve conflicts between landlords and tenants. You can contact our support team through the platform, and we'll work with both parties to find a fair solution. We also offer mediation services for more complex issues."
   },
 ];
 
@@ -78,7 +88,7 @@ const FAQSection = () => {
         </svg>
       </Motion.div>
       
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-12 md:mb-16">
           <Motion.span 
@@ -186,92 +196,398 @@ const FAQSection = () => {
           )}
         </Motion.div>
         
-        {/* FAQ Accordion */}
-        <Motion.div
-          className="max-w-4xl mx-auto space-y-4"
-          variants={{
-            hidden: { opacity: 0 },
-            visible: {
-              opacity: 1,
-              transition: {
-                staggerChildren: 0.1
+        {/* Main Content: Two Column Layout */}
+        <div className="max-w-8xl mx-auto grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+          {/* Left Column: FAQ Accordion */}
+          <Motion.div
+            className="space-y-4"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.1
+                }
               }
-            }
-          }}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-        >
-          {filteredFAQs.length > 0 ? (
-            filteredFAQs.map((faq, index) => (
-              <Motion.div
-                key={index}
-                className="overflow-hidden rounded-2xl shadow-lg bg-white/90 backdrop-blur-sm hover:shadow-xl transition-all duration-300"
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-                }}
-                whileHover={{ y: -5 }}
-              >
-                <button
-                  className="flex justify-between items-center w-full px-6 py-5 text-left"
-                  onClick={() => toggleFAQ(index)}
+            }}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            {filteredFAQs.length > 0 ? (
+              filteredFAQs.map((faq, index) => (
+                <Motion.div
+                  key={index}
+                  className="overflow-hidden rounded-2xl shadow-lg bg-white/90 backdrop-blur-sm hover:shadow-xl transition-all duration-300 border border-gray-100"
+                  variants={{
+                    hidden: { opacity: 0, x: -20 },
+                    visible: { opacity: 1, x: 0, transition: { duration: 0.5 } }
+                  }}
+                  whileHover={{ y: -5, borderColor: Colors.primary[200] }}
                 >
-                  <span className="text-[15px] lg:text-base font-semibold text-neutral-800 flex items-center">
-                    <HelpCircle className="w-5 h-5 mr-3 text-primary-500" />
-                    {faq.question}
-                  </span>
-                  <Motion.div
-                    animate={{ rotate: activeIndex === index ? 180 : 0 }}
-                    transition={{ duration: 0.3 }}
+                  <button
+                    className="flex justify-between items-center w-full px-6 py-5 text-left"
+                    onClick={() => toggleFAQ(index)}
                   >
-                    <ChevronDown className="w-5 h-5 text-primary-500" />
-                  </Motion.div>
-                </button>
-                
-                <AnimatePresence>
-                  {activeIndex === index && (
+                    <span className="text-[15px] lg:text-base font-semibold text-neutral-800 flex items-center">
+                      <HelpCircle className="w-5 h-5 mr-3 text-primary-500 flex-shrink-0" />
+                      {faq.question}
+                    </span>
                     <Motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
+                      animate={{ rotate: activeIndex === index ? 180 : 0 }}
                       transition={{ duration: 0.3 }}
-                      className="overflow-hidden"
+                      className="flex-shrink-0 ml-4"
                     >
-                      <div className="px-6 pb-5 pt-0">
-                        <div className="w-full h-px bg-neutral-200 mb-4"></div>
-                        <p className="text-neutral-600 leading-relaxed text-[13px] lg:text-base">{faq.answer}</p>
+                      <ChevronDown className="w-5 h-5 text-primary-500" />
+                    </Motion.div>
+                  </button>
+                  
+                  <AnimatePresence>
+                    {activeIndex === index && (
+                      <Motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-6 pb-5 pt-0">
+                          <div className="w-full h-px bg-gradient-to-r from-transparent via-neutral-200 to-transparent mb-4"></div>
+                          <p className="text-neutral-600 leading-relaxed text-[13px] lg:text-base">{faq.answer}</p>
+                        </div>
+                      </Motion.div>
+                    )}
+                  </AnimatePresence>
+                </Motion.div>
+              ))
+            ) : (
+              <Motion.div 
+                className="text-center py-10"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-md p-8">
+                  <HelpCircle className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
+                  <h3 className="text-xl font-semibold mb-2">No results found</h3>
+                  <p className="text-neutral-600 mb-6">We couldn't find any FAQs matching your search.</p>
+                  <button 
+                    className="text-primary-600 font-medium flex items-center justify-center mx-auto"
+                    onClick={() => setSearchQuery('')}
+                  >
+                    Clear search
+                  </button>
+                </div>
+              </Motion.div>
+            )}
+          </Motion.div>
+
+          {/* Right Column: Premium Animated FAQ Illustration */}
+          <Motion.div
+            className="hidden lg:flex items-center justify-center sticky top-24"
+            initial={{ opacity: 0, x: 30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.3 }}
+          >
+            <div className="relative w-full max-w-lg h-[600px]">
+              {/* Main Container with Premium Design */}
+              <div className="relative bg-white rounded-3xl p-8 shadow-2xl border-2 border-primary-100 overflow-hidden h-full">
+                {/* Animated Gradient Background */}
+                <Motion.div
+                  className="absolute inset-0 bg-gradient-to-br from-primary-50 via-indigo-50 to-purple-50"
+                  animate={{
+                    backgroundPosition: ['0% 0%', '100% 100%'],
+                  }}
+                  transition={{
+                    duration: 10,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    ease: "linear"
+                  }}
+                />
+
+                {/* Subtle Grid Pattern */}
+                <div className="absolute inset-0 opacity-[0.03]" style={{
+                  backgroundImage: `linear-gradient(${Colors.primary[400]} 1px, transparent 1px), linear-gradient(90deg, ${Colors.primary[400]} 1px, transparent 1px)`,
+                  backgroundSize: '30px 30px'
+                }}></div>
+
+                {/* Large Floating Question Mark - Top Right */}
+                <Motion.div
+                  className="absolute top-6 right-6 w-24 h-24 bg-gradient-to-br from-primary-500 via-primary-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl z-20"
+                  animate={{
+                    y: [0, -15, 0],
+                    rotate: [0, 10, -10, 0],
+                    scale: [1, 1.05, 1],
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  <span className="text-5xl font-black text-white">?</span>
+                  {/* Glow effect */}
+                  <div className="absolute inset-0 rounded-2xl bg-white/20 blur-xl"></div>
+                </Motion.div>
+
+                {/* Central Illustration Area */}
+                <div className="relative z-10 h-full flex flex-col items-center justify-center mt-8">
+                  {/* Floating Question Cards */}
+                  <div className="relative w-full mb-8">
+                    {/* Top Question Card */}
+                    <Motion.div
+                      className="absolute left-0 -top-4 w-32 h-20 bg-white rounded-xl shadow-lg border-2 border-primary-100 flex items-center justify-center"
+                      animate={{
+                        x: [0, 8, 0],
+                        y: [0, -5, 0],
+                        rotate: [-2, 2, -2],
+                      }}
+                      transition={{
+                        duration: 3.5,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                    >
+                      <div className="text-center">
+                        <HelpCircle className="w-5 h-5 text-primary-500 mx-auto mb-1" />
+                        <div className="text-xs font-semibold text-gray-700">FAQ</div>
                       </div>
                     </Motion.div>
-                  )}
-                </AnimatePresence>
-              </Motion.div>
-            ))
-          ) : (
-            <Motion.div 
-              className="text-center py-10"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-md p-8">
-                <HelpCircle className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
-                <h3 className="text-xl font-semibold mb-2">No results found</h3>
-                <p className="text-neutral-600 mb-6">We couldn't find any FAQs matching your search.</p>
-                <button 
-                  className="text-primary-600 font-medium flex items-center justify-center mx-auto"
-                  onClick={() => setSearchQuery('')}
-                >
-                  Clear search
-                </button>
+
+                    {/* Bottom Question Card */}
+                    <Motion.div
+                      className="absolute right-0 top-12 w-32 h-20 bg-white rounded-xl shadow-lg border-2 border-indigo-100 flex items-center justify-center"
+                      animate={{
+                        x: [0, -8, 0],
+                        y: [0, 5, 0],
+                        rotate: [2, -2, 2],
+                      }}
+                      transition={{
+                        duration: 4,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: 0.5
+                      }}
+                    >
+                      <div className="text-center">
+                        <MessageCircle className="w-5 h-5 text-indigo-500 mx-auto mb-1" />
+                        <div className="text-xs font-semibold text-gray-700">Help</div>
+                      </div>
+                    </Motion.div>
+                  </div>
+
+                  {/* Main Character - Modern 3D Style */}
+                  <Motion.div
+                    className="relative mb-6"
+                    animate={{
+                      y: [0, -12, 0],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    {/* Outer Glow Ring */}
+                    <Motion.div
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background: `radial-gradient(circle, ${Colors.primary[300]}40 0%, transparent 70%)`,
+                      }}
+                      animate={{
+                        scale: [1, 1.2, 1],
+                        opacity: [0.3, 0.6, 0.3],
+                      }}
+                      transition={{
+                        duration: 2.5,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                    />
+
+                    {/* Main Circle with Gradient */}
+                    <div className="relative w-40 h-40 rounded-full bg-gradient-to-br from-primary-400 via-primary-500 to-indigo-600 shadow-2xl flex items-center justify-center overflow-hidden">
+                      {/* Animated Inner Gradient */}
+                      <Motion.div
+                        className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-primary-700/30 rounded-full"
+                        animate={{
+                          rotate: [0, 360],
+                        }}
+                        transition={{
+                          duration: 8,
+                          repeat: Infinity,
+                          ease: "linear"
+                        }}
+                      />
+                      
+                      {/* Shine Effect */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/20 to-transparent rounded-full"></div>
+                      
+                      {/* Central Icon */}
+                      <HelpCircle className="w-20 h-20 text-white relative z-10 drop-shadow-lg" />
+                      
+                      {/* Rotating Sparkles */}
+                      {[0, 72, 144, 216, 288].map((angle, i) => (
+                        <Motion.div
+                          key={i}
+                          className="absolute w-3 h-3 bg-white rounded-full shadow-lg"
+                          style={{
+                            top: '50%',
+                            left: '50%',
+                            transformOrigin: '0 70px',
+                            transform: `rotate(${angle}deg) translateY(-70px)`,
+                          }}
+                          animate={{
+                            scale: [0, 1.2, 0],
+                            opacity: [0, 1, 0],
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            delay: i * 0.4,
+                            ease: "easeInOut"
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </Motion.div>
+
+                  {/* Floating Icons Around Character */}
+                  <div className="relative w-full mt-8">
+                    {/* Top Left - Lightbulb */}
+                    <Motion.div
+                      className="absolute -left-4 -top-8 w-14 h-14 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl shadow-xl flex items-center justify-center border-2 border-white"
+                      animate={{
+                        x: [0, 5, 0],
+                        y: [0, -8, 0],
+                        rotate: [0, 5, -5, 0],
+                      }}
+                      transition={{
+                        duration: 3,
+                        repeat: Infinity,
+                        ease: "easeInOut"
+                      }}
+                    >
+                      <Lightbulb className="w-7 h-7 text-white" />
+                    </Motion.div>
+
+                    {/* Top Right - Book */}
+                    <Motion.div
+                      className="absolute -right-4 -top-8 w-14 h-14 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-xl shadow-xl flex items-center justify-center border-2 border-white"
+                      animate={{
+                        x: [0, -5, 0],
+                        y: [0, -8, 0],
+                        rotate: [0, -5, 5, 0],
+                      }}
+                      transition={{
+                        duration: 3.5,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: 0.3
+                      }}
+                    >
+                      <BookOpen className="w-7 h-7 text-white" />
+                    </Motion.div>
+
+                    {/* Bottom Left - Message */}
+                    <Motion.div
+                      className="absolute left-0 top-16 w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl shadow-lg flex items-center justify-center border-2 border-white"
+                      animate={{
+                        x: [0, 8, 0],
+                        y: [0, 5, 0],
+                      }}
+                      transition={{
+                        duration: 2.8,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: 0.6
+                      }}
+                    >
+                      <MessageCircle className="w-6 h-6 text-white" />
+                    </Motion.div>
+
+                    {/* Bottom Right - Sparkles */}
+                    <Motion.div
+                      className="absolute right-0 top-16 w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-500 rounded-xl shadow-lg flex items-center justify-center border-2 border-white"
+                      animate={{
+                        x: [0, -8, 0],
+                        y: [0, 5, 0],
+                      }}
+                      transition={{
+                        duration: 3.2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: 0.9
+                      }}
+                    >
+                      <Sparkles className="w-6 h-6 text-white" />
+                    </Motion.div>
+                  </div>
+
+                  {/* Bottom Text Section */}
+                  <Motion.div
+                    className="text-center mt-12 relative z-10"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.6 }}
+                  >
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md mb-3 border border-primary-100">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-semibold text-gray-700">24/7 Support Available</span>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                      We're Here to Help!
+                    </h3>
+                    <p className="text-sm text-gray-600 max-w-xs mx-auto">
+                      Can't find what you're looking for? Our support team is ready to assist you.
+                    </p>
+                  </Motion.div>
+                </div>
+
+                {/* Decorative Corner Elements */}
+                <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-primary-200/20 to-transparent rounded-full blur-3xl"></div>
+                <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-indigo-200/20 to-transparent rounded-full blur-3xl"></div>
+                <div className="absolute top-1/2 left-0 w-32 h-32 bg-gradient-to-r from-purple-200/15 to-transparent rounded-full blur-2xl"></div>
               </div>
-            </Motion.div>
-          )}
-        </Motion.div>
+
+              {/* Floating Particles - Enhanced */}
+              {[...Array(8)].map((_, i) => (
+                <Motion.div
+                  key={i}
+                  className="absolute rounded-full"
+                  style={{
+                    width: `${4 + (i % 3) * 2}px`,
+                    height: `${4 + (i % 3) * 2}px`,
+                    background: i % 2 === 0 
+                      ? `linear-gradient(135deg, ${Colors.primary[400]}, ${Colors.primary[500]})`
+                      : `linear-gradient(135deg, ${Colors.accent.orange}, ${Colors.accent.orange}80)`,
+                    top: `${15 + i * 12}%`,
+                    left: `${8 + (i % 4) * 25}%`,
+                    boxShadow: `0 0 ${8 + i * 2}px ${i % 2 === 0 ? Colors.primary[400] : Colors.accent.orange}40`,
+                  }}
+                  animate={{
+                    y: [0, -30, 0],
+                    opacity: [0.2, 0.9, 0.2],
+                    scale: [1, 1.8, 1],
+                  }}
+                  transition={{
+                    duration: 3 + i * 0.4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: i * 0.2,
+                  }}
+                />
+              ))}
+            </div>
+          </Motion.div>
+        </div>
         
         {/* Still Have Questions Card */}
         <Motion.div
-          className="max-w-4xl mx-auto mt-16"
+          className="max-w-8xl mx-auto mt-16"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -314,4 +630,4 @@ const FAQSection = () => {
   );
 };
 
-export default FAQSection; 
+export default FAQSection;

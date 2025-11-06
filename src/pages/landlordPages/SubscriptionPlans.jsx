@@ -149,33 +149,97 @@ const SubscriptionPlans = () => {
   return (
     <AuthLayout>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-orange-50 to-teal-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <Motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-12"
           >
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium">Back</span>
-            </button>
+            {/* Header Content - Left Aligned with Back Button on Right */}
+            <div className="flex items-start justify-between gap-6">
+              {/* Left Side: Icon and Text */}
+              <div className="flex items-start gap-4 flex-1 mb-6">
+                {/* Icon */}
+                <Motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                  className="relative flex-shrink-0"
+                >
+                  {/* Outer Glow Ring */}
+                  <Motion.div
+                    className="absolute inset-0 rounded-xl"
+                    animate={{
+                      scale: [1, 1.05, 1],
+                      opacity: [0.2, 0.4, 0.2],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    style={{
+                      background: "radial-gradient(circle, rgba(249, 115, 22, 0.3) 0%, transparent 70%)",
+                    }}
+                  />
+                  
+                  {/* Main Icon Container */}
+                  <div className="relative w-16 h-16 bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 rounded-xl shadow-lg flex items-center justify-center">
+                    {/* Inner Shine */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-transparent rounded-xl"></div>
+                    
+                    {/* Icon */}
+                    <Crown className="w-8 h-8 text-white relative z-10 drop-shadow-md" />
+                  </div>
+                </Motion.div>
 
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full mb-6 shadow-lg">
-                <Crown className="w-10 h-10 text-white" />
+                {/* Text Content */}
+                <div className="flex-1">
+                  <Motion.h1
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-3xl md:text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-orange-600 via-blue-600 to-teal-600"
+                  >
+                    Choose Your Plan
+                  </Motion.h1>
+                  
+                  <Motion.p
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-base md:text-lg text-gray-600 leading-relaxed mb-3"
+                  >
+                    Select the perfect subscription plan for your real estate business
+                  </Motion.p>
+
+                  {/* Badge */}
+                  <Motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/80 backdrop-blur-sm rounded-full shadow-sm border border-gray-200"
+                  >
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs font-semibold text-gray-700">
+                      All plans include premium features
+                    </span>
+                  </Motion.div>
+                </div>
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-                Choose Your Plan
-              </h1>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Select the perfect subscription plan for your real estate
-                business. All plans include unlimited property listings and
-                advanced features.
-              </p>
+
+              {/* Right Side: Back Button */}
+              <Motion.button
+                onClick={() => navigate(-1)}
+                className="group inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-all duration-300 flex-shrink-0"
+                whileHover={{ x: 4 }}
+              >
+                <span className="font-medium hidden sm:inline">Back</span>
+                <div className="p-1.5 rounded-lg bg-white shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:bg-gray-50">
+                  <ArrowLeft className="w-5 h-5" />
+                </div>
+              </Motion.button>
             </div>
           </Motion.div>
 

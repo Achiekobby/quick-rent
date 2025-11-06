@@ -18,7 +18,7 @@ const AuthRedirect = ({ children, redirectTo = null }) => {
       // Redirect based on user type
       const userType = getUserType();
       const redirectPath = userType === 'renter' ? '/home' : 
-                          userType === 'landlord' ? '/landlord-dashboard' : 
+                          userType === 'landlord' ? '/home' : // Redirect landlords to landing page
                           userType === 'admin' ? '/admin-dashboard' : '/home';
       return <Navigate to={redirectPath} replace />;
     }

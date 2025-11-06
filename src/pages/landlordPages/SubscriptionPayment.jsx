@@ -24,6 +24,29 @@ import { toast } from "react-toastify";
 import Config from "../../utils/Config";
 import Images from "../../utils/Images";
 
+// Convert phone number from international format (233XXXXXXXXX) to Ghana format (0XXXXXXXXX)
+const convertToGhanaFormat = (phoneNumber) => {
+  if (!phoneNumber) return "";
+  
+  // Remove all non-digit characters
+  let cleaned = phoneNumber.replace(/\D/g, "");
+  
+  // If it starts with 233, replace with 0
+  if (cleaned.startsWith("233")) {
+    cleaned = "0" + cleaned.substring(3);
+  }
+  // If it already starts with 0, keep it
+  else if (cleaned.startsWith("0")) {
+    // Already in correct format
+  }
+  // If it doesn't start with 0 or 233, add 0
+  else {
+    cleaned = "0" + cleaned;
+  }
+  
+  return cleaned.substring(0, 10); // Limit to 10 digits
+};
+
 const SubscriptionPayment = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,12 +58,21 @@ const SubscriptionPayment = () => {
   const [verificationCount, setVerificationCount] = useState(0);
   const [showLoadingModal, setShowLoadingModal] = useState(false);
 
-  // Mobile Money form fields
-  const [phoneNumber, setPhoneNumber] = useState(user?.phone_number || "");
+  // Mobile Money form fields - Convert backend format (233XXXXXXXXX) to Ghana format (0XXXXXXXXX) for display
+  const [phoneNumber, setPhoneNumber] = useState(() => {
+    return user?.phone_number ? convertToGhanaFormat(user.phone_number) : "";
+  });
   const [network, setNetwork] = useState(Config.mtn);
   const [userName, setUserName] = useState(
     user?.full_name || user?.business_name || ""
   );
+
+  // Update phone number when user data changes
+  useEffect(() => {
+    if (user?.phone_number) {
+      setPhoneNumber(convertToGhanaFormat(user.phone_number));
+    }
+  }, [user?.phone_number]);
 
   // Card payment - no form fields needed, gateway handles input
 
@@ -83,15 +115,47 @@ const SubscriptionPayment = () => {
   const formatPhoneNumber = (value) => {
     // Remove all non-digit characters
     let cleaned = value.replace(/\D/g, "");
+    
+    // Limit to 10 digits (Ghana format: 0XXXXXXXXX)
+    cleaned = cleaned.substring(0, 10);
+    
+    // If it doesn't start with 0, ensure it does
+    if (cleaned.length > 0 && !cleaned.startsWith("0")) {
+      cleaned = "0" + cleaned.replace(/^0+/, ""); // Remove any leading zeros first, then add one
+      cleaned = cleaned.substring(0, 10); // Limit again after adding 0
+    }
+    
+    return cleaned;
+  };
+
+  // Convert phone number from Ghana format (0XXXXXXXXX) to international format (233XXXXXXXXX)
+  const convertToInternationalFormat = (phoneNumber) => {
+    if (!phoneNumber) return "";
+    
+    // Remove all non-digit characters
+    let cleaned = phoneNumber.replace(/\D/g, "");
+    
     // If it starts with 0, replace with 233
     if (cleaned.startsWith("0")) {
       cleaned = "233" + cleaned.substring(1);
     }
-    // If it doesn't start with 233, add it
-    if (!cleaned.startsWith("233")) {
+    // If it already starts with 233, keep it
+    else if (cleaned.startsWith("233")) {
+      // Already in correct format
+    }
+    // If it doesn't start with 0 or 233, add 233
+    else {
       cleaned = "233" + cleaned;
     }
+    
     return cleaned.substring(0, 15); // Limit to 15 digits
+  };
+
+  // Validate phone number format (must start with 0 and have 10 digits)
+  const isValidPhoneNumber = (phoneNumber) => {
+    if (!phoneNumber) return false;
+    const cleaned = phoneNumber.replace(/\D/g, "");
+    return cleaned.startsWith("0") && cleaned.length === 10;
   };
 
 
@@ -171,11 +235,18 @@ const SubscriptionPayment = () => {
 
   const handleMobileMoneyPayment = async (e) => {
     e.preventDefault();
+    
+    // Validate phone number before submission
+    if (!isValidPhoneNumber(phoneNumber)) {
+      toast.error("Please enter a valid phone number starting with 0 (e.g., 0501234567)");
+      return;
+    }
+    
     setIsProcessing(true);
 
     try {
       const payload = {
-        phone_number: formatPhoneNumber(phoneNumber),
+        phone_number: convertToInternationalFormat(phoneNumber), // Convert to 233XXXXXXXXX format
         network: network,
         type: "momo",
         user_name: userName,
@@ -254,20 +325,84 @@ const SubscriptionPayment = () => {
   return (
     <AuthLayout>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-orange-50 to-teal-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <Motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium">Back</span>
-            </button>
+            <div className="flex items-start justify-between gap-6">
+              {/* Left Side: Title and Description */}
+              <div className="flex items-start gap-4 flex-1">
+                {/* Icon */}
+                <Motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                  className="relative flex-shrink-0"
+                >
+                  {/* Outer Glow Ring */}
+                  <Motion.div
+                    className="absolute inset-0 rounded-xl"
+                    animate={{
+                      scale: [1, 1.05, 1],
+                      opacity: [0.2, 0.4, 0.2],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    style={{
+                      background: "radial-gradient(circle, rgba(249, 115, 22, 0.3) 0%, transparent 70%)",
+                    }}
+                  />
+                  
+                  {/* Main Icon Container */}
+                  <div className="relative w-14 h-14 bg-gradient-to-br from-orange-400 via-orange-500 to-amber-500 rounded-xl shadow-lg flex items-center justify-center">
+                    {/* Inner Shine */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-transparent rounded-xl"></div>
+                    
+                    {/* Icon */}
+                    <CreditCard className="w-7 h-7 text-white relative z-10 drop-shadow-md" />
+                  </div>
+                </Motion.div>
+
+                {/* Text Content */}
+                <div className="flex-1">
+                  <Motion.h1
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-2xl md:text-3xl font-bold mb-1 bg-clip-text text-transparent bg-gradient-to-r from-orange-600 via-blue-600 to-teal-600"
+                  >
+                    Complete Payment
+                  </Motion.h1>
+                  
+                  <Motion.p
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-sm md:text-base text-gray-600"
+                  >
+                    Secure payment for your subscription plan
+                  </Motion.p>
+                </div>
+              </div>
+
+              {/* Right Side: Back Button */}
+              <Motion.button
+                onClick={() => navigate(-1)}
+                className="group inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-all duration-300 flex-shrink-0"
+                whileHover={{ x: 4 }}
+              >
+                <span className="font-medium hidden sm:inline">Back</span>
+                <div className="p-1.5 rounded-lg bg-white shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:bg-gray-50">
+                  <ArrowLeft className="w-5 h-5" />
+                </div>
+              </Motion.button>
+            </div>
           </Motion.div>
 
           {/* Plan Summary Card */}
@@ -410,111 +545,234 @@ const SubscriptionPayment = () => {
             {/* Mobile Money Form */}
             {paymentMethod === "momo" && (
               <form onSubmit={handleMobileMoneyPayment} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Network Provider
-                  </label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { 
-                        value: Config.mtn, 
-                        label: "MTN",
-                        image: Images.mtn_momo
-                      },
-                      { 
-                        value: Config.airtelTigo, 
-                        label: "AirtelTigo",
-                        image: Images.at_cash
-                      },
-                      { 
-                        value: Config.telecel, 
-                        label: "Telecel",
-                        image: Images.telecel_cash
-                      },
-                    ].map((net) => (
-                      <button
-                        key={net.value}
-                        type="button"
-                        onClick={() => setNetwork(net.value)}
-                        className={`flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-xl border-2 font-medium transition-all ${
-                          network === net.value
-                            ? "border-orange-500 bg-orange-50 shadow-md scale-105"
-                            : "border-gray-200 hover:border-gray-300 hover:shadow-sm"
-                        }`}
-                      >
-                        <img
-                          src={net.image}
-                          alt={net.label}
-                          className={`w-12 h-12 object-contain transition-all ${
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Left Side: Network Provider Selection - 1/3 width */}
+                  <div className="flex flex-col md:col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-4">
+                      Network Provider
+                    </label>
+                    <div className="flex flex-col gap-4 flex-1">
+                      {[
+                        { 
+                          value: Config.mtn, 
+                          label: "MTN",
+                          image: Images.mtn_momo
+                        },
+                        { 
+                          value: Config.airtelTigo, 
+                          label: "AirtelTigo",
+                          image: Images.at_cash
+                        },
+                        { 
+                          value: Config.telecel, 
+                          label: "Telecel",
+                          image: Images.telecel_cash
+                        },
+                      ].map((net) => (
+                        <Motion.button
+                          key={net.value}
+                          type="button"
+                          onClick={() => setNetwork(net.value)}
+                          whileTap={{ scale: 0.98 }}
+                          className={`relative flex items-center gap-4 p-4 rounded-2xl border-2 font-medium transition-all duration-300 ${
                             network === net.value
-                              ? "opacity-100 scale-110"
-                              : "opacity-70"
-                          }`}
-                        />
-                        <span
-                          className={`text-xs font-semibold ${
-                            network === net.value
-                              ? "text-orange-600"
-                              : "text-gray-700"
+                              ? "border-orange-500 bg-gradient-to-br from-orange-50 to-orange-100 shadow-lg shadow-orange-200/50"
+                              : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-md"
                           }`}
                         >
-                          {net.label}
-                        </span>
+                          {/* Inset Circle Effect */}
+                          <div className={`relative w-16 h-16 rounded-full transition-all duration-300 flex-shrink-0 overflow-hidden ${
+                            network === net.value
+                              ? "bg-gradient-to-br from-orange-100 to-orange-200 shadow-inner"
+                              : "bg-gray-50"
+                          }`}>
+                            {/* Inner pressed effect when selected */}
+                            {network === net.value && (
+                              <Motion.div
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="absolute inset-0 rounded-full bg-gradient-to-br from-white/50 to-transparent"
+                              />
+                            )}
+                            
+                            {/* Logo Container - Fill the circle */}
+                            <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${
+                              network === net.value
+                                ? "scale-110"
+                                : "scale-100"
+                            }`}>
+                              <img
+                                src={net.image}
+                                alt={net.label}
+                                className={`w-full h-full object-contain p-2 transition-all duration-300 ${
+                                  network === net.value
+                                    ? "opacity-100 brightness-110"
+                                    : "opacity-70"
+                                }`}
+                              />
+                            </div>
+                            
+                            {/* Selected Indicator Ring */}
+                            {network === net.value && (
+                              <Motion.div
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="absolute -inset-1 rounded-full border-2 border-orange-400"
+                              />
+                            )}
+                          </div>
+                          
+                          {/* Label */}
+                          <div className="flex-1 text-left">
+                            <span
+                              className={`text-sm font-semibold transition-colors duration-300 ${
+                                network === net.value
+                                  ? "text-orange-700"
+                                  : "text-gray-700"
+                              }`}
+                            >
+                              {net.label}
+                            </span>
+                          </div>
+                          
+                          {/* Checkmark Badge when selected */}
+                          {network === net.value && (
+                            <Motion.div
+                              initial={{ scale: 0, rotate: -180 }}
+                              animate={{ scale: 1, rotate: 0 }}
+                              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                              className="w-6 h-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white flex-shrink-0"
+                            >
+                              <CheckCircle2 className="w-4 h-4 text-white" fill="white" />
+                            </Motion.div>
+                          )}
+                        </Motion.button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right Side: Form Inputs - 2/3 width */}
+                  <div className="flex flex-col space-y-6 md:col-span-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={(e) =>
+                          setPhoneNumber(formatPhoneNumber(e.target.value))
+                        }
+                        placeholder="0501234567"
+                        required
+                        maxLength={10}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 outline-none transition-all ${
+                          phoneNumber.length > 0
+                            ? isValidPhoneNumber(phoneNumber)
+                              ? "border-green-500 focus:border-green-500 focus:ring-green-200 bg-green-50/30"
+                              : "border-red-500 focus:border-red-500 focus:ring-red-200 bg-red-50/30"
+                            : "border-gray-200 focus:border-orange-500 focus:ring-orange-200"
+                        }`}
+                      />
+                      <div className="mt-1.5 flex items-center gap-2">
+                        {phoneNumber.length > 0 ? (
+                          isValidPhoneNumber(phoneNumber) ? (
+                            <>
+                              <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                              <p className="text-xs text-green-600 font-medium">
+                                Valid phone number
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                              <p className="text-xs text-red-600 font-medium">
+                                Phone number must start with 0 and have 10 digits (e.g., 0501234567)
+                              </p>
+                            </>
+                          )
+                        ) : (
+                          <p className="text-xs text-gray-500">
+                            Enter your mobile money number starting with 0
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                        placeholder="Enter your full name"
+                        required
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
+                      />
+                    </div>
+
+                    {/* Payment Preview Card */}
+                    <div className="bg-gradient-to-br from-orange-50 via-blue-50 to-teal-50 rounded-xl p-5 border-2 border-orange-100">
+                      <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-orange-600" />
+                        Payment Summary
+                      </h4>
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Plan:</span>
+                          <span className="font-semibold text-gray-900 capitalize">
+                            {plan.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Duration:</span>
+                          <span className="font-semibold text-gray-900">
+                            {plan.duration}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Network:</span>
+                          <span className="font-semibold text-gray-900 capitalize">
+                            {network === Config.mtn ? "MTN" : 
+                             network === Config.airtelTigo ? "AirtelTigo" : 
+                             network === Config.telecel ? "Telecel" : "Not selected"}
+                          </span>
+                        </div>
+                        <div className="pt-2 mt-2 border-t border-orange-200">
+                          <div className="flex items-center justify-between">
+                            <span className="text-base font-bold text-gray-900">Total:</span>
+                            <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-orange-500">
+                              GHS {plan.price}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Payment Button - Pushed to bottom */}
+                    <div className="mt-auto pt-4">
+                      <button
+                        type="submit"
+                        disabled={isProcessing}
+                        className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-orange-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span>Processing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Smartphone className="w-5 h-5" />
+                            <span>Pay with Mobile Money</span>
+                          </>
+                        )}
                       </button>
-                    ))}
+                    </div>
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) =>
-                      setPhoneNumber(formatPhoneNumber(e.target.value))
-                    }
-                    placeholder="0501234567"
-                    required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Enter your mobile money number
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={userName}
-                    onChange={(e) => setUserName(e.target.value)}
-                    placeholder="Enter your full name"
-                    required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isProcessing}
-                  className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-orange-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Processing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Smartphone className="w-5 h-5" />
-                      <span>Pay with Mobile Money</span>
-                    </>
-                  )}
-                </button>
               </form>
             )}
 

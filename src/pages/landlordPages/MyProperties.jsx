@@ -257,7 +257,7 @@ const MyProperties = () => {
             </span>
           </div>
           {property.is_negotiable && (
-            <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full">
+            <span className="hidden md:flex text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full">
               Negotiable
             </span>
           )}
@@ -280,7 +280,7 @@ const MyProperties = () => {
           </div>
           <div className="flex items-center gap-1 hidden md:flex">
             <Home size={14} />
-            <span>{property.property_type}</span>
+            <span>{property.property_type.length > 10 ? property.property_type.substring(0, 10) + '...' : property.property_type}</span>
           </div>
         </div>
 
@@ -296,7 +296,7 @@ const MyProperties = () => {
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-xs text-gray-500">
+          <div className="hidden md:flex items-center gap-1 text-xs text-gray-500">
             {property.is_negotiable && (
               <>
                 <DollarSign size={10} className="md:size-3" />
@@ -437,7 +437,7 @@ const MyProperties = () => {
                   </span>
                 </div>
                 {property.is_negotiable && (
-                  <div className="flex items-center gap-1">
+                  <div className="hidden md:flex items-center gap-1">
                     <DollarSign size={12} />
                     <span>Negotiable</span>
                   </div>
@@ -487,7 +487,7 @@ const MyProperties = () => {
   return (
     <AuthLayout>
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-6 md:mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
@@ -669,7 +669,7 @@ const MyProperties = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6"
+                  className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6"
                 >
                   {filteredProperties.map((property) => (
                     <PropertyCard

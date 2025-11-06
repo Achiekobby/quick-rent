@@ -743,7 +743,7 @@ const EditProperty = () => {
           </div>
         )}
 
-        <div className={`max-w-7xl mx-auto px-4 py-8 ${isKYCNotApproved || isSubscriptionBlocked ? 'pointer-events-none opacity-50' : ''}`}>
+        <div className={`max-w-8xl mx-auto px-4 py-8 ${isKYCNotApproved || isSubscriptionBlocked ? 'pointer-events-none opacity-50' : ''}`}>
           <div className="flex items-center gap-4 mb-6">
             <button
               onClick={() => navigate(`/view-property/${propertySlug}`)}
