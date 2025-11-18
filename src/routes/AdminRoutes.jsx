@@ -17,6 +17,8 @@ import EditLandlord from "../pages/adminPages/EditLandlord";
 import EditLandlordProperty from "../pages/adminPages/EditLandlordProperty";
 import AdminPayments from "../pages/adminPages/AdminPayments";
 import AdminSubscriptions from "../pages/adminPages/AdminSubscriptions";
+import ReportManagement from "../pages/adminPages/ReportManagement";
+import ReviewModeration from "../pages/adminPages/ReviewModeration";
 
 function AdminRoutes() {
   return (
@@ -175,7 +177,47 @@ function AdminRoutes() {
         path="/reports"
         element={
           <ProtectedRoute requiredRoles={["admin"]}>
-            <div>Reports & Analytics - Coming Soon</div>
+            <ReportManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/report-management"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <ReportManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/reports"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <ReportManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reviews"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <ReviewModeration />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/review-moderation"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <ReviewModeration />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/reviews"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <ReviewModeration />
           </ProtectedRoute>
         }
       />

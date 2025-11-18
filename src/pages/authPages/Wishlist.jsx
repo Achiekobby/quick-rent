@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import {
   Heart,
-  Trash2,
   Filter,
   X,
   RefreshCcw,
@@ -17,7 +16,6 @@ import AuthLayout from "../../Layouts/AuthLayout";
 import { toast } from "react-toastify";
 import {
   getWishlist,
-  removeWishlistItem,
 } from "../../api/Renter/General/WishlistRequests";
 
 const Wishlist = () => {
@@ -82,25 +80,6 @@ const Wishlist = () => {
   //       : [...prev, type]
   //   );
   // };
-
-  const handleRemoveFromWishlist = async (propertySlug, event) => {
-    event.stopPropagation();
-    try {
-      const response = await removeWishlistItem(propertySlug);
-      if (response?.data?.status_code === "000" && !response?.data?.in_error) {
-        setWishlistItems((prev) =>
-          prev.filter((item) => item.wishlist_slug !== propertySlug)
-        );
-        toast.success("Property removed from wishlist successfully");
-      } else {
-        toast.error(response?.data?.reason || "Failed to remove from wishlist");
-      }
-    } catch (error) {
-      toast.error(
-        error?.response?.data?.reason || "Failed to remove from wishlist"
-      );
-    }
-  };
 
   const handleRefresh = () => {
     fetchWishlist();
@@ -403,21 +382,8 @@ const Wishlist = () => {
                   key={wishlistItem.wishlist_slug}
                   variants={fadeIn}
                   custom={index}
-                  className="relative group"
                 >
                   <PropertyCard property={wishlistItem.property} />
-
-                  {/* Remove button - appears on hover */}
-                  <Motion.button
-                    className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                    whileHover={{ scale: 1.1, backgroundColor: "#FEE2E2" }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={(e) =>
-                      handleRemoveFromWishlist(wishlistItem.wishlist_slug, e)
-                    }
-                  >
-                    <Trash2 className="w-4 h-4 text-red-500" />
-                  </Motion.button>
                 </Motion.div>
               ))}
             </Motion.div>

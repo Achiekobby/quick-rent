@@ -52,11 +52,12 @@ import { showPropertyDetails } from "../../api/Renter/General/DashboardRequests"
 import EmptyState from "../../components/Utilities/EmptyState";
 import useAuthStore from "../../stores/authStore";
 import { storeWishlistItem } from "../../api/Renter/General/WishlistRequests";
+import ReviewsSection from "../../components/Utilities/ReviewsSection";
+import ReportLandlordModal from "../../components/Utilities/ReportLandlordModal";
 
 const PropertyDetails = () => {
   const { propertySlug } = useParams();
   const navigate = useNavigate();
-  const [isLiked, setIsLiked] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -70,6 +71,8 @@ const PropertyDetails = () => {
   const {user} = useAuthStore();
   const [isWishlisting, setIsWishlisting] = useState(false);
   const [, setWishlistItems] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [showReportModal, setShowReportModal] = useState(false);
   // Function to mask phone number for unauthenticated users
   const maskPhoneNumber = (phoneNumber) => {
     if (!phoneNumber) return "N/A";
@@ -92,9 +95,8 @@ const PropertyDetails = () => {
         return;
       }
       setIsWishlisting(true);
-      const response = await storeWishlistItem({propertySlug});
+      const response = await storeWishlistItem(propertySlug);
       if(response?.data?.status_code === "000" && !response?.data?.in_error){
-        setIsLiked(true);
         localStorage.setItem(`wishlist_${propertySlug}`, "true");
         toast.success(response?.data?.reason || "Property added to wishlist");
         setWishlistItems(prevItems => [...prevItems, property]);
@@ -192,6 +194,9 @@ const PropertyDetails = () => {
         ) {
           setProperty(response?.data?.data);
           setRelatedProperties(response?.data?.data?.related_properties || []);
+          // TODO: Replace with actual reviews from API
+          // Reviews are landlord-focused, so fetch from landlord endpoint or include in property response
+          setReviews(response?.data?.data?.landlord?.reviews || response?.data?.data?.reviews || []);
         } else {
           toast.error(
             response?.data?.reason || "Could not fetch property details"
@@ -364,21 +369,25 @@ const PropertyDetails = () => {
           </Motion.button>
 
           <div className="flex items-center gap-2">
-            <Motion.button
-              className="p-2 rounded-full bg-white shadow-md hover:bg-neutral-50 transition-colors"
-              whileTap={{ scale: 0.97 }}
-              onClick={handleWishlist}
-            >
-            {isWishlisting ? (
-              <Loader2 className="w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors duration-200 text-neutral-600" />
-            ) : (
-              <Heart
-                className={`w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors duration-200 ${
-                  isLiked ? "fill-red-500 text-red-500" : "text-neutral-600"
-                }`}
-              />
-            )}
-            </Motion.button>
+            <div className="relative group">
+              <Motion.button
+                className="p-2 rounded-full bg-white shadow-md hover:bg-neutral-50 transition-colors"
+                whileTap={{ scale: 0.97 }}
+                onClick={handleWishlist}
+              >
+                {isWishlisting ? (
+                  <Loader2 className="w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors duration-200 text-neutral-600" />
+                ) : (
+                  <Heart className="w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors duration-200 text-neutral-600" />
+                )}
+              </Motion.button>
+              {/* Tooltip */}
+              <div className="absolute top-full right-0 mt-2 px-3 py-1.5 bg-neutral-900 text-white text-xs font-medium rounded-lg shadow-lg whitespace-nowrap z-50 pointer-events-none opacity-0 group-hover:opacity-100 transform translate-y-[-5px] group-hover:translate-y-0 scale-90 group-hover:scale-100 transition-all duration-200 ease-out">
+                Add to Wishlist
+                {/* Arrow */}
+                <div className="absolute bottom-full right-4 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-neutral-900"></div>
+              </div>
+            </div>
 
             {/* <Motion.button
               className="p-2 rounded-full bg-white shadow-md hover:bg-neutral-50 transition-colors"
@@ -841,13 +850,26 @@ const PropertyDetails = () => {
                   <Phone className="w-4 h-4 text-neutral-500 mr-2" />
                   <span>+{maskPhoneNumber(property?.contact_number)}</span>
                 </div>
-                <div className="flex items-center text-sm">
+                <div className="flex items-center text-sm mb-3">
                   <MessageSquare className="w-4 h-4 text-neutral-500 mr-2" />
                   <span>
                     Response Rate:{" "}
                     {property?.landlord?.response_rate || "24 hours"}
                   </span>
                 </div>
+                
+                {/* Report Landlord Button */}
+                <Motion.button
+                  onClick={() => setShowReportModal(true)}
+                  className="w-full mt-3 py-2.5 px-4 rounded-lg border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-300 transition-all flex items-center justify-center gap-2 text-red-700 hover:text-red-800 text-sm font-medium"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                  </svg>
+                  Report Landlord
+                </Motion.button>
               </div>
 
               <Motion.button
@@ -892,6 +914,13 @@ const PropertyDetails = () => {
             </Motion.div>
           </Motion.div>
         </div>
+
+        {/* Reviews Section */}
+        <ReviewsSection 
+          landlordSlug={property?.landlord?.landlord_slug || property?.landlord_slug} 
+          landlordName={property?.landlord?.full_name}
+          initialReviews={reviews} 
+        />
 
         {/* Related Properties Section */}
         <Motion.section className="mb-12" variants={fadeIn}>
@@ -1031,6 +1060,14 @@ const PropertyDetails = () => {
           </Motion.button>
         </Motion.div>
       </div>
+
+      {/* Report Landlord Modal */}
+      <ReportLandlordModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        landlordName={property?.landlord?.full_name || "Landlord"}
+        landlordSlug={property?.landlord?.landlord_slug || property?.landlord_slug}
+      />
     </GuestLayout>
   );
 };

@@ -12,10 +12,9 @@ const PropertyCard = ({ property }) => {
   const pageLocation = useLocation();
   const isWishlistPage = pageLocation.pathname === "/wishlist";
   const isLandlord = isAuthenticated() && getUserType() === "landlord";
-  const [isLiked, setIsLiked] = useState(false);
   const navigate = useNavigate();
   const [isWishlisting, setIsWishlisting] = useState(false);
-  const [wishlistItems, setWishlistItems] = useState([]);
+  const [, setWishlistItems] = useState([]);
   const {
     property_slug,
     featured_image,
@@ -33,9 +32,8 @@ const PropertyCard = ({ property }) => {
         return;
       }
       setIsWishlisting(true);
-      const response = await storeWishlistItem({property_slug});
+      const response = await storeWishlistItem(property_slug);
       if(response?.data?.status_code === "000" && !response?.data?.in_error){
-        setIsLiked(true);
         localStorage.setItem(`wishlist_${property_slug}`, "true");
         toast.success(response?.data?.reason || "Property added to wishlist");
         setWishlistItems(prevItems => [...prevItems, property]);
@@ -98,21 +96,25 @@ const PropertyCard = ({ property }) => {
           )}
         </div>
         {!isWishlistPage && !isLandlord && (
-          <Motion.button
-            className="absolute top-2 sm:top-3 right-2 sm:right-3 p-1.5 sm:p-2 rounded-full bg-white shadow-lg transition-colors duration-200"
-            whileTap={{ scale: 0.95 }}
-            onClick={handleWishlist}
-          >
-            {isWishlisting ? (
-              <Loader2 className="w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors duration-200 text-neutral-600" />
-            ) : (
-              <Heart
-                className={`w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors duration-200 ${
-                  isLiked ? "fill-red-500 text-red-500" : "text-neutral-600"
-                }`}
-              />
-            )}
-          </Motion.button>
+          <div className="absolute top-2 sm:top-3 right-2 sm:right-3 group">
+            <Motion.button
+              className="p-1.5 sm:p-2 rounded-full bg-white shadow-lg transition-colors duration-200"
+              whileTap={{ scale: 0.95 }}
+              onClick={handleWishlist}
+            >
+              {isWishlisting ? (
+                <Loader2 className="w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors duration-200 text-neutral-600" />
+              ) : (
+                <Heart className="w-3.5 h-3.5 sm:w-5 sm:h-5 transition-colors duration-200 text-neutral-600" />
+              )}
+            </Motion.button>
+            {/* Tooltip */}
+            <div className="absolute top-full right-0 mt-2 px-2.5 py-1.5 bg-neutral-900 text-white text-[10px] sm:text-xs font-medium rounded-lg shadow-lg whitespace-nowrap z-50 pointer-events-none opacity-0 group-hover:opacity-100 transform translate-y-[-5px] group-hover:translate-y-0 scale-90 group-hover:scale-100 transition-all duration-200 ease-out">
+              Add to Wishlist
+              {/* Arrow */}
+              <div className="absolute bottom-full right-3 sm:right-4 w-0 h-0 border-l-[4px] border-r-[4px] border-b-[4px] border-transparent border-b-neutral-900"></div>
+            </div>
+          </div>
         )}
       </div>
 

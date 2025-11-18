@@ -12,17 +12,21 @@ export const getWishlist = async () => {
   return response.data;
 };
 
-export const storeWishlistItem = async(payload)=>{
-  const response = await axios.post(`${BASE_URL}/rentor/wishlist`, payload, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("quick_renter_token")}`,
-    },
-  });
+export const storeWishlistItem = async (payload) => {
+  const response = await axios.post(
+    `${BASE_URL}/rentor/wishlist`,
+    { property_slug: payload },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("quick_renter_token")}`,
+      },
+    }
+  );
   return response.data;
-}
+};
 
-export const removeWishlistItem = async(slug)=>{
+export const removeWishlistItem = async (slug) => {
   const response = await axios.delete(`${BASE_URL}/rentor/wishlist/${slug}`, {
     headers: {
       "Content-Type": "application/json",
@@ -30,4 +34,4 @@ export const removeWishlistItem = async(slug)=>{
     },
   });
   return response.data;
-}
+};

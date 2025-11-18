@@ -17,6 +17,10 @@ import {
   Home,
   CreditCard,
   Loader2,
+  Flag,
+  Star,
+  MessageSquare,
+  Clock,
 } from "lucide-react";
 import Colors from "../../utils/Colors";
 import AuthLayout from "../../Layouts/AuthLayout";
@@ -259,6 +263,96 @@ const AdminDashboard = () => {
             </div>
           </Motion.div>
         </div>
+
+        {/* Content Moderation Section */}
+        <Motion.div
+          className="bg-gradient-to-br from-red-50 via-orange-50 to-amber-50 rounded-2xl shadow-md border-2 border-orange-200 p-6 mb-6"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.55 }}
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl shadow-md">
+              <Shield className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+                Content Moderation
+              </h2>
+              <p className="text-gray-600 text-sm">
+                Review and moderate user-generated content
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Report Management */}
+            <Motion.button
+              onClick={() => navigate("/admin/reports")}
+              className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border-2 border-red-200 hover:border-red-400 hover:shadow-lg transition-all duration-200 text-left group"
+              whileHover={{ y: -4, scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl shadow-md group-hover:shadow-xl transition-shadow">
+                  <Flag className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full border border-red-300">
+                    <Clock className="w-3 h-3 inline mr-1" />
+                    Pending
+                  </span>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-red-500 group-hover:translate-x-1 transition-all" />
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Report Management
+              </h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Review and investigate landlord reports submitted by users. Take action on complaints and issues.
+              </p>
+              <div className="mt-4 pt-4 border-t border-red-100">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">View all reports</span>
+                  <span className="font-semibold text-red-600">→</span>
+                </div>
+              </div>
+            </Motion.button>
+
+            {/* Review Moderation */}
+            <Motion.button
+              onClick={() => navigate("/admin/reviews")}
+              className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border-2 border-orange-200 hover:border-orange-400 hover:shadow-lg transition-all duration-200 text-left group"
+              whileHover={{ y: -4, scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl shadow-md group-hover:shadow-xl transition-shadow">
+                  <Star className="w-6 h-6 text-white fill-white" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full border border-orange-300">
+                    <MessageSquare className="w-3 h-3 inline mr-1" />
+                    Review
+                  </span>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-500 group-hover:translate-x-1 transition-all" />
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Review Moderation
+              </h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Approve or reject landlord reviews before they appear publicly. Prevent offensive content.
+              </p>
+              <div className="mt-4 pt-4 border-t border-orange-100">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">Moderate reviews</span>
+                  <span className="font-semibold text-orange-600">→</span>
+                </div>
+              </div>
+            </Motion.button>
+          </div>
+        </Motion.div>
 
         {/* Subscription Data Card - Full Width */}
         <Motion.div
