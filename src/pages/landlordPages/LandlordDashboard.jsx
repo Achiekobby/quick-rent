@@ -24,6 +24,7 @@ import {
   ArrowRight,
   TrendingUp,
   Sparkles,
+  MessageSquare,
 } from "lucide-react";
 import Colors from "../../utils/Colors";
 import AuthLayout from "../../Layouts/AuthLayout";
@@ -32,12 +33,14 @@ import useAuthStore from "../../stores/authStore";
 import { getAllProperties } from "../../api/Landlord/General/PropertyRequest";
 import { toast } from "react-toastify";
 import moment from "moment";
+import FeedbackModal from "../../components/Landlord/FeedbackModal";
 
 const LandlordDashboard = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   // Fetch actual properties data
   useEffect(() => {
@@ -227,17 +230,29 @@ const LandlordDashboard = () => {
                 Manage your property listings and track their performance.
               </p>
             </div>
-            <Motion.button
-              onClick={() => navigate("/home")}
-              className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-orange-200 text-orange-600 rounded-xl font-medium hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 shadow-sm hover:shadow-md"
-              whileHover={{ scale: 1.02, x: 2 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Globe className="w-4 h-4" />
-              <span className="hidden sm:inline">Visit Homepage</span>
-              <span className="sm:hidden">Home</span>
-              <ArrowRight className="w-4 h-4" />
-            </Motion.button>
+            <div className="flex items-center gap-3">
+              <Motion.button
+                onClick={() => setShowFeedbackModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-blue-500 text-white rounded-xl font-medium hover:from-orange-600 hover:to-blue-600 transition-all duration-300 shadow-lg hover:shadow-xl"
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span className="hidden sm:inline">Share Feedback</span>
+                <span className="sm:hidden">Feedback</span>
+              </Motion.button>
+              <Motion.button
+                onClick={() => navigate("/home")}
+                className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-orange-200 text-orange-600 rounded-xl font-medium hover:bg-orange-50 hover:border-orange-300 transition-all duration-300 shadow-sm hover:shadow-md"
+                whileHover={{ scale: 1.02, x: 2 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Globe className="w-4 h-4" />
+                <span className="hidden sm:inline">Visit Homepage</span>
+                <span className="sm:hidden">Home</span>
+                <ArrowRight className="w-4 h-4" />
+              </Motion.button>
+            </div>
           </div>
         </Motion.div>
 
@@ -979,6 +994,13 @@ const LandlordDashboard = () => {
             </div>
           </Motion.div>
         </div>
+
+        {/* Feedback Modal */}
+        <FeedbackModal
+          isOpen={showFeedbackModal}
+          onClose={() => setShowFeedbackModal(false)}
+          landlordSlug={user?.user_slug}
+        />
       </div>
     </AuthLayout>
   );

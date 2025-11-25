@@ -21,6 +21,7 @@ import {
   Star,
   MessageSquare,
   Clock,
+  TrendingUp,
 } from "lucide-react";
 import Colors from "../../utils/Colors";
 import AuthLayout from "../../Layouts/AuthLayout";
@@ -285,7 +286,7 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Report Management */}
             <Motion.button
               onClick={() => navigate("/admin/reports")}
@@ -348,6 +349,39 @@ const AdminDashboard = () => {
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-gray-500">Moderate reviews</span>
                   <span className="font-semibold text-orange-600">→</span>
+                </div>
+              </div>
+            </Motion.button>
+
+            {/* Feedback Management */}
+            <Motion.button
+              onClick={() => navigate("/admin/feedbacks")}
+              className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border-2 border-purple-200 hover:border-purple-400 hover:shadow-lg transition-all duration-200 text-left group"
+              whileHover={{ y: -4, scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl shadow-md group-hover:shadow-xl transition-shadow">
+                  <MessageSquare className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded-full border border-purple-300">
+                    <TrendingUp className="w-3 h-3 inline mr-1" />
+                    Feedback
+                  </span>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Feedback Management
+              </h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                View and analyze landlord feedback about the platform. Make informed decisions for improvements.
+              </p>
+              <div className="mt-4 pt-4 border-t border-purple-100">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">View all feedbacks</span>
+                  <span className="font-semibold text-purple-600">→</span>
                 </div>
               </div>
             </Motion.button>

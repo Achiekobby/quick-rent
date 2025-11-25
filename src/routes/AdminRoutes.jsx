@@ -19,6 +19,7 @@ import AdminPayments from "../pages/adminPages/AdminPayments";
 import AdminSubscriptions from "../pages/adminPages/AdminSubscriptions";
 import ReportManagement from "../pages/adminPages/ReportManagement";
 import ReviewModeration from "../pages/adminPages/ReviewModeration";
+import FeedbackManagement from "../pages/adminPages/FeedbackManagement";
 
 function AdminRoutes() {
   return (
@@ -218,6 +219,30 @@ function AdminRoutes() {
         element={
           <ProtectedRoute requiredRoles={["admin"]}>
             <ReviewModeration />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/feedbacks"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <FeedbackManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/feedback-management"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <FeedbackManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/feedbacks"
+        element={
+          <ProtectedRoute requiredRoles={["admin"]}>
+            <FeedbackManagement />
           </ProtectedRoute>
         }
       />
