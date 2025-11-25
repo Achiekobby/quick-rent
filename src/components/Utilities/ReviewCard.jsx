@@ -1,10 +1,11 @@
-import { Star, Flag } from "lucide-react";
+import { Star, Flag, Edit2, Trash2 } from "lucide-react";
 import { motion as Motion } from "framer-motion";
 import { useState } from "react";
 import PropTypes from "prop-types";
 
-const ReviewCard = ({ review }) => {
+const ReviewCard = ({ review, currentUserSlug, onEdit, onDelete }) => {
   const [avatarError, setAvatarError] = useState(false);
+  const isOwner = currentUserSlug && (review.reviewer_slug === currentUserSlug || review.reviewer?.slug === currentUserSlug);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -50,16 +51,16 @@ const ReviewCard = ({ review }) => {
           {/* Avatar */}
           <div className="relative">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 via-primary-500 to-primary-600 flex items-center justify-center text-white font-bold overflow-hidden flex-shrink-0 shadow-md ring-2 ring-white">
-              {review?.reviewer_avatar && !avatarError ? (
+              {(review?.reviewer_avatar || review?.reviewer?.profile_picture) && !avatarError ? (
                 <img
-                  src={review.reviewer_avatar}
-                  alt={review?.reviewer_name || "Reviewer"}
+                  src={review.reviewer_avatar || review.reviewer?.profile_picture}
+                  alt={review?.reviewer_name || review?.reviewer?.full_name || "Reviewer"}
                   className="w-full h-full object-cover"
                   onError={() => setAvatarError(true)}
                 />
               ) : (
                 <span className="text-base font-bold text-white">
-                  {review?.reviewer_name
+                  {(review?.reviewer_name || review?.reviewer?.full_name || "U")
                     ?.split(" ")
                     .map((n) => n[0])
                     .join("")
@@ -81,7 +82,7 @@ const ReviewCard = ({ review }) => {
           {/* User Info */}
           <div>
             <h4 className="font-bold text-neutral-900 text-base mb-0.5">
-              {review?.reviewer_name || "Anonymous User"}
+              {review?.reviewer_name || review?.reviewer?.full_name || "Anonymous User"}
             </h4>
             <div className="flex items-center gap-2">
               <p className="text-xs text-neutral-500">
@@ -95,14 +96,39 @@ const ReviewCard = ({ review }) => {
           </div>
         </div>
 
-        {/* Report button moved to top right */}
-        <Motion.button
-          className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <Flag className="w-3.5 h-3.5" />
-        </Motion.button>
+        {/* Action buttons - Edit/Delete for owner, Flag for others */}
+        <div className="flex items-center gap-2">
+          {isOwner ? (
+            <>
+              <Motion.button
+                onClick={() => onEdit && onEdit(review)}
+                className="flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-600 transition-colors opacity-0 group-hover:opacity-100"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                title="Edit review"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </Motion.button>
+              <Motion.button
+                onClick={() => onDelete && onDelete(review)}
+                className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                title="Delete review"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Motion.button>
+            </>
+          ) : (
+            <Motion.button
+              className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Flag className="w-3.5 h-3.5" />
+            </Motion.button>
+          )}
+        </div>
       </div>
 
       {/* Review Content with Quote Styling */}
@@ -137,12 +163,23 @@ const ReviewCard = ({ review }) => {
 ReviewCard.propTypes = {
   review: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    review_slug: PropTypes.string,
+    reviewer_slug: PropTypes.string,
     reviewer_name: PropTypes.string,
     reviewer_avatar: PropTypes.string,
     rating: PropTypes.number,
     comment: PropTypes.string,
     created_at: PropTypes.string,
+    is_approved: PropTypes.bool,
+    reviewer: PropTypes.shape({
+      slug: PropTypes.string,
+      full_name: PropTypes.string,
+      profile_picture: PropTypes.string,
+    }),
   }).isRequired,
+  currentUserSlug: PropTypes.string,
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func,
 };
 
 export default ReviewCard;

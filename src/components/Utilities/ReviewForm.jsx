@@ -1,13 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Star, Send, Loader2 } from "lucide-react";
 import { motion as Motion } from "framer-motion";
 import PropTypes from "prop-types";
 import Colors from "../../utils/Colors";
 
-const ReviewForm = ({ onSubmit, isSubmitting = false }) => {
-  const [rating, setRating] = useState(0);
+const ReviewForm = ({ onSubmit, isSubmitting = false, initialData = null, onCancel }) => {
+  const [rating, setRating] = useState(initialData?.rating || 0);
   const [hoveredRating, setHoveredRating] = useState(0);
-  const [comment, setComment] = useState("");
+  const [comment, setComment] = useState(initialData?.comment || "");
+
+  useEffect(() => {
+    if (initialData) {
+      setRating(initialData.rating || 0);
+      setComment(initialData.comment || "");
+    }
+  }, [initialData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -68,7 +75,7 @@ const ReviewForm = ({ onSubmit, isSubmitting = false }) => {
           <Star className="w-6 h-6 text-white fill-white" />
         </div>
         <h3 className="text-2xl font-bold text-orange-900">
-          Review the Landlord
+          {initialData ? "Edit Your Review" : "Review the Landlord"}
         </h3>
       </div>
 
@@ -147,26 +154,39 @@ const ReviewForm = ({ onSubmit, isSubmitting = false }) => {
             {isSubmitting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Submitting...</span>
+                <span>{initialData ? "Updating..." : "Submitting..."}</span>
               </>
             ) : (
               <>
                 <Send className="w-5 h-5" />
-                <span>Submit Review</span>
+                <span>{initialData ? "Update Review" : "Submit Review"}</span>
               </>
             )}
           </Motion.button>
 
-          <Motion.button
-            type="button"
-            onClick={handleReset}
-            disabled={isSubmitting}
-            className="px-6 py-4 rounded-xl font-bold border-2 border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400 transition-all disabled:opacity-50 shadow-sm"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            Clear
-          </Motion.button>
+          {initialData && onCancel ? (
+            <Motion.button
+              type="button"
+              onClick={onCancel}
+              disabled={isSubmitting}
+              className="px-6 py-4 rounded-xl font-bold border-2 border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400 transition-all disabled:opacity-50 shadow-sm"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Cancel
+            </Motion.button>
+          ) : (
+            <Motion.button
+              type="button"
+              onClick={handleReset}
+              disabled={isSubmitting}
+              className="px-6 py-4 rounded-xl font-bold border-2 border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400 transition-all disabled:opacity-50 shadow-sm"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Clear
+            </Motion.button>
+          )}
         </div>
       </form>
     </Motion.div>
@@ -176,6 +196,11 @@ const ReviewForm = ({ onSubmit, isSubmitting = false }) => {
 ReviewForm.propTypes = {
   onSubmit: PropTypes.func.isRequired,
   isSubmitting: PropTypes.bool,
+  initialData: PropTypes.shape({
+    rating: PropTypes.number,
+    comment: PropTypes.string,
+  }),
+  onCancel: PropTypes.func,
 };
 
 export default ReviewForm;

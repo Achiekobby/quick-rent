@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
   MapPin,
@@ -73,13 +73,12 @@ const PropertyDetails = () => {
   const [, setWishlistItems] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [showReportModal, setShowReportModal] = useState(false);
-  // Function to mask phone number for unauthenticated users
   const maskPhoneNumber = (phoneNumber) => {
     if (!phoneNumber) return "N/A";
-    if (user) return phoneNumber; // Show full number if user is authenticated
+    if (user) return phoneNumber;
     
     const phone = phoneNumber.toString();
-    if (phone.length <= 6) return phone; // Don't mask very short numbers
+    if (phone.length <= 6) return phone;
     
     const start = phone.slice(0, 3);
     const end = phone.slice(-2);
@@ -111,7 +110,6 @@ const PropertyDetails = () => {
     }
   }
 
-  // Animation variants
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
@@ -128,7 +126,6 @@ const PropertyDetails = () => {
     },
   };
 
-  // Track scroll position to show/hide scroll-to-top button
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 300);
@@ -183,35 +180,36 @@ const PropertyDetails = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchPropertyDetails = async () => {
-      setLoading(true);
-      try {
-        const response = await showPropertyDetails(propertySlug);
-        if (
-          response?.data?.status_code === "000" &&
-          !response?.data?.in_error
-        ) {
-          setProperty(response?.data?.data);
-          setRelatedProperties(response?.data?.data?.related_properties || []);
-          // TODO: Replace with actual reviews from API
-          // Reviews are landlord-focused, so fetch from landlord endpoint or include in property response
-          setReviews(response?.data?.data?.landlord?.reviews || response?.data?.data?.reviews || []);
-        } else {
-          toast.error(
-            response?.data?.reason || "Could not fetch property details"
-          );
-        }
-      } catch (error) {
+  const fetchPropertyDetails = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await showPropertyDetails(propertySlug);
+      if (
+        response?.data?.status_code === "000" &&
+        !response?.data?.in_error
+      ) {
+        setProperty(response?.data?.data);
+        setRelatedProperties(response?.data?.data?.related_properties || []);
+        // TODO: Replace with actual reviews from API
+        // Reviews are landlord-focused, so fetch from landlord endpoint or include in property response
+        setReviews(response?.data?.data?.landlord?.reviews || response?.data?.data?.reviews || []);
+      } else {
         toast.error(
-          error?.response?.data?.reason || "Could not fetch property details"
+          response?.data?.reason || "Could not fetch property details"
         );
-      } finally {
-        setLoading(false);
       }
-    };
-    fetchPropertyDetails();
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.reason || "Could not fetch property details"
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [propertySlug]);
+
+  useEffect(() => {
+    fetchPropertyDetails();
+  }, [fetchPropertyDetails]);
 
   if (loading) {
     return (
@@ -918,8 +916,11 @@ const PropertyDetails = () => {
         {/* Reviews Section */}
         <ReviewsSection 
           landlordSlug={property?.landlord?.landlord_slug || property?.landlord_slug} 
+          propertySlug={propertySlug}
           landlordName={property?.landlord?.full_name}
-          initialReviews={reviews} 
+          initialReviews={reviews}
+          onReviewAdded={fetchPropertyDetails}
+          onReviewDeleted={fetchPropertyDetails}
         />
 
         {/* Related Properties Section */}
