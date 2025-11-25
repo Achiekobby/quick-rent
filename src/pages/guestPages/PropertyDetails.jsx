@@ -1068,6 +1068,7 @@ const PropertyDetails = () => {
         onClose={() => setShowReportModal(false)}
         landlordName={property?.landlord?.full_name || "Landlord"}
         landlordSlug={property?.landlord?.landlord_slug || property?.landlord_slug}
+        propertySlug={propertySlug}
       />
     </GuestLayout>
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   AlertTriangle,
@@ -6,26 +6,26 @@ import {
   Send,
   Loader2,
   CheckCircle,
+  Edit,
 } from "lucide-react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import PropTypes from "prop-types";
 import { toast } from "react-toastify";
 import reportRequests from "../../api/Renter/General/ReportRequests";
-import PropertyCard from "./PropertyCard";
 
-const ReportLandlordModal = ({
+const UpdateReportModal = ({
   isOpen,
   onClose,
-  landlordName,
+  report,
+  onUpdateSuccess,
   landlordSlug,
-  propertySlug,
+  propertySlug
 }) => {
   const [selectedReason, setSelectedReason] = useState("");
   const [customReason, setCustomReason] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  console.log("landlordSlug", landlordSlug);
 
   const reportReasons = [
     {
@@ -72,40 +72,64 @@ const ReportLandlordModal = ({
     },
   ];
 
+  // Initialize form with existing report data
+  useEffect(() => {
+    if (report && isOpen) {
+      setSelectedReason(report.reason || "");
+      setCustomReason(report.custom_reason || "");
+      setDescription(report.description || "");
+      setIsSuccess(false);
+    }
+  }, [report, isOpen]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!report?.report_slug) {
+      toast.error("Report information is missing");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const response = await reportRequests.submitReport({
-        landlord_slug: landlordSlug,
-        reason: selectedReason,
-        custom_reason: customReason,
-        description: description,
-        property_slug: propertySlug,
-      });
+      const response = await reportRequests.updateReport(
+        report.report_slug,
+        {
+          reason: selectedReason,
+          custom_reason: customReason,
+          description: description,
+          landlord_slug:landlordSlug,
+          property_slug:propertySlug
+        }
+      );
 
-      if (response.data.status_code === "001") {
+      if (response.status) {
         setIsSuccess(true);
         toast.success(
-          response.data?.reason ||
-            response.message ||
-            "Report submitted successfully. We'll review it shortly."
+          response.message || "Report updated successfully"
         );
-        handleClose();
+        
+        // Call success callback if provided
+        if (onUpdateSuccess) {
+          onUpdateSuccess();
+        }
+        
+        // Close modal after a short delay
+        setTimeout(() => {
+          handleClose();
+        }, 1500);
       } else {
         toast.error(
-          response.data?.reason ||
-            response.message ||
-            "Failed to submit report. Please try again."
+          response.message || "Failed to update report. Please try again."
         );
       }
     } catch (error) {
       toast.error(
         error?.response?.data?.reason ||
-          "Failed to submit report. Please try again."
+          "Failed to update report. Please try again."
       );
-      console.error("Error submitting report:", error);
+      console.error("Error updating report:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -119,7 +143,7 @@ const ReportLandlordModal = ({
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !report) return null;
 
   return (
     <AnimatePresence>
@@ -139,19 +163,18 @@ const ReportLandlordModal = ({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-gradient-to-r from-red-500 to-orange-600 px-8 py-6 rounded-t-3xl">
+            <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-500 to-indigo-600 px-8 py-6 rounded-t-3xl">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-white/40 backdrop-blur-md rounded-2xl border border-white/30 shadow-lg">
-                    <Flag className="w-8 h-8 text-white" />
+                    <Edit className="w-8 h-8 text-white" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-black text-white">
-                      Report Landlord
+                      Update Report
                     </h2>
-                    <p className="text-red-100 text-sm mt-1">
-                      Reporting{" "}
-                      <span className="font-bold">{landlordName}</span>
+                    <p className="text-blue-100 text-sm mt-1">
+                      Editing your report submission
                     </p>
                   </div>
                 </div>
@@ -177,30 +200,30 @@ const ReportLandlordModal = ({
                   <CheckCircle className="w-14 h-14 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-neutral-900 mb-3">
-                  Report Submitted
+                  Report Updated
                 </h3>
                 <p className="text-neutral-600 max-w-md mx-auto">
-                  Thank you for bringing this to our attention. Our team will
-                  review your report and take appropriate action.
+                  Your report has been successfully updated. Our team will
+                  review the changes.
                 </p>
               </Motion.div>
             ) : (
               <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                {/* Warning Banner */}
+                {/* Info Banner */}
                 <Motion.div
-                  className="bg-amber-100 border-l-4 border-amber-600 p-4 rounded-lg"
+                  className="bg-blue-100 border-l-4 border-blue-600 p-4 rounded-lg"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                 >
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-bold text-amber-900">
-                        Important Notice
+                      <p className="text-sm font-bold text-blue-900">
+                        Update Your Report
                       </p>
-                      <p className="text-xs text-amber-800 mt-1">
-                        False reports may result in account suspension. Only
-                        submit genuine concerns.
+                      <p className="text-xs text-blue-800 mt-1">
+                        You can modify the reason and description of your report.
+                        Changes will be reviewed by our team.
                       </p>
                     </div>
                   </div>
@@ -219,8 +242,8 @@ const ReportLandlordModal = ({
                         onClick={() => setSelectedReason(reason.id)}
                         className={`p-4 rounded-xl border-2 text-left transition-all ${
                           selectedReason === reason.id
-                            ? "border-red-500 bg-red-50 shadow-md"
-                            : "border-neutral-200 bg-white hover:border-red-300 hover:shadow-sm"
+                            ? "border-blue-500 bg-blue-50 shadow-md"
+                            : "border-neutral-200 bg-white hover:border-blue-300 hover:shadow-sm"
                         }`}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
@@ -231,7 +254,7 @@ const ReportLandlordModal = ({
                             <p
                               className={`font-bold text-sm ${
                                 selectedReason === reason.id
-                                  ? "text-red-700"
+                                  ? "text-blue-700"
                                   : "text-neutral-900"
                               }`}
                             >
@@ -245,7 +268,7 @@ const ReportLandlordModal = ({
                             <Motion.div
                               initial={{ scale: 0 }}
                               animate={{ scale: 1 }}
-                              className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"
+                              className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center"
                             >
                               <svg
                                 className="w-3 h-3 text-white"
@@ -272,7 +295,7 @@ const ReportLandlordModal = ({
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="bg-white rounded-xl p-6 border-2 border-orange-200 shadow-sm"
+                    className="bg-white rounded-xl p-6 border-2 border-blue-200 shadow-sm"
                   >
                     <label
                       htmlFor="customReason"
@@ -285,7 +308,7 @@ const ReportLandlordModal = ({
                       type="text"
                       value={customReason}
                       onChange={(e) => setCustomReason(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all text-neutral-700 placeholder:text-neutral-400"
+                      className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-neutral-700 placeholder:text-neutral-400"
                       placeholder="Please specify your reason..."
                       required={selectedReason === "other"}
                     />
@@ -293,7 +316,7 @@ const ReportLandlordModal = ({
                 )}
 
                 {/* Description */}
-                <div className="bg-white rounded-xl p-6 border-2 border-orange-200 shadow-sm">
+                <div className="bg-white rounded-xl p-6 border-2 border-blue-200 shadow-sm">
                   <label
                     htmlFor="description"
                     className="block text-sm font-bold text-neutral-800 mb-3"
@@ -306,7 +329,7 @@ const ReportLandlordModal = ({
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     maxLength={1000}
-                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none transition-all text-neutral-700 placeholder:text-neutral-400"
+                    className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-all text-neutral-700 placeholder:text-neutral-400"
                     placeholder="Please provide detailed information about your concern. Include dates, specific incidents, and any relevant details..."
                     required
                   />
@@ -343,7 +366,7 @@ const ReportLandlordModal = ({
                         description.trim().length < 20 ||
                         isSubmitting
                           ? "#d1d5db"
-                          : "linear-gradient(to right, #ef4444, #f97316)",
+                          : "linear-gradient(to right, #3b82f6, #6366f1)",
                     }}
                     whileHover={
                       selectedReason &&
@@ -363,12 +386,12 @@ const ReportLandlordModal = ({
                     {isSubmitting ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>Submitting Report...</span>
+                        <span>Updating Report...</span>
                       </>
                     ) : (
                       <>
                         <Send className="w-5 h-5" />
-                        <span>Submit Report</span>
+                        <span>Update Report</span>
                       </>
                     )}
                   </Motion.button>
@@ -393,11 +416,19 @@ const ReportLandlordModal = ({
   );
 };
 
-ReportLandlordModal.propTypes = {
+UpdateReportModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
-  landlordName: PropTypes.string.isRequired,
-  landlordSlug: PropTypes.string.isRequired,
+  report: PropTypes.shape({
+    report_slug: PropTypes.string.isRequired,
+    reason: PropTypes.string,
+    custom_reason: PropTypes.string,
+    description: PropTypes.string,
+    landlord_name: PropTypes.string,
+    property_slug: PropTypes.string,
+  }),
+  onUpdateSuccess: PropTypes.func,
 };
 
-export default ReportLandlordModal;
+export default UpdateReportModal;
+

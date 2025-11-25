@@ -3,6 +3,8 @@ import Wishlist from "../pages/authPages/Wishlist";
 import Notifications from "../pages/authPages/Notifications";
 import Dashboard from "../pages/authPages/Dashboard";
 import Profile from "../pages/authPages/Profile";
+import MyReports from "../pages/authPages/MyReports";
+import ReportDetails from "../pages/authPages/ReportDetails";
 import PropertyDetails from "../pages/guestPages/PropertyDetails";
 import AllProperties from "../pages/guestPages/AllProperties";
 import ScheduleViewing from "../pages/guestPages/ScheduleViewing";
@@ -44,6 +46,22 @@ function RentorRoutes() {
         element={
           <ProtectedRoute requiredRoles={["rentor"]}>
             <Wishlist />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-reports"
+        element={
+          <ProtectedRoute requiredRoles={["rentor"]}>
+            <MyReports />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-reports/:reportSlug"
+        element={
+          <ProtectedRoute requiredRoles={["rentor"]}>
+            <ReportDetails />
           </ProtectedRoute>
         }
       />

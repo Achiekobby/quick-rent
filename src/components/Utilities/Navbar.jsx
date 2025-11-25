@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
-import { Menu, X, User, Home, HelpCircle, Heart, Settings, Bell, LogOut, ChevronRight, PlusCircle, Building2 } from "lucide-react";
+import { Menu, X, User, Home, HelpCircle, Heart, Settings, Bell, LogOut, ChevronRight, PlusCircle, Building2, Flag } from "lucide-react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import Images from "../../utils/Images";
 import Colors from "../../utils/Colors";
@@ -133,6 +133,7 @@ const Navbar = () => {
       baseItems.push(
         { icon: <HelpCircle size={18} />, text: "Help Center", to: "/contact-support", divider: false, color: "#8B5CF6" },
         { icon: <Heart size={18} />, text: "Wishlist", to: "/wishlist", divider: false, color: "#EC4899" },
+        { icon: <Flag size={18} />, text: "My Reports", to: "/my-reports", divider: false, color: "#EF4444" },
         { icon: <Settings size={18} />, text: "Settings", to: "/settings", divider: true, color: "#6B7280" },
       );
     } else if (userType === 'landlord') {
