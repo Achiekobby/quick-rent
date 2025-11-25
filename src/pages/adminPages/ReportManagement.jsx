@@ -12,8 +12,11 @@ import {
   MessageSquare,
   User,
   Calendar,
+  FileText,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   MoreHorizontal,
   Ban,
   ShieldCheck,
@@ -42,15 +45,15 @@ const ReportManagement = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionType, setActionType] = useState(null);
-  const [actionNote, setActionNote] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
-    under_investigation: 0,
+    investigating: 0,
     resolved: 0,
-    dismissed: 0,
   });
 
   // Fetch reports
@@ -62,10 +65,20 @@ const ReportManagement = () => {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const response = await reportRequests.getAllReports();
+      const response = await reportRequests.getReports();
       
-      if (!response.in_error) {
-        const reportsData = response.data?.reports || [];
+      if (!response.data.in_error && response?.data?.status_code === "000") {
+        // Handle object structure - convert to array if needed
+        const data = response.data?.data || {};
+        const reportsData = Array.isArray(data) 
+          ? data 
+          : Object.values(data).map((report, index) => ({
+              ...report,
+              id: report.report_slug || index,
+              report_id: report.report_slug || index,
+              created_at: report.timestamps?.created_at || report.created_at,
+              updated_at: report.timestamps?.updated_at || report.updated_at,
+            }));
         setReports(reportsData);
         calculateStats(reportsData);
       } else {
@@ -83,9 +96,8 @@ const ReportManagement = () => {
     const stats = {
       total: reportsData.length,
       pending: reportsData.filter((r) => r.status === "pending").length,
-      under_investigation: reportsData.filter((r) => r.status === "under_investigation").length,
+      investigating: reportsData.filter((r) => r.status === "investigating").length,
       resolved: reportsData.filter((r) => r.status === "resolved").length,
-      dismissed: reportsData.filter((r) => r.status === "dismissed").length,
     };
     setStats(stats);
   };
@@ -109,42 +121,79 @@ const ReportManagement = () => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (report) =>
-          report.landlord_name?.toLowerCase().includes(query) ||
-          report.reporter_name?.toLowerCase().includes(query) ||
+          report.landlord?.full_name?.toLowerCase().includes(query) ||
+          report.user?.full_name?.toLowerCase().includes(query) ||
+          report.property?.title?.toLowerCase().includes(query) ||
           report.description?.toLowerCase().includes(query) ||
+          report.report_slug?.toLowerCase().includes(query) ||
           report.report_id?.toString().includes(query)
       );
     }
 
     setFilteredReports(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [reports, selectedStatus, selectedReason, searchQuery]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedReports = filteredReports.slice(startIndex, endIndex);
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
 
   const handleAction = async () => {
     if (!actionType || !selectedReport) return;
-    
-    if (actionType !== 'dismiss' && !actionNote.trim()) {
-      toast.error("Please provide notes for this action");
-      return;
-    }
 
     setActionLoading(true);
     try {
-      const payload = {
-        report_id: selectedReport.id,
-        action: actionType,
-        admin_notes: actionNote,
-      };
-
-      const response = await reportRequests.updateReportStatus(payload);
+      // Map action type to status: "investigating" or "resolved"
+      const status = actionType === 'resolve' ? 'resolved' : 'investigating';
       
-      if (!response.in_error) {
-        toast.success(`Report ${actionType === 'resolve' ? 'resolved' : actionType === 'investigate' ? 'under investigation' : 'dismissed'} successfully`);
+      const reportSlug = selectedReport.report_slug || selectedReport.id;
+      const response = await reportRequests.updateReportStatus(reportSlug, { status });
+      
+      if (response.status) {
+        toast.success(`Report ${status === 'resolved' ? 'resolved' : 'under investigation'} successfully`);
         setShowActionModal(false);
-        setActionNote("");
         setActionType(null);
         fetchReports();
       } else {
-        toast.error(response.reason || "Failed to update report");
+        toast.error(response.message || "Failed to update report");
       }
     } catch (error) {
       console.error("Error updating report:", error);
@@ -163,7 +212,7 @@ const ReportManagement = () => {
         icon: Clock,
         label: "Pending",
       },
-      under_investigation: {
+      investigating: {
         bg: "bg-blue-100",
         text: "text-blue-700",
         border: "border-blue-300",
@@ -176,13 +225,6 @@ const ReportManagement = () => {
         border: "border-green-300",
         icon: CheckCircle,
         label: "Resolved",
-      },
-      dismissed: {
-        bg: "bg-gray-100",
-        text: "text-gray-700",
-        border: "border-gray-300",
-        icon: XCircle,
-        label: "Dismissed",
       },
     };
 
@@ -217,14 +259,6 @@ const ReportManagement = () => {
     );
   };
 
-  const getSeverityColor = (reason) => {
-    const high = ["fraud", "harassment", "discrimination"];
-    const medium = ["unsafe", "contract_violation"];
-    
-    if (high.includes(reason)) return "border-l-4 border-l-red-500";
-    if (medium.includes(reason)) return "border-l-4 border-l-yellow-500";
-    return "border-l-4 border-l-blue-500";
-  };
 
   if (loading) {
     return (
@@ -270,13 +304,12 @@ const ReportManagement = () => {
         </Motion.div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: "Total Reports", value: stats.total, icon: Flag, color: "from-gray-500 to-gray-600" },
             { label: "Pending", value: stats.pending, icon: Clock, color: "from-yellow-500 to-orange-500" },
-            { label: "Investigating", value: stats.under_investigation, icon: Activity, color: "from-blue-500 to-cyan-500" },
+            { label: "Investigating", value: stats.investigating, icon: Activity, color: "from-blue-500 to-cyan-500" },
             { label: "Resolved", value: stats.resolved, icon: CheckCircle, color: "from-green-500 to-emerald-500" },
-            { label: "Dismissed", value: stats.dismissed, icon: XCircle, color: "from-gray-500 to-slate-500" },
           ].map((stat, index) => (
             <Motion.div
               key={stat.label}
@@ -323,9 +356,8 @@ const ReportManagement = () => {
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
-              <option value="under_investigation">Under Investigation</option>
+              <option value="investigating">Under Investigation</option>
               <option value="resolved">Resolved</option>
-              <option value="dismissed">Dismissed</option>
             </select>
 
             {/* Reason Filter */}
@@ -346,14 +378,14 @@ const ReportManagement = () => {
           </div>
         </Motion.div>
 
-        {/* Reports List */}
-        <div className="space-y-4">
+        {/* Reports Table */}
+        <Motion.div
+          className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           {filteredReports.length === 0 ? (
-            <Motion.div
-              className="bg-white rounded-2xl p-12 text-center shadow-md"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
+            <div className="p-12 text-center">
               <Flag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-gray-900 mb-2">No Reports Found</h3>
               <p className="text-gray-600">
@@ -361,151 +393,299 @@ const ReportManagement = () => {
                   ? "Try adjusting your filters"
                   : "No reports have been submitted yet"}
               </p>
-            </Motion.div>
+            </div>
           ) : (
-            filteredReports.map((report, index) => (
-              <Motion.div
-                key={report.id}
-                className={`bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all ${getSeverityColor(report.reason)}`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                  {/* Left Section */}
-                  <div className="flex-1 space-y-4">
-                    {/* Header Row */}
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-4">
-                        <div className="p-3 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl shadow-md">
-                          <Flag className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-bold text-gray-900">
-                            Report #{report.report_id || report.id}
-                          </h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            {getReasonBadge(report.reason)}
-                            {getStatusBadge(report.status)}
-                          </div>
-                        </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                {/* Table Header */}
+                <thead className="bg-gradient-to-r from-red-50 via-orange-50 to-red-50 border-b-2 border-red-200">
+                  <tr>
+                    <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      <div className="flex items-center gap-2">
+                        <Flag className="w-4 h-4 text-red-600" />
+                        Report ID
                       </div>
-                    </div>
+                    </th>
+                    <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      Landlord
+                    </th>
+                    <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      Reporter
+                    </th>
+                    <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      Reason
+                    </th>
+                    <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                {/* Table Body */}
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {paginatedReports.map((report, index) => {
+                    const isPending = report.status === "pending";
+                    const isInvestigating = report.status === "investigating";
+                    const isResolved = report.status === "resolved";
 
-                    {/* Landlord & Reporter Info */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-16">
-                      <div className="space-y-2">
-                        <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Reported Landlord</p>
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-gray-400" />
-                          <span className="font-semibold text-gray-900">{report.landlord_name}</span>
-                        </div>
-                        {report.landlord_email && (
-                          <div className="flex items-center gap-2">
-                            <Mail className="w-4 h-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{report.landlord_email}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Reported By</p>
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-gray-400" />
-                          <span className="font-semibold text-gray-900">{report.reporter_name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-600">{moment(report.created_at).format("MMM DD, YYYY HH:mm")}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Description Preview */}
-                    <div className="pl-16">
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {report.description}
-                      </p>
-                    </div>
-
-                    {/* Custom Reason (if other) */}
-                    {report.reason === "other" && report.custom_reason && (
-                      <div className="pl-16">
-                        <p className="text-sm text-gray-500 italic">
-                          Custom reason: {report.custom_reason}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex lg:flex-col gap-2">
-                    <Motion.button
-                      onClick={() => {
-                        setSelectedReport(report);
-                        setShowDetailModal(true);
-                      }}
-                      className="flex-1 lg:flex-none px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Eye className="w-4 h-4" />
-                      View Details
-                    </Motion.button>
-
-                    {report.status === "pending" && (
-                      <>
-                        <Motion.button
-                          onClick={() => {
-                            setSelectedReport(report);
-                            setActionType("investigate");
-                            setShowActionModal(true);
-                          }}
-                          className="flex-1 lg:flex-none px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <Activity className="w-4 h-4" />
-                          Investigate
-                        </Motion.button>
-
-                        <Motion.button
-                          onClick={() => {
-                            setSelectedReport(report);
-                            setActionType("dismiss");
-                            setShowActionModal(true);
-                          }}
-                          className="flex-1 lg:flex-none px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <XCircle className="w-4 h-4" />
-                          Dismiss
-                        </Motion.button>
-                      </>
-                    )}
-
-                    {report.status === "under_investigation" && (
-                      <Motion.button
+                    return (
+                      <Motion.tr
+                        key={report.report_slug || report.id}
+                        className="group hover:bg-gradient-to-r hover:from-red-50/30 hover:via-orange-50/20 hover:to-red-50/30 transition-all duration-200 cursor-pointer"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.03 }}
                         onClick={() => {
                           setSelectedReport(report);
-                          setActionType("resolve");
-                          setShowActionModal(true);
+                          setShowDetailModal(true);
                         }}
-                        className="flex-1 lg:flex-none px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-sm"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
                       >
-                        <CheckCircle className="w-4 h-4" />
-                        Resolve
-                      </Motion.button>
-                    )}
-                  </div>
-                </div>
-              </Motion.div>
-            ))
+                        {/* Report ID */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-1 h-10 rounded-r-full ${
+                              isPending ? "bg-gradient-to-b from-yellow-400 to-orange-500" :
+                              isInvestigating ? "bg-gradient-to-b from-blue-400 to-cyan-500" :
+                              isResolved ? "bg-gradient-to-b from-green-400 to-emerald-500" :
+                              "bg-gray-400"
+                            }`} />
+                            <div>
+                              <div className="text-sm font-bold text-gray-900">
+                                #{report.report_slug?.slice(0, 8) || report.id}
+                              </div>
+                              {report.property?.title && (
+                                <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                  <MapPin className="w-3 h-3" />
+                                  <span className="truncate max-w-[120px]">{report.property.title}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Landlord */}
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="p-1.5 bg-gradient-to-br from-red-500 to-orange-600 rounded-lg flex-shrink-0">
+                              <User className="w-3.5 h-3.5 text-white" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-semibold text-gray-900 truncate">
+                                {report.landlord?.full_name || "Unknown"}
+                              </div>
+                              {report.landlord?.business_name && (
+                                <div className="text-xs text-gray-500 truncate">
+                                  {report.landlord.business_name}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Reporter */}
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {report.user?.profile_picture ? (
+                              <img
+                                src={report.user.profile_picture}
+                                alt={report.user.full_name}
+                                className="w-7 h-7 rounded-full object-cover border-2 border-blue-200 flex-shrink-0"
+                                onError={(e) => {
+                                  e.target.style.display = "none";
+                                  e.target.nextSibling.style.display = "flex";
+                                }}
+                              />
+                            ) : null}
+                            <div
+                              className={`w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold border-2 border-blue-200 flex-shrink-0 ${
+                                report.user?.profile_picture ? "hidden" : ""
+                              }`}
+                            >
+                              {report.user?.full_name?.charAt(0) || "U"}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-semibold text-gray-900 truncate">
+                                {report.user?.full_name || "Unknown"}
+                              </div>
+                              {report.user?.email && (
+                                <div className="text-xs text-gray-500 truncate">
+                                  {report.user.email}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Reason */}
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2">
+                            {getReasonBadge(report.reason)}
+                          </div>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-4 py-4">
+                          {getStatusBadge(report.status)}
+                        </td>
+
+                        {/* Date */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {moment(report.timestamps?.created_at || report.created_at).format("MMM DD, YYYY")}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {moment(report.timestamps?.created_at || report.created_at).format("HH:mm")}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            <Motion.button
+                              onClick={() => {
+                                setSelectedReport(report);
+                                setShowDetailModal(true);
+                              }}
+                              className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all shadow-md hover:shadow-lg"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Motion.button>
+
+                            {report.status === "pending" && (
+                              <Motion.button
+                                onClick={() => {
+                                  setSelectedReport(report);
+                                  setActionType("investigate");
+                                  setShowActionModal(true);
+                                }}
+                                className="p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-all shadow-md hover:shadow-lg"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                title="Start Investigation"
+                              >
+                                <Activity className="w-4 h-4" />
+                              </Motion.button>
+                            )}
+
+                            {report.status === "investigating" && (
+                              <Motion.button
+                                onClick={() => {
+                                  setSelectedReport(report);
+                                  setActionType("resolve");
+                                  setShowActionModal(true);
+                                }}
+                                className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-all shadow-md hover:shadow-lg"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                title="Resolve Report"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </Motion.button>
+                            )}
+                          </div>
+                        </td>
+                      </Motion.tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
-        </div>
+
+          {/* Pagination */}
+          {filteredReports.length > 0 && (
+            <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* Items per page selector */}
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-gray-700">Show:</label>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="px-3 py-1.5 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all text-sm font-medium bg-white"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                  <span className="text-sm text-gray-600">
+                    of {filteredReports.length} reports
+                  </span>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="flex items-center gap-2">
+                  <Motion.button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg border-2 border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    whileHover={currentPage !== 1 ? { scale: 1.05 } : {}}
+                    whileTap={currentPage !== 1 ? { scale: 0.95 } : {}}
+                  >
+                    <ChevronLeft className="w-5 h-5 text-gray-600" />
+                  </Motion.button>
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers().map((page, idx) => (
+                      page === '...' ? (
+                        <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">
+                          ...
+                        </span>
+                      ) : (
+                        <Motion.button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                            currentPage === page
+                              ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white shadow-lg scale-105'
+                              : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-red-300 hover:bg-red-50'
+                          }`}
+                          whileHover={currentPage !== page ? { scale: 1.05 } : {}}
+                          whileTap={currentPage !== page ? { scale: 0.95 } : {}}
+                        >
+                          {page}
+                        </Motion.button>
+                      )
+                    ))}
+                  </div>
+
+                  <Motion.button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg border-2 border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    whileHover={currentPage !== totalPages ? { scale: 1.05 } : {}}
+                    whileTap={currentPage !== totalPages ? { scale: 0.95 } : {}}
+                  >
+                    <ChevronRight className="w-5 h-5 text-gray-600" />
+                  </Motion.button>
+                </div>
+
+                {/* Page Info */}
+                <div className="text-sm text-gray-600 font-medium">
+                  Page {currentPage} of {totalPages}
+                </div>
+              </div>
+            </div>
+          )}
+        </Motion.div>
 
         {/* Detail Modal */}
         <AnimatePresence>
@@ -534,7 +714,7 @@ const ReportManagement = () => {
                       <div>
                         <h2 className="text-2xl font-black text-white">Report Details</h2>
                         <p className="text-red-100 text-sm mt-1">
-                          Report #{selectedReport.report_id || selectedReport.id}
+                          Report #{selectedReport.id}
                         </p>
                       </div>
                     </div>
@@ -558,61 +738,199 @@ const ReportManagement = () => {
                   </div>
 
                   {/* Landlord Info */}
-                  <div className="bg-red-50 rounded-2xl p-6 border-2 border-red-200">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Reported Landlord</h3>
+                  <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl p-6 border-2 border-red-200 shadow-lg">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-3 bg-gradient-to-br from-red-500 to-orange-600 rounded-xl">
+                        <User className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900">Reported Landlord</h3>
+                    </div>
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
                         <User className="w-5 h-5 text-red-600" />
-                        <span className="font-semibold text-gray-900">{selectedReport.landlord_name}</span>
+                        <span className="font-bold text-gray-900 text-lg">{selectedReport.landlord?.full_name || "Unknown"}</span>
                       </div>
-                      {selectedReport.landlord_email && (
-                        <div className="flex items-center gap-3">
-                          <Mail className="w-5 h-5 text-red-600" />
-                          <span className="text-gray-700">{selectedReport.landlord_email}</span>
+                      {selectedReport.landlord?.business_name && (
+                        <div className="ml-8">
+                          <p className="text-sm font-semibold text-gray-500 mb-1">Business</p>
+                          <p className="text-gray-700">{selectedReport.landlord.business_name}</p>
+                          {selectedReport.landlord.business_type && (
+                            <p className="text-xs text-gray-500 mt-1">{selectedReport.landlord.business_type}</p>
+                          )}
                         </div>
                       )}
-                      {selectedReport.landlord_phone && (
-                        <div className="flex items-center gap-3">
-                          <Phone className="w-5 h-5 text-red-600" />
-                          <span className="text-gray-700">{selectedReport.landlord_phone}</span>
+                      {selectedReport.landlord?.email && (
+                        <div className="flex items-center gap-3 ml-8">
+                          <Mail className="w-4 h-4 text-red-600" />
+                          <span className="text-gray-700">{selectedReport.landlord.email}</span>
+                        </div>
+                      )}
+                      {selectedReport.landlord?.phone_number && (
+                        <div className="flex items-center gap-3 ml-8">
+                          <Phone className="w-4 h-4 text-red-600" />
+                          <span className="text-gray-700">{selectedReport.landlord.phone_number}</span>
+                        </div>
+                      )}
+                      {selectedReport.landlord?.location && (
+                        <div className="flex items-start gap-3 ml-8">
+                          <MapPin className="w-4 h-4 text-red-600 mt-0.5" />
+                          <div>
+                            <p className="text-gray-700">{selectedReport.landlord.location}</p>
+                            {selectedReport.landlord.region && (
+                              <p className="text-xs text-gray-500">{selectedReport.landlord.region}</p>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* Reporter Info */}
-                  <div className="bg-blue-50 rounded-2xl p-6 border-2 border-blue-200">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Reporter Information</h3>
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border-2 border-blue-200 shadow-lg">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
+                        <User className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900">Reporter Information</h3>
+                    </div>
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <User className="w-5 h-5 text-blue-600" />
-                        <span className="font-semibold text-gray-900">{selectedReport.reporter_name}</span>
+                        {selectedReport.user?.profile_picture ? (
+                          <img
+                            src={selectedReport.user.profile_picture}
+                            alt={selectedReport.user.full_name}
+                            className="w-10 h-10 rounded-full object-cover border-2 border-blue-200"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              e.target.nextSibling.style.display = "flex";
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className={`w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold border-2 border-blue-200 ${
+                            selectedReport.user?.profile_picture ? "hidden" : ""
+                          }`}
+                        >
+                          {selectedReport.user?.full_name?.charAt(0) || "U"}
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900 text-lg">{selectedReport.user?.full_name || "Unknown"}</p>
+                          {selectedReport.user?.gender && (
+                            <p className="text-xs text-gray-500">{selectedReport.user.gender}</p>
+                          )}
+                        </div>
                       </div>
-                      {selectedReport.reporter_email && (
-                        <div className="flex items-center gap-3">
-                          <Mail className="w-5 h-5 text-blue-600" />
-                          <span className="text-gray-700">{selectedReport.reporter_email}</span>
+                      {selectedReport.user?.email && (
+                        <div className="flex items-center gap-3 ml-13">
+                          <Mail className="w-4 h-4 text-blue-600" />
+                          <span className="text-gray-700">{selectedReport.user.email}</span>
                         </div>
                       )}
-                      <div className="flex items-center gap-3">
-                        <Calendar className="w-5 h-5 text-blue-600" />
-                        <span className="text-gray-700">{moment(selectedReport.created_at).format("MMMM DD, YYYY HH:mm")}</span>
+                      {selectedReport.user?.phone_number && (
+                        <div className="flex items-center gap-3 ml-13">
+                          <Phone className="w-4 h-4 text-blue-600" />
+                          <span className="text-gray-700">{selectedReport.user.phone_number}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3 ml-13">
+                        <Calendar className="w-4 h-4 text-blue-600" />
+                        <span className="text-gray-700">{moment(selectedReport.timestamps?.created_at || selectedReport.created_at).format("MMMM DD, YYYY HH:mm")}</span>
                       </div>
                     </div>
                   </div>
 
+                  {/* Property Info */}
+                  {selectedReport.property && (
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border-2 border-green-200 shadow-lg">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl">
+                          <MapPin className="w-6 h-6 text-white" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900">Property Information</h3>
+                      </div>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="font-bold text-gray-900 text-lg mb-1">{selectedReport.property.title}</p>
+                          {selectedReport.property.property_type && (
+                            <p className="text-sm text-gray-600">{selectedReport.property.property_type}</p>
+                          )}
+                        </div>
+                        {(selectedReport.property.location || selectedReport.property.suburb || selectedReport.property.district) && (
+                          <div className="flex items-start gap-3">
+                            <MapPin className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-gray-700">
+                                {[selectedReport.property.location, selectedReport.property.suburb, selectedReport.property.district]
+                                  .filter(Boolean)
+                                  .join(", ")}
+                              </p>
+                              {selectedReport.property.landmark && (
+                                <p className="text-xs text-gray-500 mt-1">Near: {selectedReport.property.landmark}</p>
+                              )}
+                              {selectedReport.property.region && (
+                                <p className="text-xs text-gray-500">{selectedReport.property.region}</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {selectedReport.property.price && (
+                          <div className="ml-8">
+                            <p className="text-sm font-semibold text-gray-500 mb-1">Price</p>
+                            <p className="text-lg font-bold text-green-600">
+                              ₵{parseFloat(selectedReport.property.price).toLocaleString()}
+                              <span className="text-sm font-normal text-gray-500">/month</span>
+                            </p>
+                          </div>
+                        )}
+                        {selectedReport.property.images && selectedReport.property.images.length > 0 && (
+                          <div className="mt-4">
+                            <p className="text-sm font-semibold text-gray-500 mb-2">Property Images</p>
+                            <div className="grid grid-cols-3 gap-2">
+                              {selectedReport.property.images.slice(0, 3).map((image, idx) => (
+                                <div key={image.id || idx} className="relative aspect-square rounded-lg overflow-hidden border-2 border-green-200">
+                                  <img
+                                    src={image.image_path || image.url}
+                                    alt={`Property ${idx + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  {image.is_featured && (
+                                    <div className="absolute top-1 right-1 bg-green-500 text-white text-xs font-bold px-1.5 py-0.5 rounded">
+                                      Featured
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Custom Reason */}
                   {selectedReport.reason === "other" && selectedReport.custom_reason && (
-                    <div className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200">
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">Custom Reason</h3>
-                      <p className="text-gray-700">{selectedReport.custom_reason}</p>
+                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border-2 border-purple-200 shadow-lg">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
+                          <MessageSquare className="w-5 h-5 text-white" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900">Custom Reason</h3>
+                      </div>
+                      <p className="text-gray-700 ml-11">{selectedReport.custom_reason}</p>
                     </div>
                   )}
 
                   {/* Description */}
-                  <div className="bg-white rounded-2xl p-6 border-2 border-orange-200">
-                    <h3 className="text-lg font-bold text-gray-900 mb-3">Detailed Description</h3>
-                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{selectedReport.description}</p>
+                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-6 border-2 border-orange-200 shadow-lg">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-3 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl">
+                        <FileText className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900">Detailed Description</h3>
+                    </div>
+                    <div className="bg-white rounded-xl p-4 border border-orange-200">
+                      <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{selectedReport.description}</p>
+                    </div>
                   </div>
 
                   {/* Admin Notes */}
@@ -654,9 +972,7 @@ const ReportManagement = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <h2 className="text-2xl font-black text-white">
-                        {actionType === 'resolve' ? 'Resolve Report' :
-                         actionType === 'investigate' ? 'Start Investigation' :
-                         'Dismiss Report'}
+                        {actionType === 'resolve' ? 'Resolve Report' : 'Start Investigation'}
                       </h2>
                       <p className="text-white/90 text-sm mt-1">
                         Report #{selectedReport.report_id || selectedReport.id}
@@ -678,33 +994,25 @@ const ReportManagement = () => {
                 {/* Content */}
                 <div className="p-8">
                   <div className="mb-6">
-                    <label className="block text-sm font-bold text-gray-800 mb-3">
-                      {actionType === 'dismiss' ? 'Reason for Dismissal (Optional)' : 'Action Notes *'}
-                    </label>
-                    <textarea
-                      value={actionNote}
-                      onChange={(e) => setActionNote(e.target.value)}
-                      rows="6"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none transition-all text-gray-700 placeholder:text-gray-400"
-                      placeholder={
-                        actionType === 'resolve' ? 'Describe the action taken and resolution...' :
-                        actionType === 'investigate' ? 'Note down investigation plan and next steps...' :
-                        'Optional notes about why this report is being dismissed...'
-                      }
-                    />
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200">
+                      <p className="text-sm text-gray-700">
+                        {actionType === 'resolve' 
+                          ? 'This will mark the report as resolved. The status will be updated immediately.'
+                          : 'This will move the report to investigation status. The status will be updated immediately.'}
+                      </p>
+                    </div>
                   </div>
 
                   <div className="flex gap-3">
                     <Motion.button
                       onClick={handleAction}
-                      disabled={actionLoading || (actionType !== 'dismiss' && !actionNote.trim())}
+                      disabled={actionLoading}
                       className={`flex-1 py-4 px-6 rounded-xl font-bold text-white flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg ${
                         actionType === 'resolve' ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700' :
-                        actionType === 'investigate' ? 'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700' :
-                        'bg-gradient-to-r from-gray-500 to-slate-600 hover:from-gray-600 hover:to-slate-700'
+                        'bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700'
                       }`}
-                      whileHover={!actionLoading && (actionType === 'dismiss' || actionNote.trim()) ? { scale: 1.02 } : {}}
-                      whileTap={!actionLoading && (actionType === 'dismiss' || actionNote.trim()) ? { scale: 0.98 } : {}}
+                      whileHover={!actionLoading ? { scale: 1.02 } : {}}
+                      whileTap={!actionLoading ? { scale: 0.98 } : {}}
                     >
                       {actionLoading ? (
                         <>
@@ -723,7 +1031,6 @@ const ReportManagement = () => {
                       <Motion.button
                         onClick={() => {
                           setShowActionModal(false);
-                          setActionNote("");
                           setActionType(null);
                         }}
                         className="px-6 py-4 rounded-xl font-bold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all"
